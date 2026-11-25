@@ -16,3 +16,7 @@ Thumbs.db
 .idea/
 .vscode/
 server.*.log
+
+# 打包产物
+build/
+dist/

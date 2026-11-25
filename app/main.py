@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from typing import Literal
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
@@ -13,15 +12,17 @@ from . import ai as ai_src
 from . import metadata as metadata_src
 from . import repo
 from .db import init_db, connect
+from .paths import resource_root
 
-ROOT = Path(__file__).resolve().parent.parent
-WEB = ROOT / "web"
-DOCS = ROOT / "docs"
+RESOURCE = resource_root()
+WEB = RESOURCE / "web"
+DOCS = RESOURCE / "docs"
 
 app = FastAPI(title="Colophon", version="0.1.0")
 init_db()
 
-app.mount("/design", StaticFiles(directory=DOCS), name="design")
+if DOCS.is_dir():
+    app.mount("/design", StaticFiles(directory=DOCS), name="design")
 app.mount("/static", StaticFiles(directory=WEB), name="static")
 
 
@@ -30,6 +31,14 @@ app.mount("/static", StaticFiles(directory=WEB), name="static")
 @app.get("/", include_in_schema=False)
 def index() -> FileResponse:
     return FileResponse(WEB / "index.html")
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon() -> FileResponse:
+    icon = WEB / "favicon.ico"
+    if not icon.is_file():
+        raise HTTPException(status_code=404, detail="no favicon")
+    return FileResponse(icon, media_type="image/x-icon")
 
 
 # ---------------------------------------------------------------- 模型

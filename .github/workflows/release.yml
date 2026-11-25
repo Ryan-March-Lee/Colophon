@@ -1,0 +1,51 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pyinstaller
+
+      - name: Build
+        run: python -m PyInstaller --noconfirm --clean Colophon.spec
+
+      - name: Assemble zip
+        shell: pwsh
+        run: |
+          Copy-Item "packaging\HOW-TO-USE.txt" "dist\Colophon\HOW-TO-USE.txt" -Force
+          $tag = "${{ github.ref_name }}"
+          if ($tag -notmatch '^v') { $tag = "dev" }
+          $zip = "dist/Colophon-$tag-windows-x64.zip"
+          Compress-Archive -Path "dist/Colophon/*" -DestinationPath $zip
+          "ZIP_NAME=$zip" >> $env:GITHUB_ENV
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Colophon-windows-x64
+          path: ${{ env.ZIP_NAME }}
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.ZIP_NAME }}
+          generate_release_notes: true

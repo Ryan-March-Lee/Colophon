@@ -1,15 +1,13 @@
 from __future__ import annotations
 
-import os
 import sqlite3
 import uuid
 from datetime import datetime, timezone
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-LIBRARY = Path(os.environ.get("COLOPHON_LIBRARY", str(ROOT / "library"))).expanduser().resolve()
+from .paths import LIBRARY, schema_path
+
 DB_PATH = LIBRARY / "library.db"
-SCHEMA_PATH = Path(__file__).with_name("schema.sql")
+SCHEMA_PATH = schema_path()
 
 
 def ensure_library() -> None:
