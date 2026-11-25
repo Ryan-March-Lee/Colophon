@@ -1,9 +1,14 @@
 from __future__ import annotations
 
 import json
+import os
+import stat
+import string
+from pathlib import Path
 from typing import Literal
+from uuid import UUID
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -30,7 +35,11 @@ app.mount("/static", StaticFiles(directory=WEB), name="static")
 
 @app.get("/", include_in_schema=False)
 def index() -> FileResponse:
-    return FileResponse(WEB / "index.html")
+    # 开发时改完页面，重开窗口就能拿到最新 HTML；避免 WebView2 用启发式缓存显示旧界面
+    return FileResponse(
+        WEB / "index.html",
+        headers={"Cache-Control": "no-store, must-revalidate"},
+    )
 
 
 @app.get("/favicon.ico", include_in_schema=False)
@@ -74,6 +83,12 @@ class FieldsIn(BaseModel):
 
 class FetchQueueIn(BaseModel):
     limit: int = Field(default=10, ge=1, le=50)
+    itemId: str | None = None
+
+
+class ImportPathsIn(BaseModel):
+    paths: list[str] = Field(default_factory=list, max_length=5000)
+    folder: str | None = None
 
 
 class AISettingsIn(BaseModel):
@@ -280,10 +295,12 @@ def fetch_queue_metadata(payload: FetchQueueIn) -> dict:
     conn = connect()
     results: list[dict] = []
     try:
+        item_filter = " AND id = ?" if payload.itemId is not None else ""
+        params = (payload.itemId, payload.limit) if payload.itemId is not None else (payload.limit,)
         rows = conn.execute(
             "SELECT id, title, doi, arxiv_id FROM item "
-            "WHERE needs_review = 1 AND deleted_at IS NULL ORDER BY rowid LIMIT ?",
-            (payload.limit,),
+            "WHERE needs_review = 1 AND deleted_at IS NULL" + item_filter + " ORDER BY rowid LIMIT ?",
+            params,
         ).fetchall()
         for row in rows:
             found = repo.get_item_file(conn, row["id"])
@@ -446,6 +463,231 @@ def get_conversation(conversation_id: str) -> dict:
 
 
 # ---------------------------------------------------------------- 导入
+
+MAX_FS_FILES = 2000
+_FS_SKIP_DIRS = {"$RECYCLE.BIN", "System Volume Information", "node_modules"}
+
+
+def _require_local_browser(request: Request) -> None:
+    # 自定义请求头挡住跨站简单请求；校验 Host 防止 DNS 重绑定。
+    local_hosts = {"127.0.0.1", "localhost", "::1"}
+    if (
+        request.client is None
+        or request.client.host not in local_hosts
+        or request.url.hostname not in local_hosts
+        or request.headers.get("x-colophon-import") != "1"
+    ):
+        raise HTTPException(status_code=403, detail="只能在本机 Colophon 中浏览文件")
+
+
+def _local_path(raw: str) -> Path:
+    try:
+        path = Path(raw)
+        if not path.is_absolute() or (os.name == "nt" and path.drive.startswith("\\")):
+            raise ValueError
+        resolved = path.resolve(strict=True)
+        if os.name == "nt" and resolved.drive.startswith("\\"):
+            raise ValueError
+        return resolved
+    except (OSError, ValueError, RuntimeError) as exc:
+        raise HTTPException(status_code=404, detail="本地路径不存在或不可读") from exc
+
+
+def _fs_hidden(entry: os.DirEntry) -> bool:
+    """隐藏项不列：点开头的、以及 Windows 标记为隐藏/系统的。"""
+    if entry.name.startswith(".") or entry.name in _FS_SKIP_DIRS:
+        return True
+    if os.name != "nt":
+        return False
+    try:
+        attrs = entry.stat(follow_symlinks=False).st_file_attributes
+    except (OSError, AttributeError):
+        return True
+    flags = getattr(stat, "FILE_ATTRIBUTE_HIDDEN", 0) | getattr(
+        stat, "FILE_ATTRIBUTE_SYSTEM", 0
+    )
+    return bool(attrs & flags)
+
+
+def _windows_known_folder(folder_id: str) -> Path | None:
+    if os.name != "nt":
+        return None
+
+    import ctypes
+    from ctypes import wintypes
+
+    guid = (ctypes.c_ubyte * 16).from_buffer_copy(UUID(folder_id).bytes_le)
+    path = ctypes.c_void_p()
+    get_path = ctypes.windll.shell32.SHGetKnownFolderPath
+    get_path.argtypes = (
+        ctypes.c_void_p, wintypes.DWORD, wintypes.HANDLE, ctypes.POINTER(ctypes.c_void_p)
+    )
+    get_path.restype = ctypes.c_long
+    free = ctypes.windll.ole32.CoTaskMemFree
+    free.argtypes = (ctypes.c_void_p,)
+    free.restype = None
+    try:
+        if get_path(guid, 0, None, ctypes.byref(path)) == 0 and path.value:
+            return Path(ctypes.wstring_at(path.value))
+        return None
+    finally:
+        if path.value:
+            free(path)
+
+
+def _fs_roots() -> list[dict]:
+    roots: list[dict] = []
+    seen: set[Path] = set()
+
+    def add(name: str, path: Path, kind: str) -> None:
+        try:
+            resolved = _local_path(str(path))
+            if resolved in seen or not resolved.is_dir():
+                return
+        except HTTPException:
+            return
+        seen.add(resolved)
+        roots.append({"name": name, "path": str(resolved), "kind": kind})
+
+    home = Path.home()
+    for name, fallback, kind, folder_id in (
+        ("桌面", "Desktop", "desktop", "B4BFCC3A-DB2C-424C-B029-7FE99A87C641"),
+        ("下载", "Downloads", "downloads", "374DE290-123F-4565-9164-39C4925E467B"),
+        ("文档", "Documents", "documents", "FDD39AD0-238F-46AF-ADB4-6C85480369C7"),
+    ):
+        add(name, _windows_known_folder(folder_id) or home / fallback, kind)
+    add("主目录", home, "home")
+    if os.name == "nt":
+        for letter in string.ascii_uppercase:
+            add(f"{letter}:\\", Path(f"{letter}:\\"), "drive")
+    else:
+        add("/", Path("/"), "drive")
+    return roots
+
+
+@app.get("/api/fs/list", dependencies=[Depends(_require_local_browser)])
+def fs_list(path: str | None = None) -> dict:
+    """应用内导入窗的目录列表：只列文件夹和 PDF，不列隐藏项。"""
+    if not path:
+        return {
+            "path": "",
+            "parent": None,
+            "roots": _fs_roots(),
+            "dirs": [],
+            "files": [],
+            "truncated": False,
+        }
+
+    target = _local_path(path)
+    if not target.is_dir():
+        raise HTTPException(status_code=404, detail="文件夹不存在或不可读")
+
+    dirs: list[dict] = []
+    files: list[dict] = []
+    truncated = False
+    try:
+        with os.scandir(target) as entries:
+            for entry in entries:
+                try:
+                    if _fs_hidden(entry):
+                        continue
+                    if entry.is_dir(follow_symlinks=False):
+                        dirs.append({"name": entry.name, "path": entry.path})
+                    elif entry.is_file(follow_symlinks=False) and (
+                        entry.name.lower().endswith(".pdf")
+                    ):
+                        files.append(
+                            {
+                                "name": entry.name,
+                                "path": entry.path,
+                            }
+                        )
+                except OSError:
+                    continue
+    except OSError as exc:
+        raise HTTPException(status_code=400, detail=f"无法读取这个文件夹：{exc}") from exc
+
+    dirs.sort(key=lambda d: d["name"].casefold())
+    files.sort(key=lambda f: f["name"].casefold())
+    if len(files) > MAX_FS_FILES:
+        files = files[:MAX_FS_FILES]
+        truncated = True
+
+    parent = target.parent
+    return {
+        "path": str(target),
+        "parent": None if parent == target else str(parent),
+        "roots": [],
+        "dirs": dirs,
+        "files": files,
+        "truncated": truncated,
+    }
+
+
+def _walk_pdfs(root: Path, errors: list[dict]):
+    def record_error(exc: OSError) -> None:
+        errors.append({"status": "error", "reason": str(exc), "filename": exc.filename or ""})
+
+    for dirpath, dirnames, filenames in os.walk(root, onerror=record_error):
+        # Windows 上 junction 不一定被 os.walk 当成符号链接。
+        for name in dirnames[:]:
+            try:
+                info = (Path(dirpath) / name).lstat()
+                if stat.S_ISLNK(info.st_mode) or (
+                    getattr(info, "st_reparse_tag", None)
+                    == getattr(stat, "IO_REPARSE_TAG_MOUNT_POINT", 0xA0000003)
+                ):
+                    dirnames.remove(name)
+            except OSError as exc:
+                dirnames.remove(name)
+                record_error(exc)
+        dirnames.sort(key=str.casefold)
+        for name in sorted(filenames, key=str.casefold):
+            if name.lower().endswith(".pdf"):
+                yield Path(dirpath) / name
+
+
+@app.post("/api/import/paths", dependencies=[Depends(_require_local_browser)])
+def import_paths(payload: ImportPathsIn) -> dict:
+    """按路径导入选中的 PDF，或整个文件夹（含各级子文件夹）。"""
+    if bool(payload.folder) == bool(payload.paths):
+        raise HTTPException(status_code=400, detail="请选择 PDF 或一个文件夹")
+
+    results: list[dict] = []
+    if payload.folder:
+        root = _local_path(payload.folder)
+        if not root.is_dir():
+            raise HTTPException(status_code=404, detail="文件夹不存在或不可读")
+        targets = _walk_pdfs(root, results)
+    else:
+        targets = map(Path, payload.paths)
+
+    conn = connect()
+    try:
+        for target in targets:
+            try:
+                if not target.is_absolute() or target.suffix.lower() != ".pdf" or target.is_symlink():
+                    raise ValueError("不是可导入的本地 PDF 文件")
+                source = _local_path(str(target))
+                if not source.is_file():
+                    raise ValueError("不是可导入的本地 PDF 文件")
+                results.append(
+                    repo.import_pdf(conn, target.name, source.read_bytes())
+                )
+            except (OSError, ValueError, HTTPException) as exc:
+                reason = exc.detail if isinstance(exc, HTTPException) else str(exc)
+                results.append({"status": "error", "reason": reason, "filename": target.name})
+    finally:
+        conn.close()
+
+    return {
+        "total": len(results),
+        "imported": sum(1 for r in results if r["status"] == "imported"),
+        "duplicates": sum(1 for r in results if r["status"] == "duplicate"),
+        "errors": [r for r in results if r["status"] == "error"],
+        "results": results,
+    }
+
 
 @app.post("/api/import")
 async def import_files(files: list[UploadFile] = File(...)) -> dict:

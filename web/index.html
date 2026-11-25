@@ -216,6 +216,7 @@
   .count{font-size:11.5px;color:var(--muted);min-width:0}
   .count b{color:var(--ink);font-weight:650}
   .countacts{display:flex;align-items:center;gap:6px;margin-left:auto}
+  .batch-progress{font-size:11.5px;color:var(--accent);font-variant-numeric:tabular-nums;white-space:nowrap}
   .sel{
     height:27px;border:1px solid var(--line);background:var(--panel);border-radius:7px;
     font-size:11.5px;padding:0 6px;outline:none;color:var(--muted);
@@ -484,6 +485,49 @@
   .libvals .tag{height:21px;font-size:11px}
   .mnote{font-size:10.5px;color:var(--muted-2);line-height:1.6;margin:4px 0 0;border-top:1px solid var(--line);padding-top:10px}
 
+  /* ---------- 导入浏览 ---------- */
+  .import-card{width:min(840px,100%);max-height:84vh;display:flex;flex-direction:column}
+  .importbar{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+  .importpath{
+    flex:1;min-width:0;font-size:12px;color:var(--ink);background:var(--panel-2);border:1px solid var(--line);
+    border-radius:5px;padding:6px 9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .importpane{display:grid;grid-template-columns:150px minmax(0,1fr);height:clamp(200px,49vh,470px);min-height:160px;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .importnav{overflow:auto;background:var(--panel-2);border-right:1px solid var(--line);padding:7px 5px}
+  .importnav button{display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border-radius:4px;text-align:left;font-size:12px;white-space:nowrap}
+  .importnav button:not(:disabled):hover,.improw:not(:disabled):hover{background:var(--hover)}
+  .importnav button[aria-current="location"]{background:var(--hover);box-shadow:inset 2px 0 var(--accent)}
+  .importnav h4{margin:8px 8px 3px;font-size:11px;font-weight:500;color:var(--muted)}
+  .importbody{
+    min-height:0;overflow:auto;background:var(--panel);
+  }
+  .impcolumns{position:sticky;top:0;z-index:1;display:flex;justify-content:space-between;gap:10px;padding:7px 12px 7px 37px;border-bottom:1px solid var(--line);background:var(--panel-2);font-size:11px;color:var(--muted)}
+  .improw{
+    display:flex;align-items:center;gap:8px;width:100%;min-height:32px;padding:5px 12px;
+    border-bottom:1px solid var(--line);background:transparent;text-align:left;
+    font-size:12.5px;color:var(--ink);cursor:pointer;
+  }
+  .improw:last-child{border-bottom:0}
+  .improw:has(input:checked){background:var(--hover)}
+  .improw:disabled,.importnav button:disabled{cursor:default}
+  .impicon{display:block;width:16px;height:16px;flex:none;color:var(--muted)}
+  .impname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .impsize{flex:none;font-size:10.5px;color:var(--muted-2);max-width:46%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .improw input[type="checkbox"]{
+    width:14px;height:14px;flex:none;accent-color:var(--accent);margin:0;
+  }
+  .impempty{padding:34px 16px;text-align:center;font-size:12px;color:var(--muted)}
+  .impmessage{margin:8px 0 0;font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+  .importfoot{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:10px}
+  .importsum{font-size:11px;color:var(--muted);min-width:0}
+  .importacts{display:flex;gap:8px;flex-wrap:wrap}
+  @media (max-width:560px){
+    .importpane{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
+    .importnav{display:flex;gap:3px;border-right:0;border-bottom:1px solid var(--line)}
+    .importnav button{width:auto;flex:none}
+    .importnav h4{display:none}
+  }
+
   /* ---------- toast ---------- */
   .toast{
     position:fixed;left:50%;bottom:26px;transform:translate(-50%,14px);
@@ -521,7 +565,6 @@
     .brand .sub{display:none}
     .search{margin-left:0}
     .topacts{gap:4px}
-    .topacts .btn[data-act="import"]{display:none}
   }
 
   /* ---------- 元数据 ---------- */
@@ -613,7 +656,7 @@
       </svg>
       标签库
     </button>
-    <button class="btn" data-act="import">导入</button>
+    <button class="btn" data-act="import" aria-haspopup="dialog">导入</button>
     <button class="btn" data-act="open-settings" title="模型与接口设置">
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
         <circle cx="8" cy="8" r="2.2" stroke="currentColor" stroke-width="1.3"/>
@@ -622,7 +665,6 @@
       设置
     </button>
     <button class="btn icon" data-act="theme" id="themeBtn" title="切换深浅色"></button>
-    <input type="file" id="importInput" accept="application/pdf,.pdf" multiple hidden>
   </div>
 </header>
 
@@ -708,7 +750,7 @@ const state = {
   modalOpen:false,
   modalMode:'tags',
   metaBusy:null,
-  batchBusy:false,
+  batchProgress:null,
   ai:{baseUrl:'', model:'', hasKey:false, keyHint:''},
   aiExpand:false,
   expandConfirm:false,
@@ -889,6 +931,7 @@ function checkSVG(){
    渲染：列表
    ============================================================ */
 function renderListbar(ps){
+  const batch = state.batchProgress;
   const sel = [];
   FKEYS.forEach(k => state.selected[k].forEach(v => sel.push({k, v})));
 
@@ -925,11 +968,12 @@ function renderListbar(ps){
           '<option value="cites"' + (state.sort === 'cites' ? ' selected' : '') + '>引用最多</option>' +
           '<option value="added"' + (state.sort === 'added' ? ' selected' : '') + '>入库顺序</option>' +
         '</select>' +
-        (state.reviewOnly
-          ? '<button class="btn tiny primary" data-act="fetch-all"' + (state.batchBusy ? ' disabled' : '') + '>' +
-              (state.batchBusy ? '补全中…' : '补全全部 ' + ps.length + ' 篇') +
-            '</button>'
-          : '') +
+        (batch
+          ? '<span class="batch-progress" id="batchProgress" role="status">' + batchProgressText(batch) + '</span>'
+          : state.reviewOnly
+            ? '<button class="btn tiny primary" data-act="fetch-all"' + (ps.length ? '' : ' disabled') +
+                '>补全全部 ' + ps.length + ' 篇</button>'
+            : '') +
         '<button class="btn tiny" data-act="to-ai"' + (ps.length ? '' : ' disabled') + '>问 AI · ' + ps.length + ' 篇</button>' +
       '</div>' +
     '</div>';
@@ -956,7 +1000,9 @@ function renderList(ps){
         '<div style="font-size:11px;color:var(--muted-2);line-height:1.7;margin-bottom:12px">' +
           '导入第一篇 PDF 开始。文件会复制进本地书库，原文件不动。' +
         '</div>' +
-        '<button class="btn primary" data-act="import">导入 PDF</button>' +
+        '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">' +
+          '<button class="btn primary" data-act="import" aria-haspopup="dialog">导入 PDF 或文件夹</button>' +
+        '</div>' +
       '</div>';
     }else{
       el.innerHTML = '<div class="empty">' +
@@ -1739,32 +1785,52 @@ async function fetchMeta(itemId){
   }
 }
 
+function batchProgressText(batch){
+  return '补全中 ' + batch.done + '/' + batch.total;
+}
+
 async function fetchAllMissing(){
+  if(state.batchProgress) return;
   if(!apiOnline){ toast('未连接本地服务，无法抓取元数据'); return; }
-  state.batchBusy = true;
-  renderAll();
+  const papers = getFiltered().filter(p => p.needsReview);
+  if(!papers.length) return;
+  const batch = {done:0, total:papers.length};
+  state.batchProgress = batch;
+  renderListbar(papers);
+  let ok = 0;
+  let attempted = 0;
+  let summary;
   try{
-    const res = await fetch('/api/import/queue/fetch', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ limit: 20 })
-    });
-    if(!res.ok) throw new Error('http ' + res.status);
-    const data = await res.json();
-    toast('补全 <b>' + data.ok + '</b> / ' + data.total + ' 篇' +
-      (data.total > data.ok ? '，其余可单篇抓取（扫描件会让模型读首页）' : ''));
-    await refreshPapers();
+    for(const {id} of papers){
+      const res = await fetch('/api/import/queue/fetch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({itemId:id, limit:1})
+      });
+      if(!res.ok) throw new Error('http ' + res.status);
+      const data = await res.json();
+      ok += data.ok;
+      attempted += data.total;
+      batch.done++;
+      $('#batchProgress').textContent = batchProgressText(batch);
+    }
+    summary = '补全 <b>' + ok + '</b> / ' + attempted + ' 篇' +
+      (batch.total > attempted ? '，跳过 ' + (batch.total - attempted) + ' 篇' : '') +
+      (attempted > ok ? '，其余可单篇抓取（扫描件会让模型读首页）' : '');
   }catch(err){
-    toast('批量抓取失败，请稍后再试');
+    summary = '批量抓取中断，已处理 ' + batch.done + '/' + batch.total + ' 篇，请稍后再试';
   }finally{
-    state.batchBusy = false;
-    renderAll();
+    await refreshPapers();
+    state.batchProgress = null;
+    renderListbar(getFiltered());
   }
+  toast(summary);
 }
 
 function renderModal(){
   const modal = $('#modal');
   if(!state.modalOpen){ modal.classList.remove('open'); modal.innerHTML = ''; return; }
+  if(state.modalMode === 'import'){ renderImportModal(); return; }
   if(state.modalMode === 'meta'){ renderMetaModal(); return; }
   if(state.modalMode === 'settings'){ renderSettingsModal(); return; }
   modal.classList.add('open');
@@ -2016,7 +2082,11 @@ function renderAll(){
 
 /* 事件委托 */
 document.addEventListener('click', function(e){
-  if(e.target.id === 'modal'){ state.modalOpen = false; renderModal(); return; }
+  if(e.target.id === 'modal'){
+    if(state.modalMode === 'import') closeImportBrowser();
+    else { state.modalOpen = false; renderModal(); }
+    return;
+  }
 
   const el = e.target.closest('[data-act]');
   if(!el) return;
@@ -2169,10 +2239,14 @@ document.addEventListener('click', function(e){
     if(from.toLowerCase() === to.toLowerCase()){ toast('两个写法相同，不需要合并'); return; }
     mergeTags(facet, from, to);
   }
-  else if(act === 'import'){
-    const input = $('#importInput');
-    if(input) input.click();
-  }
+  else if(act === 'import'){ openImportBrowser(el); }
+  else if(act === 'import-close'){ closeImportBrowser(); }
+  else if(act === 'import-roots'){ loadImportLocation(); }
+  else if(act === 'import-up'){ loadImportLocation(importView.location?.parent); }
+  else if(act === 'import-enter'){ loadImportLocation(el.dataset.path); }
+  else if(act === 'import-all'){ toggleImportSelection(); }
+  else if(act === 'import-selected'){ runLocalImport({paths:[...importView.selected]}); }
+  else if(act === 'import-folder'){ runLocalImport({folder:importView.location?.path}); }
   else if(act === 'reconnect'){ boot(); }
   else if(act === 'theme'){
     const root = document.documentElement;
@@ -2201,9 +2275,11 @@ document.addEventListener('change', function(e){
   if(e.target.id === 'mergeFacet'){
     paintMergeOptions();
   }
-  if(e.target.id === 'importInput'){
-    uploadFiles(e.target.files);
-    e.target.value = '';
+  if(e.target.matches('[data-import-check]') && !importView.importing){
+    const path = e.target.dataset.path;
+    if(e.target.checked) importView.selected.add(path);
+    else importView.selected.delete(path);
+    paintImportSelection();
   }
   if(e.target.id === 'attachInput'){
     const id = pdfView.itemId || state.paperId;
@@ -2249,8 +2325,21 @@ document.addEventListener('keydown', function(e){
     if(e.key === '-'){ e.preventDefault(); zoomBy(1 / 1.15); return; }
   }
   if(e.key === 'Escape' && state.modalOpen){
+    if(state.modalMode === 'import'){ closeImportBrowser(); return; }
     state.modalOpen = false;
     renderModal();
+    return;
+  }
+  if(state.modalOpen && state.modalMode === 'import'){
+    if(e.key === 'Tab'){
+      const controls = $$('#modal button:not(:disabled), #modal input:not(:disabled)');
+      const first = controls[0], last = controls[controls.length - 1];
+      if(controls.length && (!$('#modal').contains(document.activeElement) ||
+          document.activeElement === (e.shiftKey ? first : last))){
+        e.preventDefault();
+        (e.shiftKey ? last : first).focus();
+      }
+    }
     return;
   }
   if(e.key === '/' && !state.readerOpen && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){
@@ -2649,32 +2738,193 @@ async function refreshPapers(){
   }
 }
 
-async function uploadFiles(fileList){
-  if(!apiOnline){
-    toast('未连接本地服务，无法导入 PDF');
+const importView = {
+  anchor:null, location:null, roots:[], selected:new Set(), loading:false,
+  importing:false, message:'', sequence:0
+};
+
+function openImportBrowser(anchor){
+  importView.anchor = anchor;
+  state.modalOpen = true;
+  state.modalMode = 'import';
+  loadImportLocation(importView.location?.path, !importView.location);
+}
+
+function closeImportBrowser(){
+  if(importView.importing) return;
+  importView.sequence++;
+  importView.loading = false;
+  state.modalOpen = false;
+  renderModal();
+  importView.anchor?.focus();
+}
+
+async function importResponse(url, options){
+  const res = await fetch(url, {
+    ...options, headers:{...options?.headers, 'X-Colophon-Import':'1'}
+  });
+  const data = await res.json().catch(() => null);
+  if(!res.ok || !data){
+    throw new Error(typeof data?.detail === 'string' ? data.detail : '请求失败（HTTP ' + res.status + '）');
+  }
+  return data;
+}
+
+async function loadImportLocation(path, startAtDesktop = false){
+  if(importView.importing) return;
+  const seq = ++importView.sequence;
+  importView.loading = true;
+  importView.message = '';
+  renderImportModal();
+  try{
+    const data = await importResponse('/api/fs/list' + (path ? '?path=' + encodeURIComponent(path) : ''));
+    if(seq !== importView.sequence) return;
+    importView.location = data;
+    importView.selected.clear();
+    if(!data.path) importView.roots = data.roots;
+    const desktop = startAtDesktop && importView.roots.find(entry => entry.kind === 'desktop');
+    if(desktop){
+      const contents = await importResponse('/api/fs/list?path=' + encodeURIComponent(desktop.path));
+      if(seq === importView.sequence) importView.location = contents;
+    }
+  }catch(err){
+    if(seq === importView.sequence) importView.message = err.message;
+  }finally{
+    if(seq === importView.sequence){
+      importView.loading = false;
+      renderImportModal();
+    }
+  }
+}
+
+function importIcon(kind){
+  const paths = {
+    desktop:'<rect x="2" y="2.5" width="12" height="8.5" rx="1"/><path d="M8 11v3m-3 0h6"/>',
+    downloads:'<path d="M8 2v8m-3-3 3 3 3-3M3 11v2.5h10V11"/>',
+    documents:'<path d="M4 2h5l3 3v9H4zM9 2v3h3M6 8h4m-4 3h4"/>',
+    home:'<path d="m2 7 6-5 6 5m-10-1v8h8V6m-6 8v-4h4v4"/>',
+    drive:'<rect x="2" y="4" width="12" height="8" rx="1"/><path d="M2 9h12m-3 1.5h1"/>',
+    folder:'<path d="M2 12.5V4h4.5L8 5.5h6v7z"/>',
+    up:'<path d="M8 13V3M4 7l4-4 4 4"/>'
+  };
+  return '<svg class="impicon" viewBox="0 0 16 16" fill="none" stroke="currentColor"' +
+    ' stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (paths[kind] || paths.folder) + '</svg>';
+}
+
+function renderImportModal(){
+  const modal = $('#modal');
+  const {location, selected, loading, importing, message} = importView;
+  const busy = loading || importing;
+  const disabled = busy ? ' disabled' : '';
+  const locationName = importView.roots.find(entry => entry.path === location?.path)?.name;
+  const shortcut = entry => '<button data-act="import-enter" data-path="' + esc(entry.path) + '"' + disabled +
+    (entry.path === location?.path ? ' aria-current="location"' : '') + ' title="' + esc(entry.path) + '">' +
+    importIcon(entry.kind) + '<span class="impname">' + esc(entry.name) + '</span></button>';
+  const sidebar = importView.roots.filter(entry => entry.kind !== 'drive').map(shortcut).join('') +
+    (importView.roots.some(entry => entry.kind === 'drive') ? '<h4>此电脑</h4>' +
+      importView.roots.filter(entry => entry.kind === 'drive').map(shortcut).join('') : '');
+  const directoryRow = (entry, hint) =>
+    '<button class="improw" data-act="import-enter" data-path="' + esc(entry.path) + '"' + disabled + '>' +
+      importIcon(entry.kind) + '<span class="impname">' + esc(entry.name) + '</span>' +
+      '<span class="impsize">' + esc(hint) + '</span></button>';
+  let rows = '';
+  if(location?.path){
+    rows = location.dirs.map(entry => directoryRow(entry, '文件夹')).join('') +
+      location.files.map(file => '<label class="improw" title="' + esc(file.name) + '">' +
+        '<input type="checkbox" data-import-check data-path="' + esc(file.path) + '"' +
+        (selected.has(file.path) ? ' checked' : '') + disabled + '>' +
+        '<span class="impname">' + esc(file.name) + '</span><span class="impsize">PDF</span></label>').join('');
+  }else if(location){
+    rows = location.roots.map(entry => directoryRow(entry, entry.path)).join('');
+  }
+
+  modal.classList.add('open');
+  modal.innerHTML = '<div class="modal-card import-card" role="dialog" aria-modal="true" aria-labelledby="importTitle">' +
+    '<div class="mhead"><h3 id="importTitle">导入</h3>' +
+      '<button class="btn icon" data-act="import-close" aria-label="关闭" title="关闭"' +
+        (importing ? ' disabled' : '') + '>×</button></div>' +
+    '<div class="importbar"><button class="btn tiny icon" data-act="import-roots" title="常用位置" aria-label="常用位置"' +
+      disabled + '>' + importIcon('home') + '</button>' +
+      '<button class="btn tiny icon" data-act="import-up" title="上一级" aria-label="上一级"' +
+      (location?.parent && !busy ? '' : ' disabled') + '>' + importIcon('up') + '</button>' +
+      '<div class="importpath" title="' + esc(location?.path || '') + '">' +
+      esc(locationName ? locationName + (locationName !== location.path ? '  ›  ' + location.path : '') : location?.path || '常用位置') + '</div></div>' +
+    '<div class="importpane"><nav class="importnav" aria-label="常用位置与磁盘">' + sidebar + '</nav>' +
+      '<div class="importbody" aria-busy="' + busy + '">' +
+      '<div class="impcolumns"><span>名称</span><span>' + (location?.path ? '类型' : '位置') + '</span></div>' +
+      (rows || '<div class="impempty">' + (loading ? '正在读取…' : location?.path ? '没有子文件夹或 PDF' : '没有可显示的位置') +
+      '</div>') + '</div></div>' +
+    (message ? '<p class="impmessage" role="status">' + esc(message) + '</p>' : '') +
+    '<div class="importfoot"><div class="importsum"><span id="importCount" role="status"></span>' +
+      (location?.files.length && !busy ? ' · <button class="linkbtn" data-act="import-all"></button>' : '') + '</div>' +
+      '<div class="importacts"><button class="btn primary" data-act="import-selected"></button>' +
+      '<button class="btn" data-act="import-folder"' + (location?.path && !busy ? '' : ' disabled') +
+        '>导入当前文件夹（含子文件夹）</button></div></div></div>';
+  paintImportSelection();
+  if(!modal.contains(document.activeElement)){
+    const card = $('.import-card', modal);
+    card.tabIndex = -1;
+    card.focus({preventScroll:true});
+  }
+}
+
+function paintImportSelection(){
+  const {location, selected, loading, importing} = importView;
+  const count = selected.size;
+  $('#importCount').textContent = importing ? '正在导入…' : loading ? '正在读取…' : location?.path
+    ? (location.truncated ? '仅显示前 ' : '') + location.files.length + ' 个 PDF · 已选 ' + count
+    : '选择一个位置';
+  const button = $('[data-act="import-selected"]');
+  button.disabled = !count || loading || importing;
+  button.textContent = '导入选中的 PDF' + (count ? '（' + count + '）' : '');
+  const all = $('[data-act="import-all"]');
+  if(all) all.textContent = count === location.files.length ? '取消全选' : '全选';
+}
+
+function toggleImportSelection(){
+  const {location, selected, loading, importing} = importView;
+  if(loading || importing || !location?.files.length) return;
+  const checked = selected.size !== location.files.length;
+  selected.clear();
+  if(checked) location.files.forEach(file => selected.add(file.path));
+  $$('[data-import-check]').forEach(input => { input.checked = checked; });
+  paintImportSelection();
+}
+
+async function runLocalImport(payload){
+  if(importView.loading || importView.importing || (!payload.folder && !payload.paths?.length)) return;
+  importView.importing = true;
+  importView.message = '';
+  renderImportModal();
+  let data;
+  try{
+    data = await importResponse('/api/import/paths', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
+    });
+  }catch(err){
+    importView.message = '导入失败：' + err.message;
+  }finally{
+    importView.importing = false;
+  }
+  if(!data){
+    renderImportModal();
     return;
   }
-  const files = Array.from(fileList || []).filter(f => /\.pdf$/i.test(f.name) || f.type === 'application/pdf');
-  if(!files.length){ toast('只接受 PDF 文件'); return; }
 
-  const fd = new FormData();
-  files.forEach(f => fd.append('files', f, f.name));
-
-  toast('正在导入 ' + files.length + ' 个文件…');
-  try{
-    const res = await fetch('/api/import', {method:'POST', body: fd});
-    if(!res.ok) throw new Error('http ' + res.status);
-    const data = await res.json();
-    const parts = [];
-    if(data.imported) parts.push('<b>' + data.imported + '</b> 篇已入库');
-    if(data.duplicates) parts.push(data.duplicates + ' 篇重复跳过');
-    if(data.errors && data.errors.length) parts.push(data.errors.length + ' 个文件失败');
-    toast((parts.join(' · ') || '没有可导入的文件') +
-      (data.imported ? '；到「待补全」抓取元数据' : ''));
-    await refreshPapers();
-  }catch(err){
-    toast('导入失败，请检查服务是否在运行');
+  const parts = [];
+  if(data.imported) parts.push(data.imported + ' 篇已入库');
+  if(data.duplicates) parts.push(data.duplicates + ' 篇重复跳过');
+  if(data.errors.length) parts.push(data.errors.length + ' 项失败');
+  const summary = parts.join(' · ') || '没有找到可导入的 PDF';
+  if(!data.imported && !data.duplicates){
+    importView.message = summary;
+    renderImportModal();
+    return;
   }
+
+  closeImportBrowser();
+  toast(summary);
+  if(data.imported) await refreshPapers();
 }
 
 async function boot(){
