@@ -53,6 +53,8 @@ def _row_to_item(conn: sqlite3.Connection, row: sqlite3.Row) -> dict:
         missing.append("year")
     if not (row["venue"] or row["doi"] or row["arxiv_id"]):
         missing.append("venue")
+    if not orgs:
+        missing.append("orgs")
     return {
         "id": item_id,
         "title": row["title"],
@@ -119,6 +121,15 @@ def metadata_state(conn: sqlite3.Connection, item_id: str) -> dict | None:
             (item_id,),
         )
     ]
+    orgs = [
+        r["name"]
+        for r in conn.execute(
+            "SELECT o.name FROM item_org io "
+            "JOIN org o ON o.id = io.org_id "
+            "WHERE io.item_id = ? ORDER BY io.position",
+            (item_id,),
+        )
+    ]
     return {
         "title": row["title"] or "",
         "year": row["year"],
@@ -126,6 +137,7 @@ def metadata_state(conn: sqlite3.Connection, item_id: str) -> dict | None:
         "doi": row["doi"] or "",
         "arxiv_id": row["arxiv_id"] or "",
         "authors": authors,
+        "orgs": orgs,
         "needs_review": bool(row["needs_review"]),
     }
 
@@ -245,6 +257,11 @@ def _recompute_review(conn: sqlite3.Connection, item_id: str) -> list[str]:
         missing.append("title")
     if not has_author:
         missing.append("authors")
+    has_org = conn.execute(
+        "SELECT 1 FROM item_org WHERE item_id = ? LIMIT 1", (item_id,)
+    ).fetchone()
+    if not has_org:
+        missing.append("orgs")
     if not row["year"]:
         missing.append("year")
     if not (row["venue"] or row["doi"] or row["arxiv_id"]):
@@ -276,6 +293,16 @@ def _replace_people(conn: sqlite3.Connection, item_id: str, authors: list[str], 
                 "INSERT OR IGNORE INTO item_org (item_id, org_id, position) VALUES (?, ?, ?)",
                 (item_id, org_id, position),
             )
+
+
+def _replace_orgs(conn: sqlite3.Connection, item_id: str, orgs: list[str]) -> None:
+    conn.execute("DELETE FROM item_org WHERE item_id = ?", (item_id,))
+    for position, name in enumerate(o for o in orgs if o and o.strip()):
+        org_id = ensure_org(conn, name.strip())
+        conn.execute(
+            "INSERT OR IGNORE INTO item_org (item_id, org_id, position) VALUES (?, ?, ?)",
+            (item_id, org_id, position),
+        )
 
 
 def apply_metadata(
@@ -382,6 +409,8 @@ def patch_fields(conn: sqlite3.Connection, item_id: str, fields: dict) -> dict |
 
     if isinstance(fields.get("authors"), list):
         _replace_people(conn, item_id, fields["authors"], None)
+    if isinstance(fields.get("orgs"), list):
+        _replace_orgs(conn, item_id, fields["orgs"])
 
     if any(key in fields for key in ("title", "abstract")):
         conn.execute(
@@ -391,6 +420,18 @@ def patch_fields(conn: sqlite3.Connection, item_id: str, fields: dict) -> dict |
     _recompute_review(conn, item_id)
     conn.commit()
     return get_item(conn, item_id)
+
+
+def mark_items_missing_metadata_for_review(conn: sqlite3.Connection) -> int:
+    """把历史上被误标为完整、但缺少单位的条目重新放回补全队列。"""
+    cursor = conn.execute(
+        "UPDATE item SET needs_review = 1 "
+        "WHERE deleted_at IS NULL AND needs_review = 0 AND NOT EXISTS ("
+        "  SELECT 1 FROM item_org io WHERE io.item_id = item.id"
+        ")"
+    )
+    conn.commit()
+    return cursor.rowcount
 
 
 def add_tag(conn: sqlite3.Connection, item_id: str, facet: str, name: str) -> dict | None:
@@ -442,6 +483,7 @@ def add_tag(conn: sqlite3.Connection, item_id: str, facet: str, name: str) -> di
     else:
         raise ValueError("unknown facet")
 
+    _recompute_review(conn, item_id)
     conn.commit()
     return get_item(conn, item_id)
 
@@ -484,6 +526,7 @@ def remove_tag(conn: sqlite3.Connection, item_id: str, facet: str, name: str) ->
     else:
         raise ValueError("unknown facet")
 
+    _recompute_review(conn, item_id)
     conn.commit()
     return get_item(conn, item_id)
 

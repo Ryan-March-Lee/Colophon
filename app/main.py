@@ -25,6 +25,11 @@ DOCS = RESOURCE / "docs"
 
 app = FastAPI(title="Colophon", version="0.1.0")
 init_db()
+_review_conn = connect()
+try:
+    repo.mark_items_missing_metadata_for_review(_review_conn)
+finally:
+    _review_conn.close()
 
 if DOCS.is_dir():
     app.mount("/design", StaticFiles(directory=DOCS), name="design")
@@ -79,6 +84,7 @@ class FieldsIn(BaseModel):
     arxiv_id: str | None = None
     url: str | None = None
     authors: list[str] | None = None
+    orgs: list[str] | None = None
 
 
 class FetchQueueIn(BaseModel):
@@ -272,6 +278,7 @@ def fetch_item_metadata(item_id: str) -> dict:
         was_complete = bool(
             state["year"]
             and state["authors"]
+            and state["orgs"]
             and (state["venue"] or state["doi"] or state["arxiv_id"])
         )
         keep_review = bool(report.get("needsCheck")) or (
@@ -323,6 +330,7 @@ def fetch_queue_metadata(payload: FetchQueueIn) -> dict:
                     state
                     and state["year"]
                     and state["authors"]
+                    and state["orgs"]
                     and (state["venue"] or state["doi"] or state["arxiv_id"])
                     and state["needs_review"]
                 )

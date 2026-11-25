@@ -732,7 +732,7 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>'
 const labelOf = k => (FACETS.find(f => f.key === k) || {}).label || k;
 const colorOf = k => 'var(--c-' + k + ')';
 const statusLabel = s => s === 'read' ? '已读' : s === 'reading' ? '在读' : '待读';
-const fieldLabel = k => ({title:'标题', authors:'作者', year:'年份', venue:'期刊 / 会议'}[k] || k);
+const fieldLabel = k => ({title:'标题', authors:'作者', year:'年份', venue:'期刊 / 会议', orgs:'单位'}[k] || k);
 
 const state = {
   q:'',
@@ -1700,6 +1700,7 @@ function renderMetaModal(){
     '<div class="metaform">' +
       row('标题', field('mfTitle', p.title, '论文标题')) +
       row('作者', field('mfAuthors', (p.authors || []).join('; '), '多个作者用分号或逗号分隔')) +
+      row('单位', field('mfOrgs', (p.tags.org || []).join('; '), '多个单位用分号或逗号分隔')) +
       row('年份', field('mfYear', (p.tags.year || [])[0] || '', '例如 2024', 'number')) +
       row('期刊 / 会议', field('mfVenue', p.venue, '例如 NeurIPS、Nature')) +
       row('DOI', field('mfDoi', p.doi, '10.xxxx/...')) +
@@ -1728,7 +1729,8 @@ async function saveMetaFields(){
     venue: val('mfVenue'),
     doi: val('mfDoi'),
     arxiv_id: val('mfArxiv'),
-    authors: val('mfAuthors').split(/[;,、]/).map(s => s.trim()).filter(Boolean)
+    authors: val('mfAuthors').split(/[;,、]/).map(s => s.trim()).filter(Boolean),
+    orgs: val('mfOrgs').split(/[;,、]/).map(s => s.trim()).filter(Boolean)
   };
   const year = val('mfYear');
   if(year) payload.year = Number(year);
