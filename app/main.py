@@ -229,23 +229,36 @@ def merge(payload: MergeIn) -> dict:
 def fetch_item_metadata(item_id: str) -> dict:
     conn = connect()
     try:
-        row = conn.execute(
-            "SELECT title, doi, arxiv_id FROM item WHERE id = ? AND deleted_at IS NULL",
-            (item_id,),
-        ).fetchone()
-        if row is None:
+        state = repo.metadata_state(conn, item_id)
+        if state is None:
             raise HTTPException(status_code=404, detail="item not found")
         found = repo.get_item_file(conn, item_id)
         report = metadata_src.resolve(
             filename=found["name"] if found else "",
             path=found["path"] if found else None,
-            title_hint=row["title"],
-            known_doi=row["doi"] or "",
-            known_arxiv=row["arxiv_id"] or "",
+            title_hint=state["title"],
+            known_doi=state["doi"],
+            known_arxiv=state["arxiv_id"],
+            current=state,
+            conn=conn,
+            use_ai=True,
         )
         if report.get("status") != "ok":
             return {"ok": False, "report": report}
-        item = repo.apply_metadata(conn, item_id, report["meta"])
+        was_complete = bool(
+            state["year"]
+            and state["authors"]
+            and (state["venue"] or state["doi"] or state["arxiv_id"])
+        )
+        keep_review = bool(report.get("needsCheck")) or (
+            was_complete and state["needs_review"]
+        )
+        item = repo.apply_metadata(
+            conn,
+            item_id,
+            report["meta"],
+            keep_review=keep_review,
+        )
         if report["meta"].get("conflict"):
             report["message"] = report.get("message", "") + "（DOI / arXiv 已在另一条上，未重复写入）"
     finally:
@@ -265,6 +278,7 @@ def fetch_queue_metadata(payload: FetchQueueIn) -> dict:
         ).fetchall()
         for row in rows:
             found = repo.get_item_file(conn, row["id"])
+            state = repo.metadata_state(conn, row["id"])
             try:
                 report = metadata_src.resolve(
                     filename=found["name"] if found else "",
@@ -272,11 +286,23 @@ def fetch_queue_metadata(payload: FetchQueueIn) -> dict:
                     title_hint=row["title"],
                     known_doi=row["doi"] or "",
                     known_arxiv=row["arxiv_id"] or "",
+                    current=state,
+                    conn=conn,
+                    use_ai=False,  # 批量只跑规则，避免一次请求里连续等模型
                 )
             except Exception as exc:  # 单条失败不阻塞整批
                 report = {"status": "error", "message": str(exc)}
             if report.get("status") == "ok":
-                repo.apply_metadata(conn, row["id"], report["meta"])
+                keep_review = bool(
+                    state
+                    and state["year"]
+                    and state["authors"]
+                    and (state["venue"] or state["doi"] or state["arxiv_id"])
+                    and state["needs_review"]
+                )
+                repo.apply_metadata(
+                    conn, row["id"], report["meta"], keep_review=keep_review
+                )
                 if report["meta"].get("conflict"):
                     report["message"] = report.get("message", "") + "（已在另一条上，未重复写入）"
             results.append(

@@ -1038,7 +1038,7 @@ function renderDetail(){
           ? '<span class="mbmiss">缺 ' + p.missing.map(fieldLabel).join('、') + '</span>'
           : (ident
               ? '<span class="mbmono">' + esc(ident) + '</span>'
-              : (p.needsReview ? '<span class="mbmiss">没有 DOI / arXiv，只能手动补</span>' : ''))) +
+              : (p.needsReview ? '<span class="mbmiss">模型补的字段，核对后保存即清除</span>' : ''))) +
       '</div>' +
       '<div class="mbacts">' +
         '<button class="btn tiny" data-act="fetch-meta"' + (metaBusy ? ' disabled' : '') + '>' + (metaBusy ? '抓取中…' : '抓取元数据') + '</button>' +
@@ -1516,8 +1516,8 @@ function renderSettingsModal(){
     '</div>' +
     '<p class="setnote">' +
       'Key 只写在本机的 <code>library/library.db</code>，不会出现在页面或日志里。' +
-      '提问时只把问题与命中文献的摘录发给这个接口；整库文件不会上传。' +
-      '换成本地模型（Ollama、LM Studio 等）时，把接口地址指向它的 /v1 即可。' +
+      '提问时只把问题与命中文献的摘录发给这个接口；「抓取元数据」在规则补不全时，会发 PDF 前两页文本，扫描件则发首页图片。整库文件不会上传。' +
+      '换成本地模型（Ollama、LM Studio 等）时，把接口地址指向它的 /v1 即可；识图需要模型支持 image_url，纯文本模型只能读有文本层的 PDF。' +
     '</p>' +
     '<div class="metafoot">' +
       (ai.hasKey ? '<button class="btn tiny" data-act="clear-key">清除 Key</button>' : '<span></span>') +
@@ -1732,7 +1732,7 @@ async function fetchMeta(itemId){
     }
     await refreshPapers();
   }catch(err){
-    toast('抓取失败：检查网络，或这个文件里没有 DOI / arXiv');
+    toast('抓取失败：检查网络或模型设置后再试');
   }finally{
     state.metaBusy = null;
     renderAll();
@@ -1752,7 +1752,7 @@ async function fetchAllMissing(){
     if(!res.ok) throw new Error('http ' + res.status);
     const data = await res.json();
     toast('补全 <b>' + data.ok + '</b> / ' + data.total + ' 篇' +
-      (data.total > data.ok ? '，其余需要手动补' : ''));
+      (data.total > data.ok ? '，其余可单篇抓取（扫描件会让模型读首页）' : ''));
     await refreshPapers();
   }catch(err){
     toast('批量抓取失败，请稍后再试');

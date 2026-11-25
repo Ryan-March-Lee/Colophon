@@ -101,6 +101,35 @@ def import_queue(conn: sqlite3.Connection) -> list[dict]:
     return [_row_to_item(conn, row) for row in rows]
 
 
+def metadata_state(conn: sqlite3.Connection, item_id: str) -> dict | None:
+    """当前元数据快照，给「只填空、不覆盖」的判断用。"""
+    row = conn.execute(
+        "SELECT title, year, venue, doi, arxiv_id, needs_review FROM item "
+        "WHERE id = ? AND deleted_at IS NULL",
+        (item_id,),
+    ).fetchone()
+    if row is None:
+        return None
+    authors = [
+        r["display_name"]
+        for r in conn.execute(
+            "SELECT a.display_name FROM item_author ia "
+            "JOIN author a ON a.id = ia.author_id "
+            "WHERE ia.item_id = ? ORDER BY ia.position",
+            (item_id,),
+        )
+    ]
+    return {
+        "title": row["title"] or "",
+        "year": row["year"],
+        "venue": row["venue"] or "",
+        "doi": row["doi"] or "",
+        "arxiv_id": row["arxiv_id"] or "",
+        "authors": authors,
+        "needs_review": bool(row["needs_review"]),
+    }
+
+
 def list_tags(conn: sqlite3.Connection) -> list[dict]:
     rows = conn.execute(
         "SELECT t.id, t.name, t.color, t.definition, COUNT(it.item_id) AS count "
@@ -249,8 +278,17 @@ def _replace_people(conn: sqlite3.Connection, item_id: str, authors: list[str], 
             )
 
 
-def apply_metadata(conn: sqlite3.Connection, item_id: str, meta: dict) -> dict | None:
-    """把抓到的元数据写回；作者 / 单位是替换，其余字段只在有新值时覆盖。"""
+def apply_metadata(
+    conn: sqlite3.Connection,
+    item_id: str,
+    meta: dict,
+    keep_review: bool = False,
+) -> dict | None:
+    """把抓到的元数据写回；作者 / 单位是替换，其余字段只在有新值时覆盖。
+
+    keep_review=True 用于模型推断的结果：即使字段齐全也保留「待补全」，
+    等用户核对或手动保存后再清掉。
+    """
     row = conn.execute(
         "SELECT * FROM item WHERE id = ? AND deleted_at IS NULL", (item_id,)
     ).fetchone()
@@ -300,6 +338,8 @@ def apply_metadata(conn: sqlite3.Connection, item_id: str, meta: dict) -> dict |
     _replace_people(conn, item_id, meta.get("authors") or [], meta.get("orgs") or [])
     conn.execute("DELETE FROM passage WHERE item_id = ?", (item_id,))
     _recompute_review(conn, item_id)
+    if keep_review:
+        conn.execute("UPDATE item SET needs_review = 1 WHERE id = ?", (item_id,))
     conn.commit()
     return get_item(conn, item_id)
 
