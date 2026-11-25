@@ -3,8 +3,22 @@
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot
 
-$venvPython = Join-Path $PSScriptRoot ".venv\Scripts\python.exe"
-$python = if (Test-Path $venvPython) { $venvPython } else { "python" }
+# Interpreter: activated conda env, then conda env "colophon", then legacy .venv, then PATH
+$candidates = @()
+if ($env:CONDA_PREFIX) { $candidates += (Join-Path $env:CONDA_PREFIX "python.exe") }
+$conda = Get-Command conda -ErrorAction SilentlyContinue
+if ($conda) {
+    $condaBase = & conda info --base 2>$null
+    if ($condaBase -and (Test-Path $condaBase)) {
+        $candidates += (Join-Path $condaBase "envs\colophon\python.exe")
+    }
+}
+$candidates += (Join-Path $PSScriptRoot ".venv\Scripts\python.exe")
+
+$python = "python"
+foreach ($candidate in $candidates) {
+    if (Test-Path $candidate) { $python = (Resolve-Path $candidate).Path; break }
+}
 
 Write-Host "Using interpreter: $python"
 & $python -m pip install --disable-pip-version-check -q -r requirements.txt pyinstaller

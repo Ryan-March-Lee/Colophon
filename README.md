@@ -6,27 +6,34 @@
 
 ## 运行
 
-两种起法，默认和 exe 完全一致：
+环境用 conda，名字和项目一致，叫 `colophon`。第一次先建环境装依赖：
 
 ```powershell
+cd D:\Python_project\colophon
+conda create -n colophon python=3.11 -y
+conda activate colophon
+python -m pip install -r requirements.txt
+```
+
+之后每次运行，两种起法，默认和 exe 完全一致：
+
+```powershell
+conda activate colophon
+
 # 桌面窗口（日常用这个，双击 exe 走的也是这一条）
-.\.venv\Scripts\python.exe run.py
+python run.py
 
 # 浏览器（开发时方便开 DevTools，加 --reload 还能热重载）
-.\.venv\Scripts\python.exe run.py --browser
+python run.py --browser
 ```
 
 桌面窗口是 WebView2（Edge 内核）套在 FastAPI 外面，不经过浏览器标签页；`COLOPHON_DEBUG=1` 可以开 DevTools。
 
-第一次先装依赖：
+PowerShell 如果没执行过 `conda init`，`conda activate` 会报错，这时直接用环境的绝对路径：
 
 ```powershell
-cd D:\Python_project\Colophon
-D:\Anaconda\python.exe -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+D:\Anaconda\envs\colophon\python.exe run.py
 ```
-
-如果你已经把可用的 Python 加进 PATH，把上面的 `D:\Anaconda\python.exe` 换成 `python` 即可。
 
 ## 分发给同事（Windows 绿色包）
 
