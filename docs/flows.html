@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Colophon · 三条核心流程</title>
+<style>
+  *{box-sizing:border-box}
+  body{
+    margin:0;background:transparent;color:var(--foreground);
+    font-family:var(--font-sans,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif);
+    font-size:14px;-webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:860px;margin:0 auto;padding:2px 0 20px}
+  .kick{font-size:10.5px;letter-spacing:.16em;color:var(--muted-foreground);text-transform:uppercase}
+  h1{font-size:24px;line-height:1.2;margin:5px 0 7px;letter-spacing:-.02em;font-weight:650}
+  .lead{margin:0;font-size:12.5px;line-height:1.65;color:var(--muted-foreground);max-width:64ch}
+  .tabs{display:flex;gap:1px;margin-top:16px;border-bottom:1px solid var(--border)}
+  .tabs button{
+    padding:8px 10px 9px;font-size:12.5px;color:var(--muted-foreground);
+    border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;background:none;border-top:0;border-left:0;border-right:0;cursor:pointer;
+  }
+  .tabs button:hover{color:var(--foreground)}
+  .tabs button.on{color:var(--foreground);border-color:var(--foreground);font-weight:600}
+  .flow{display:none}
+  .flow.on{display:block}
+  .flowhead{margin:16px 0 0}
+  .flowhead h2{font-size:15px;margin:0 0 3px;font-weight:650;letter-spacing:.01em}
+  .flowhead p{margin:0;font-size:11.5px;color:var(--muted-foreground);line-height:1.6}
+  .steps{margin-top:4px}
+  .step{display:grid;grid-template-columns:20px minmax(0,1fr) 210px;gap:12px;padding:13px 0;border-top:1px dashed var(--border)}
+  .step:first-child{border-top:0;padding-top:6px}
+  .num{
+    width:19px;height:19px;border:1px solid var(--border);border-radius:99px;
+    display:grid;place-items:center;font-size:9.5px;color:var(--muted-foreground);
+    margin-top:20px;font-variant-numeric:tabular-nums;
+  }
+  .stepmain h3{margin:0 0 6px;font-size:13px;font-weight:600;letter-spacing:.02em}
+  .notes{padding-top:19px;display:flex;flex-direction:column;gap:7px}
+  .note{font-size:12px;line-height:1.55}
+  .note b{display:block;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted-foreground);margin-bottom:2px;font-weight:600}
+  .note p{margin:0}
+  .note.edge{background:color-mix(in srgb,var(--warning) 7%,transparent);border:1px solid color-mix(in srgb,var(--warning) 20%,transparent);border-radius:7px;padding:6px 8px}
+  .note.edge b{color:var(--warning)}
+
+  /* ---------- 迷你界面 ---------- */
+  .screen{
+    --ink:#1b1c1a;--mut:#6d6f68;--line:#e5e3da;--paper:#fffdf9;--soft:#faf9f5;
+    --green:#1f6b58;--gsoft:#e7f1ed;--amber:#b45309;
+    position:relative;height:172px;background:var(--paper);border:1px solid #e5e3da;
+    border-radius:10px;overflow:hidden;color:var(--ink);font-size:10px;line-height:1.35;
+    box-shadow:0 1px 2px rgba(20,24,20,.04);
+  }
+  .sbar{height:22px;display:flex;align-items:center;gap:3px;padding:0 8px;border-bottom:1px solid var(--line);background:var(--soft)}
+  .sbar i{width:4px;height:4px;border-radius:99px;background:#d2cfc3}
+  .sbar em{font-style:normal;font-size:8px;letter-spacing:.12em;color:var(--mut);margin-left:4px}
+  .sbody{height:150px;padding:9px 11px;display:flex;flex-direction:column;gap:6px;overflow:hidden;position:relative}
+  .center{justify-content:center}
+
+  .drop{flex:1;border:1px dashed #c9c5b8;border-radius:8px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center}
+  .dropic{width:22px;height:22px;border-radius:99px;background:var(--gsoft);color:var(--green);display:grid;place-items:center;font-size:12px;margin-bottom:1px}
+  .drop b{font-size:11px;font-weight:600}
+  .drop span{font-size:9px;color:var(--mut)}
+  .doi{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:8.5px;color:var(--mut);background:var(--soft);border:1px solid var(--line);border-radius:4px;padding:2px 6px;margin-top:3px}
+
+  .modal{border:1px solid var(--line);border-radius:8px;background:#fff;padding:8px 9px;display:flex;flex-direction:column;gap:5px;height:100%}
+  .mtitle{font-size:10px;font-weight:650;display:flex;align-items:center;gap:5px}
+  .src{font-size:7.5px;font-weight:500;color:var(--green);background:var(--gsoft);border-radius:3px;padding:1px 4px}
+  .frow{display:flex;align-items:center;gap:6px;font-size:9px;border-bottom:1px solid #f1efe8;padding-bottom:3px}
+  .frow>span:first-child{width:24px;color:var(--mut);flex:none}
+  .frow b{font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lbl{color:var(--mut);margin-left:6px}
+  .miss{color:var(--amber);background:#fdf3e7;padding:0 4px;border-radius:3px}
+  .chips{display:flex;flex-wrap:wrap;gap:3px}
+  .chip{font-size:8.5px;line-height:1;padding:3px 6px;border-radius:99px;background:var(--gsoft);color:#155b4b;border:1px solid #cfe4dc;white-space:nowrap}
+  .mact{display:flex;justify-content:flex-end;gap:5px;margin-top:auto}
+  .ghost{font-size:9px;color:var(--mut);padding:3px 7px;border-radius:4px;border:1px solid var(--line);background:#fff}
+  .primary{font-size:9px;color:#fff;padding:3px 8px;border-radius:4px;background:var(--green)}
+
+  .prog{display:flex;flex-direction:column;gap:5px;padding-top:2px}
+  .pline{display:flex;justify-content:space-between;font-size:9px}
+  .pline b{font-weight:600}
+  .mutedline{color:var(--mut)}
+  .bar{height:5px;border-radius:99px;background:#efeee8;overflow:hidden}
+  .bar i{display:block;height:100%;background:var(--green);border-radius:99px}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:8px;color:var(--mut);background:var(--soft);border:1px solid var(--line);border-radius:4px;padding:3px 5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  .librow{display:flex;flex-direction:column;gap:5px}
+  .li{display:flex;align-items:center;gap:5px;font-size:9px;padding:5px 6px;border:1px solid #f1efe8;border-radius:5px}
+  .li.sel{border-color:#bfdccf;background:var(--gsoft)}
+  .li b{font-weight:550;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .li em{margin-left:auto;font-style:normal;color:var(--mut);font-size:8px}
+  .li .d{width:4px;height:4px;border-radius:99px;background:var(--green);flex:none}
+  .toast{align-self:flex-end;background:#2b2d29;color:#fff;font-size:8.5px;border-radius:5px;padding:4px 7px}
+
+  .reader{display:flex;flex-direction:column;height:100%;gap:5px}
+  .page{flex:1;position:relative;border:1px solid var(--line);border-radius:5px;background:#fff;padding:7px 8px}
+  .line{height:4px;border-radius:2px;background:#e8e5dc;margin-bottom:5px}
+  .w9{width:92%}.w8{width:82%}.w7{width:70%}
+  .hl{background:#cfe9dd}
+  .floatbar{position:absolute;left:50%;bottom:5px;transform:translateX(-50%);font-size:7.5px;background:#fff;border:1px solid var(--line);border-radius:4px;padding:3px 6px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.06)}
+  .tagbar{display:flex;align-items:center;gap:3px;border-top:1px solid var(--line);padding-top:5px}
+  .add{font-size:8px;color:var(--green);border:1px dashed #bfdccf;border-radius:99px;padding:2px 5px}
+
+  .statusrow{display:flex;align-items:center;gap:6px}
+  .pill{font-size:8.5px;border:1px solid var(--line);border-radius:99px;padding:2px 7px;color:var(--mut);background:#fff}
+  .pill.done{color:var(--green);border-color:#bfdccf;background:var(--gsoft)}
+  .arr{color:var(--mut);font-size:9px}
+  .sheet{border:1px solid var(--line);border-radius:7px;background:#fff;padding:8px;display:flex;flex-direction:column;gap:5px;margin-top:2px}
+  .sheet b{font-size:10px}
+  .fakeinput{border:1px solid var(--line);border-radius:4px;background:var(--soft);color:var(--mut);font-size:8.5px;padding:4px 6px}
+
+  .tagpanel{display:flex;flex-direction:column;gap:4px}
+  .plabel{font-size:8px;letter-spacing:.08em;color:var(--mut);text-transform:uppercase;display:flex;gap:4px;align-items:center}
+  .hint{font-size:7.5px;letter-spacing:0;text-transform:none;color:#9a9c93}
+  .new{background:#fff;border-style:dashed;color:var(--green)}
+  .sug{display:flex;align-items:center;gap:4px;border-top:1px solid #f1efe8;padding-top:4px}
+  .sug .lbl{font-size:7.5px;color:var(--mut);letter-spacing:.06em;text-transform:uppercase;margin:0}
+  .cand{background:#fff;border-color:#e5c9a8;color:#8a5a22}
+  .sug em{margin-left:auto;font-style:normal;font-size:7.5px;color:var(--mut)}
+
+  .row2{display:flex;gap:8px;flex:1;min-height:0}
+  .rail{width:150px;border-right:1px solid var(--line);padding-right:7px;display:flex;flex-direction:column;gap:2px}
+  .rlabel{font-size:7.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);margin:4px 0 2px}
+  .rrow{display:flex;justify-content:space-between;font-size:8.5px;padding:2px 4px;border-radius:3px}
+  .rrow.on{background:var(--gsoft);color:#155b4b;font-weight:600}
+  .rrow b{font-weight:500;color:var(--mut);font-variant-numeric:tabular-nums}
+  .toastwrap{flex:1;display:flex;flex-direction:column;justify-content:flex-end}
+
+  .scopebar{display:flex;gap:6px;align-items:center;border:1px dashed #a9cdbf;background:var(--gsoft);border-radius:6px;padding:6px 7px}
+  .scopebar.warn{border-color:#e0b98e;background:#fdf3e7}
+  .lock{flex:none;font-size:9px;color:var(--green)}
+  .scopebar.warn .lock{color:var(--amber)}
+  .scopebar div b{display:block;font-size:9px;font-weight:650}
+  .scopebar div span{display:block;font-size:7.5px;color:var(--mut);margin-top:1px}
+  .composer{display:flex;align-items:center;justify-content:space-between;gap:6px;border:1px solid var(--line);border-radius:5px;background:#fff;padding:5px 6px;font-size:8.5px;color:var(--mut);margin-top:auto}
+  .send{background:var(--green);color:#fff;font-size:8px;border-radius:4px;padding:3px 7px}
+
+  .answer{display:flex;flex-direction:column;gap:6px}
+  .answer p{margin:0;font-size:9px;line-height:1.6}
+  .scope-mini{display:flex;align-items:center;gap:4px;font-size:7.5px;color:var(--mut);border-bottom:1px dashed var(--line);padding-bottom:4px;margin-bottom:2px}
+  .scope-mini i{width:4px;height:4px;border-radius:99px;background:var(--green);flex:none}
+  .ref{font-size:7px;color:var(--green);background:var(--gsoft);border-radius:3px;padding:1px 3px;vertical-align:1px;margin-left:2px}
+  .citebox{display:flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:4px;padding:4px 6px;font-size:8px;background:#fff}
+  .citebox b{color:var(--green);font-size:8px}
+  .citebox em{margin-left:auto;font-style:normal;color:var(--mut);font-size:7.5px}
+
+  .conv{border:1px solid var(--line);border-radius:7px;background:#fff;padding:8px;display:flex;flex-direction:column;gap:4px}
+  .conv b{font-size:10px}
+  .conv span{font-size:8px;color:var(--mut)}
+  .notice{font-size:8.5px;color:var(--amber);background:#fdf3e7;border:1px solid #f0dcc2;border-radius:5px;padding:5px 7px}
+
+  .batch{display:flex;flex-direction:column;gap:5px;height:100%}
+  .batchhead{display:flex;justify-content:space-between;align-items:baseline}
+  .batchhead b{font-size:10.5px}
+  .batchhead span{font-size:7.5px;color:var(--mut)}
+  .bstat{display:flex;gap:4px;font-size:7.5px}
+  .bstat span{padding:2px 5px;border-radius:3px;background:var(--soft);border:1px solid var(--line);color:var(--mut)}
+  .bstat .ok{color:var(--green);background:var(--gsoft);border-color:#cfe4dc}
+  .bstat .warn{color:var(--amber);background:#fdf3e7;border-color:#f0dcc2}
+  .brow{display:flex;align-items:center;gap:5px;font-size:8.5px;padding:3px 0;border-bottom:1px solid #f4f2ec}
+  .brow b{font-weight:550;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .brow em{margin-left:auto;font-style:normal;font-size:7.5px;color:var(--mut)}
+  .brow em.w{color:var(--amber)}
+  .brow em.g{color:var(--green)}
+  .bdot{width:4px;height:4px;border-radius:99px;background:var(--green);flex:none}
+  .bdot.w{background:var(--amber)}
+  .bdot.d{background:#c9c5b8}
+  .queue{display:flex;flex-direction:column;gap:5px;height:100%}
+  .qhead{display:flex;justify-content:space-between;align-items:baseline;font-size:9.5px;font-weight:600}
+  .qhead span{font-size:7.5px;color:var(--green);font-weight:500}
+  .qrow{display:flex;align-items:center;gap:5px;font-size:8.5px;padding:4px 5px;border:1px solid var(--line);border-radius:4px;background:#fff}
+  .qrow b{font-weight:550;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .qrow em{margin-left:auto;font-style:normal;font-size:7.5px;color:var(--amber)}
+  .queue .toast{margin-top:auto}
+  .split{display:flex;gap:8px;height:100%}
+  .minipage{flex:1;border:1px solid var(--line);border-radius:5px;background:#fff;padding:7px 8px;position:relative}
+  .minipage .pill{position:absolute;right:6px;top:6px;font-size:7px;padding:1px 4px}
+  .sidesheet{width:44%;border:1px solid var(--line);border-left:3px solid var(--green);border-radius:5px;background:#fff;padding:7px;display:flex;flex-direction:column;gap:4px}
+  .sidesheet.wide{width:52%}
+  .sidesheet .sug{margin-top:auto}
+  .sshead{display:flex;justify-content:space-between;font-size:7.5px;color:var(--mut);border-bottom:1px dashed var(--line);padding-bottom:3px}
+  .sshead span{font-size:7px;color:var(--green)}
+  .sidesheet b{font-size:9.5px}
+
+  .foot{margin-top:18px;padding-top:12px;border-top:1px solid var(--border);font-size:11px;color:var(--muted-foreground);line-height:1.6}
+
+  @media (max-width:680px){
+    .step{grid-template-columns:18px minmax(0,1fr)}
+    .notes{grid-column:2;padding-top:0;padding-bottom:4px}
+    .num{margin-top:18px}
+    .tabs{overflow-x:auto}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kick">Colophon · v1</div>
+  <h1>三条核心流程</h1>
+  <p class="lead">每一步都标了「界面 / 系统动作 / 边界」。绿色是这一步的关键动作；边界不是错误提示，而是产品承诺。</p>
+
+  <div class="tabs" role="tablist">
+    <button class="on" data-flow="import" role="tab" aria-selected="true">01 导入</button>
+    <button data-flow="tag" role="tab" aria-selected="false">02 读完打标</button>
+    <button data-flow="ai" role="tab" aria-selected="false">03 范围问答</button>
+  </div>
+
+  <!-- ================= 01 导入 ================= -->
+  <section class="flow on" id="import">
+    <div class="flowhead">
+      <h2>导入：从 PDF 到一条可检索、可打标的记录</h2>
+      <p>批量先入库、再补全；失败不留半条脏数据。</p>
+    </div>
+    <div class="steps">
+
+      <div class="step">
+        <div class="num">1</div>
+        <div class="stepmain">
+          <h3>投放</h3>
+          <div class="screen">
+            <div class="sbar"><i></i><i></i><i></i><em>Colophon</em></div>
+            <div class="sbody">
+              <div class="drop">
+                <div class="dropic">↓</div>
+                <b>把 PDF 拖到这里</b>
+                <span>或粘贴 DOI / arXiv ID</span>
+                <div class="doi">10.48550/arXiv.2501.12948</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="notes">
+          <div class="note"><b>系统动作</b><p>识别类型，批量排队；单篇和整文件夹都接受。</p></div>
+          <div class="note edge"><b>边界</b><p>非 PDF 直接拒绝，不进队列。扫描版提示「无文本层，v1 不做 OCR」，仍可入库，但 AI 读不了。</p></div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">2</div>
+        <div class="stepmain">
+          <h3>批量识别</h3>
+          <div class="screen">
+            <div class="sbar"><i></i><i></i><i></i><em>Colophon</em></div>
+            <div class="sbody">
+              <div class="batch">
+                <div class="batchhead"><b>批量导入 17 篇</b><span>只打断重复与冲突</span></div>
+                <div class="bstat"><span class="ok">12 可入库</span><span class="warn">3 待补全</span><span>2 重复</span></div>
+                <div class="brow"><span class="bdot"></span><b>DeepSeek-R1</b><em class="g">可入库</em></div>
+                <div class="brow"><span class="bdot w"></span><b>A Survey of LLMs</b><em class="w">缺单位</em></div>
+                <div class="brow"><span class="bdot w"></span><b>Mamba</b><em class="w">缺年份</em></div>
+                <div class="brow"><span class="bdot d"></span><b>Attention Is All You Need</b><em>已存在</em></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="notes">
+          <div class="note"><b>系统动作</b><p>哈希去重；从文件里识别 DOI / arXiv，抓 arXiv、Crossref、OpenAlex；字段齐直接可用，缺字段标「待补全」；重复只列出。</p></div>
+          <div class="note edge"><b>边界</b><p>不逐篇弹窗。只在重复、冲突、低置信度时打断。中途取消，已完成的保留。</p></div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">3</div>
+        <div class="stepmain">
+          <h3>托管入库</h3>
+          <div class="screen">
+            <div class="sbar"><i></i><i></i><i></i><em>Colophon</em></div>
+            <div class="sbody center">
+              <div class="prog">
+                <div class="pline"><span>复制到 files/</span><b>3 / 5</b></div>
+                <div class="bar"><i style="width:60%"></i></div>
+                <div class="mono">a1b2c3d4_deepseek-r1.pdf</div>
+                <div class="pline mutedline"><span>抽取全文 · 建索引</span><b>后台</b></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="notes">
+          <div class="note"><b>系统动作</b><p>复制而不是移动；用「ID + 标题」命名；写 file / item；后台抽全文。</p></div>
+          <div class="note edge"><b>边界</b><p>磁盘满、无权限 → 回滚，DB 不留半条。索引失败不阻塞入库，之后可重建。</p></div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">4</div>
+        <div class="stepmain">
+          <h3>待补全</h3>
+          <div class="screen">
+            <div class="sbar"><i></i><i></i><i></i><em>Colophon</em></div>
+            <div class="sbody">
+              <div class="queue">
+                <div class="qhead">待补全 3 篇 <span>批量补全</span></div>
+                <div class="qrow"><b>A Survey of LLMs</b><em>缺单位</em></div>
+                <div class="qrow"><b>Mamba</b><em>缺年份</em></div>
+                <div class="qrow"><b>BitNet</b><em>缺作者</em></div>
+                <div class="toast">12 篇已入库</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="notes">
+          <div class="note"><b>系统动作</b><p>先入库、后补全；「待补全」是一个视图，不影响阅读、打标和 AI。</p></div>
+          <div class="note edge"><b>边界</b><p>缺字段不算失败。补全前也能正常使用；批量改，不逐条逼问。</p></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ================= 02 读完打标 ================= -->
+  <section class="flow" id="tag">
+    <div class="flowhead">
+      <h2>读完打标：打标是阅读的收尾，不是入库任务</h2>
+      <p>提示是右侧侧滑，不遮挡原文；跳过就是「未打标」，不是错误。</p>
+    </div>
+    <div class="steps">
+
+      <div class="step">
+        <div class="num">1</div>
+        <div class="stepmain">
+          <h3>阅读中</h3>
+          <div class="screen">
+            <div class="sbar"><i></i><i></i><i></i><em>Colophon</em></div>
+            <div class="sbody">
+              <div class="reader">
+                <div class="page">
+                  <div class="line w9"></div>
+                  <div class="line w8"></div>
+                  <div class="line w7"></div>
+                  <div class="line w9"></div>
+                  <div class="line w8"></div>
+                  <div class="line w9"></div>
+                  <div class="line w7"></div>
+                  <div class="floatbar">翻页 · 缩放 · 加标签</div>
+                </div>
+                <div class="tagbar"><span class="chip">推理</span><span class="chip">强化学习</span><span class="add">＋ 标签</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="notes">
+          <div class="note"><b>系统动作</b><p>阅读器只读：翻页、缩放、旋转，记住上次页码；底部打标条常驻。</p></div>
+          <div class="note edge"><b>边界</b><p>扫描版没有文本层，仍能阅读，但全文搜索和 AI 用不了。v1 不做高亮与批注。</p></div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">2</div>
+        <div class="stepmain">
+          <h3>侧滑提示</h3>
+          <div class="screen">
+            <div class="sbar"><i></i><i></i><i></i><em>Colophon</em></div>
+            <div class="sbody">
+              <div class="split">
+                <div class="minipage">
+                  <div class="line w9"></div>
+                  <div class="line w8"></div>
+                  <div class="line w7"></div>
+                  <div class="line w9"></div>
+                  <div class="line w8"></div>
+                  <span class="pill done">已读</span>
+                </div>
+                <div class="sidesheet">
+                  <div class="sshead">侧滑 · 不遮挡<span>可收起</span></div>
+                  <b>读完了，留点什么？</b>
+                  <div class="fakeinput">一句话记住它</div>
+                  <div class="mact"><span class="ghost">稍后</span><span class="primary">开始打标</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="notes">
+          <div class="note"><b>系统动作</b><p>状态切到「已读」→ 右侧侧滑；原文不遮挡，可继续滚动。</p></div>
+          <div class="note edge"><b>边界</b><p>不阻断、不锁滚动；可随时收起。跳过进「未打标」，不反复弹。</p></div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">3</div>
+        <div class="stepmain">
+          <h3>打标面板</h3>
+          <div class="screen">
+            <div class="sbar"><i></i><i></i><i></i><em>Colophon</em></div>
+            <div class="sbody">
+              <div class="split">
+                <div class="minipage">
+                  <div class="line w9"></div>
+                  <div class="line w8"></div>
+                  <div class="line w7"></div>
+                  <div class="line w9"></div>
+                  <div class="line w8"></div>
+                </div>
+                <div class="sidesheet wide">
+                  <div class="sshead">侧滑 · 不遮挡<span>已读</span></div>
+                  <div class="plabel">一句话记忆</div>
+                  <div class="fakeinput">纯 RL 激发推理…</div>
+                  <div class="plabel">标签 <span class="hint">补全已有，也可新建</span></div>
+                  <div class="chips"><span class="chip">推理</span><span class="chip">强化学习</span><span class="chip new">＋ 自定</span></div>
+                  <div class="sug"><span class="lbl">AI 候选</span><span class="chip cand">蒸馏</span><span class="chip cand">评测</span><em>采纳才写入</em></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="notes">
+          <div class="note"><b>系统动作</b><p>补全已有标签；AI 从摘要 / 全文提候选；相似标签提示合并。</p></div>
+          <div class="note edge"><b>边界</b><p>新标签与旧标签高度相似 → 只提示，不自动合并。AI 建议永不自动写。空标签允许保存。</p></div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">4</div>
+        <div class="stepmain">
+          <h3>回流</h3>
+          <div class="screen">
+            <div class="sbar"><i></i><i></i><i></i><em>Colophon</em></div>
+            <div class="sbody">
+              <div class="row2">
+                <div class="rail">
+                  <div class="rlabel">标签</div>
+                  <div class="rrow on"><span>推理</span><b>3</b></div>
+                  <div class="rrow"><span>强化学习</span><b>2</b></div>
+                  <div class="rlabel">视图</div>
+                  <div class="rrow"><span>未打标</span><b>0</b></div>
+                </div>
+                <div class="toastwrap"><div class="toast">已保存</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="notes">
+          <div class="note"><b>系统动作</b><p>写 item_tag / memory / note / status；左栏计数和智能视图立即更新。</p></div>
+          <div class="note edge"><b>边界</b><p>保存失败保留输入，不清空。未打标是视图，不是错误状态。</p></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ================= 03 范围问答 ================= -->
+  <section class="flow" id="ai">
+    <div class="flowhead">
+      <h2>范围问答：先锁范围，再回答</h2>
+      <p>范围永远是可见状态。「扩到全库」必须由你点，系统不偷偷扩。</p>
+    </div>
+    <div class="steps">
+
+      <div class="step">
+        <div class="num">1</div>
+        <div class="stepmain">
+          <h3>锁定范围</h3>
+          <div class="screen">
+            <div class="sbar"><i></i><i></i><i></i><em>Colophon</em></div>
+            <div class="sbody">
+              <div class="scopebar">
+                <span class="lock">▣</span>
+                <div><b>只读当前筛选的 8 篇</b><span>回答不会引用库外文献</span></div>
+              </div>
+              <div class="chips"><span class="chip">2023</span><span class="chip">大语言模型</span></div>
+              <div class="composer">只在这 8 篇里提问…<span class="send">发送</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="notes">
+          <div class="note"><b>系统动作</b><p>把当前筛选解析成 item_ids，显示 N；搜索词也算范围的一部分。</p></div>
+          <div class="note edge"><b>边界</b><p>0 篇 → 禁用输入，只给「放宽筛选」，不自动扩全库。</p></div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">2</div>
+        <div class="stepmain">
+          <h3>显式扩范围</h3>
+          <div class="screen">
+            <div class="sbar"><i></i><i></i><i></i><em>Colophon</em></div>
+            <div class="sbody center">
+              <div class="scopebar warn">
+                <span class="lock">!</span>
+                <div><b>范围将扩到全库 15 篇</b><span>这次回答可能引用筛选外的文献</span></div>
+              </div>
+              <div class="mact"><span class="ghost">取消</span><span class="primary">扩到全库</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="notes">
+          <div class="note"><b>系统动作</b><p>二次确认；范围条变色并一直显示「全库」，可一键缩回筛选。</p></div>
+          <div class="note edge"><b>边界</b><p>绝不静默扩。扩了之后，回答里要标出哪些内容来自筛选外。</p></div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">3</div>
+        <div class="stepmain">
+          <h3>带引用的回答</h3>
+          <div class="screen">
+            <div class="sbar"><i></i><i></i><i></i><em>Colophon</em></div>
+            <div class="sbody">
+              <div class="answer">
+                <div class="scope-mini"><i></i>范围：当前筛选 8 篇</div>
+                <p>两类工作的分歧在评测：一边用静态基准，一边用人类偏好<span class="ref">[1]</span><span class="ref">[2]</span>。</p>
+                <div class="citebox"><b>[1]</b> DeepSeek-R1 <em>p.4</em></div>
+                <div class="citebox"><b>[2]</b> A Survey of LLMs <em>p.11</em></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="notes">
+          <div class="note"><b>系统动作</b><p>摘要 + 全文按词面相关性取段落 → 生成；每条结论挂来源和页码。v1 不做向量索引。</p></div>
+          <div class="note edge"><b>边界</b><p>找不到证据就说「这批里没有」，不编。引用定位失败标「未定位」，不猜页码。</p></div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">4</div>
+        <div class="stepmain">
+          <h3>保存与复现</h3>
+          <div class="screen">
+            <div class="sbar"><i></i><i></i><i></i><em>Colophon</em></div>
+            <div class="sbody center">
+              <div class="conv"><b>这 8 篇的方法差异</b><span>基于 2026-11-25 的 8 篇 · 2 条引用</span></div>
+              <div class="notice">库已变化，按当前筛选重跑？</div>
+            </div>
+          </div>
+        </div>
+        <div class="notes">
+          <div class="note"><b>系统动作</b><p>scope_json 存当时解析出的 item_ids，不只存筛选条件。</p></div>
+          <div class="note edge"><b>边界</b><p>库变化时提示重跑，不静默换范围。历史对话默认只读，重跑生成新版本。</p></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <p class="foot">三条流程共用一条底线：<b>范围可见、写入可控、失败可回退。</b></p>
+</div>
+
+<script>
+  const tabs = document.querySelectorAll('.tabs button');
+  const flows = document.querySelectorAll('.flow');
+  tabs.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      tabs.forEach(function(b){
+        const on = b === btn;
+        b.classList.toggle('on', on);
+        b.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      flows.forEach(function(f){
+        f.classList.toggle('on', f.id === btn.dataset.flow);
+      });
+    });
+  });
+</script>
+</body>
+</html>

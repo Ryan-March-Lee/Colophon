@@ -1,0 +1,18 @@
+.venv/
+__pycache__/
+*.py[cod]
+*.sqlite
+*.sqlite3
+*.db
+*.db-wal
+*.db-shm
+
+# 运行时书库（用户数据）
+library/
+!library/.gitkeep
+
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+server.*.log
