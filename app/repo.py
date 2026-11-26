@@ -54,7 +54,7 @@ def _rows_to_items(conn: sqlite3.Connection, rows: list[sqlite3.Row]) -> list[di
         ):
             orgs.setdefault(r["item_id"], []).append(r["name"])
         for r in conn.execute(
-            f"SELECT it.item_id, t.name, t.color, g.id AS group_id "
+            f"SELECT it.item_id, t.id AS tag_id, t.name, t.color, g.id AS group_id "
             f"FROM item_tag it JOIN tag t ON t.id = it.tag_id "
             f"LEFT JOIN tag_group_member m ON m.tag_id = t.id "
             f"LEFT JOIN tag_group g ON g.id = m.group_id AND g.deleted_at IS NULL "
@@ -73,11 +73,15 @@ def _rows_to_items(conn: sqlite3.Connection, rows: list[sqlite3.Row]) -> list[di
         files.setdefault(r["item_id"], r["original_name"])
 
     topic_map: dict[str, list[str]] = {}
+    topic_ids: dict[str, list[str]] = {}
     topic_group: dict[str, str | None] = {}
     for t in topics:
         names = topic_map.setdefault(t["item_id"], [])
         if t["name"] not in names:
             names.append(t["name"])
+        ids = topic_ids.setdefault(t["item_id"], [])
+        if t["tag_id"] not in ids:
+            ids.append(t["tag_id"])
         topic_group.setdefault(t["name"], t["group_id"])
     return [
         _dict_to_item(
@@ -85,6 +89,7 @@ def _rows_to_items(conn: sqlite3.Connection, rows: list[sqlite3.Row]) -> list[di
             authors.get(row["id"], []),
             orgs.get(row["id"], []),
             topic_map.get(row["id"], []),
+            topic_ids.get(row["id"], []),
             topic_group,
             files.get(row["id"]),
         )
@@ -97,6 +102,7 @@ def _dict_to_item(
     authors: list[str],
     orgs: list[str],
     topics: list[str],
+    topic_tag_ids: list[str],
     topic_group: dict[str, str | None],
     file_name: str | None,
 ) -> dict:
@@ -137,6 +143,9 @@ def _dict_to_item(
             "org": orgs,
             "topic": topics,
         },
+        # 检索内核要判断「未打标」和标签组的布尔项，名字会变（合并、改名），
+        # 所以给一份稳定的 id。名字仍留着给列表行和悬停定义用。
+        "topicIds": topic_tag_ids,
         "topicGroups": [topic_group.get(name) for name in topics],
     }
 

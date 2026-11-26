@@ -88,6 +88,8 @@
 
 **一次遍历算全部**。禁止沿用现在的写法（`web/index.html` 的 `countFor` 对每个标签值重算一遍全库过滤）。
 
+实现位置：`web/retrieval.js` 的 `evaluate(items, filters)`。上面的布尔求值、下面这张表的每个数字、组脚、年份未知三角、近失（§3）都在同一次 `items` 循环里算完，与组数和项数无关，只与篇数成正比。
+
 | 位置 | 含义 |
 |---|---|
 | 组脚（任一 / 排除） | 该组作为子句生效后，**整体**剩余篇数 |
@@ -172,7 +174,7 @@
 匹配字段：`title`、`abstract`、`venue`、作者全名、标签名、**`note_md`**。
 
 - 现在是子串、大小写不敏感，与布尔条件 AND。
-- **`note_md` 必须进检索**：现在 `matchesQuery`（`web/index.html`）漏了这一个字段。
+- **`note_md` 必须进检索**：与标题、摘要、出处、作者全名、标签名一起，落在 `web/retrieval.js` 的检索文本里（一次预处理，搜索时不再拼字符串）。
 - 一篇文献**没有**「一句话概括」字段：概括一篇文献等于丢掉它涉及的细节，而标签才是它的身份。
 - 全文（PDF 文本层）在接入后单独加入，并标注「全文」来源。
 
@@ -211,6 +213,7 @@ CREATE INDEX IF NOT EXISTS ix_tgm_group ON tag_group_member(group_id, position);
 4. **删除组**：软删组 + 删除其成员行（标签转为未分组）；需要确认，并显示影响的标签数与篇数。
 5. **改组名 / 组顺序**：只改 `tag_group`，不动标签。
 6. 组顺序按 `position` 升序；新组排末尾。未分组永远在末尾之外，不参与排序。
+7. **检索按标签 id，不按名字**：`/api/items` 每条带 `topicIds`（名字另给一份 `tags.topic`，只用于显示）。改名和合并都会让名字变，id 不会；名字当身份的话，保存的视图会在下次打开时静默少一个项。`tests/test_retrieval_contract.py` 锁住这一条。
 
 ---
 
@@ -235,10 +238,12 @@ CREATE INDEX IF NOT EXISTS ix_tgm_group ON tag_group_member(group_id, position);
 ```
 
 - `terms` 为空 → 该组不参与。
+- 视图里只存 `terms`，不存 `options`：可点的项由标签库 / 数据现算。把选项全集也存进去，等于给视图留了一份标签快照。
 - 标签合并后，视图里保留的标签 id 不变；被合并掉的 id 失效 → 该视图少一个项，**不报错**，并在打开时提示「有 1 个标签已不存在」。
 - 组被删除 → 该组条件失效，同上提示。
 - 模式（未打标 / 待补全）**不进视图**。
 - 旧的 `filter_json` 从未被任何代码写入（`saved_view` 目前无写入路径），所以不需要兼容旧格式。
+- `filter_json` 的顶层与内核的过滤器契约一致：`{ v, q, groups: [{ kind, group_id, op, terms }] }`；`sort` 落在 `saved_view.sort` 列，不重复存进 JSON。
 
 ---
 
@@ -269,6 +274,8 @@ CREATE INDEX IF NOT EXISTS ix_tgm_group ON tag_group_member(group_id, position);
 
 `§11.7` 依赖前 6 步，因为组区要有内容才看得出对不对。
 
+**7a（检索内核）已完成**：`web/retrieval.js`（纯函数，不碰 DOM）+ `tests/retrieval.test.js`（逐条死语义 + 与朴素实现穷举对拍）+ `tests/test_retrieval_contract.py`（`/api/items` 带 `topicIds`，标签 id 不随改名 / 合并漂移）。`§11.7` 剩下的只有版面：组区、表达式条、紧凑行、详情抽屉。
+
 ### 11.1 打标加速的规则
 
 - **组记忆**：选过的组写进 `localStorage`（`colophon.group`），下次打开阅读器侧栏直接选中。记住的组被删除时**不静默改投**，而是清掉记忆、回落到未分组。选「未分组」**不**覆盖记忆——否则一次临时存放会把惯用的组冲掉。
@@ -278,6 +285,8 @@ CREATE INDEX IF NOT EXISTS ix_tgm_group ON tag_group_member(group_id, position);
 
 ### 11.2 已知尚未做的（别当成已完成）
 
+- **首页还是旧版面**：左栏分面 + 常驻详情，不是检索台的组区 / 表达式条 / 紧凑行 / 详情抽屉。检索内核已就位（§11 的 7a），界面还没接上。
+- **作者 / 单位仍是左栏分面**：§1.4 要的是「不进组区」，等 7b 换版面时一起挪。
 - **标签库里的拖拽分组**：目前用「未分组 → ↗ 归入」和「删除组」，没有拖拽。
 - **组颜色/顺序编辑**：`tag_group.color/position` 已存库，但界面还不能改。
 - **近重复标签的自动提示**：标签库只列出同组标签，不会主动指出「Doherty / 非对称 Doherty」相似。
