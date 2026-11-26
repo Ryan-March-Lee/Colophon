@@ -1,4 +1,6 @@
 .venv/
+.openchamber/
+
 __pycache__/
 *.py[cod]
 *.sqlite

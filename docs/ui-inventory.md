@@ -45,8 +45,8 @@
 | `MetaBar` | 详情 | 完整、待补全、抓取中、抓取失败、DOI 冲突 |
 | `MetaEditor` | 补全弹层 | 空字段、保存中、保存失败、DOI 重复 |
 | `SideSheet` | 打标 / 详情 | 打开、收起、窄屏全屏、不锁滚动 |
-| `TagEditor` | 打标 / 标签 | 空、输入、补全、新建、重复、保存中 |
-| `TagSuggestCard` | 打标 / 标签 | 生成中、待采纳、已采纳、已忽略、失败 |
+| `TagEditor` | 阅读（仅右侧栏） | 空、输入、补全、新建、重复、保存中 |
+| `TagSuggestCard` | 阅读（仅右侧栏） | 生成中、待采纳、已采纳、已忽略、失败 |
 | `ScopeBar` | AI | 筛选范围 N、全库、0 篇、已扩范围 |
 | `ChatComposer` | AI | 可用、0 篇禁用、发送中、无 Key |
 | `MessageList` | AI | 空、流式、完成、错误、无引用 |
@@ -72,12 +72,16 @@
 
 ### 读完打标
 
+标签只有一个写入口：阅读器右侧栏。详情页的标签页只读，未打标工作台只做队列。
+
 | 屏 | 主要组件 | 必须状态 | 数据 / 动作 |
 |---|---|---|---|
-| 1 阅读中 | `PdfViewer`、`PageNav`、`ZoomControl`、`TagStrip` | 加载中、渲染失败、无文本层、文件缺失、保存失败 | 记录页码；快捷加标签 |
-| 2 侧滑提示 | `SideSheet`、`StatusToggle`、`SkipButton` | 打开、收起、已读过、不再提示 | 状态切已读；只提示一次 |
-| 3 打标面板 | `MemoryInput`、`TagEditor`、`TagSuggestCard`、`MetadataChips` | 空标签、相似标签、AI 生成中 / 失败、保存中 | 写 `item_tag` / `memory` / `note` |
-| 4 回流 | `FacetCounts`、`Toast`、`ViewLink` | 已保存、计数更新、保存失败 | 刷新左栏与智能视图 |
+| 1 阅读中 | `PdfViewer`、`PageNav`、`ZoomControl`、`ReaderSidePanel` | 加载中、渲染失败、无文本层、文件缺失、无托管 PDF（只凭标题打标）、保存失败 | 记录页码；侧栏打标 |
+| 2 侧栏打标 | `TagEditor`、`MetadataChips`、`QuickTags`、`GroupPicker` | 空标签、相似标签、新建组（组名空要拦）、保存中 | 写 `item_tag`，组归属随标签走 |
+| 3 一句话记忆 | `MemoryInput` | 空、输入中、保存失败 | 写 `memory`（防抖 600ms） |
+| 4 AI 建议 | `TagSuggestCard` | 无 Key、生成中、待采纳、已采纳、已忽略、失败 | 采纳写 `item_tag` 且落未分组 |
+| 5 未打标队列 | `QueueCard`、`MetaBar`、`NextButton`、`SkipButton` | 队列空、元数据缺失、无 PDF | 只路由：进阅读器打标 / 跳过 / 退出 |
+| 6 回流 | `FacetCounts`、`Toast`、`ViewLink` | 已保存、计数更新、保存失败 | 刷新左栏与智能视图 |
 
 ### 范围问答
 
@@ -98,6 +102,7 @@
 - 所有空状态都带一个下一步动作，不只说「没有数据」。
 - 引用点击 = 打开原文献并定位；定位失败只标「未定位」，不猜。
 - 任何自动行为（AI 建议、自动合并、扩范围）都必须可撤销或需确认。
+- 标签只有阅读器右侧栏一个写入口；详情页标签页与未打标队列都不写 `item_tag`。
 
 ---
 
@@ -109,8 +114,8 @@
 2. `FacetGroup` / `FacetRow` / `SelectedChips`
 3. `PaperCard` + 列表虚拟滚动
 4. `DetailPane` + `ViewTabs`
-5. `PdfViewer` + `PageNav` + `ZoomControl`
-6. `TagEditor` + `TagChip`
+5. `PdfViewer` + `PageNav` + `ZoomControl` + `ReaderSidePanel`
+6. `TagEditor` + `TagChip` + `QuickTags`（只在阅读器侧栏）
 7. `ImportDialog` + `BatchSummary` + `QueueList`
 8. `ScopeBar` + `MessageList` + `CitationChip`
 9. `Toast` + `ConfirmDialog`
