@@ -20,8 +20,9 @@
 
    过滤器契约：
      { q: "", mode: null|"untagged"|"review", authors: [作者名],
-       groups: [ { kind: "tag"|"year"|"attr", group_id, op: "any"|"all"|"none",
-                   terms: [已选项], options: [可点的项] } ] }
+       groups: [ { kind: "tag"|"year"|"attr"|"meta", group_id, op: "any"|"all"|"none",
+                    terms: [已选项], options: [可点的项] } ] }
+   元数据组用 @author / @org / @venue 作为 group_id，项是原始名称。
 
    terms 是已选，options 是界面上能点的全集（省略时 = terms）。
    saved_view.filter_json 只存 terms，不存 options——options 由标签库 / 数据现算。
@@ -32,12 +33,24 @@
   var TAG = "tag";
   var YEAR = "year";
   var ATTR = "attr";
+  var META = "meta";
 
   var UNFILED = "@unfiled";
   var YEAR_GROUP = "@year";
   var ATTR_GROUP = "@attr";
   var GROUP_DEFAULTS = { tag: UNFILED, year: YEAR_GROUP, attr: ATTR_GROUP };
   var MODES = { untagged: true, review: true };
+
+  function metadataValues(item, field) {
+    if (field === "author") return item.authors || [];
+    if (field === "org") return (item.tags && item.tags.org) || [];
+    if (field === "venue") return item.venue ? [item.venue] : [];
+    return [];
+  }
+
+  function metadataKey(value) {
+    return String(value).toLowerCase();
+  }
 
   function emptyFilters() {
     return { q: "", mode: null, authors: [], groups: [] };
@@ -66,6 +79,7 @@
      标签用 id（改名、合并都不影响视图），年份用区间，属性用取值。 */
   function termKey(kind, term) {
     if (kind === TAG) return String(term);
+    if (kind === META) return metadataKey(term);
     if (kind === YEAR) {
       if (term && typeof term === "object" && term.unknown) return "@unknown";
       var range = yearRange(term);
@@ -78,8 +92,9 @@
     return "@invalid";
   }
 
-  function termPass(item, kind, term) {
+  function termPass(item, kind, term, groupId) {
     if (kind === TAG) return item.tagSet.has(String(term));
+    if (kind === META) return !!item.metadata[groupId] && item.metadata[groupId].has(metadataKey(term));
     if (kind === YEAR) {
       if (term && typeof term === "object" && term.unknown) return item.year === null;
       var range = yearRange(term);
@@ -98,18 +113,17 @@
     var topicNames = Array.isArray(tags.topic) ? tags.topic : [];
     var hasIds = Array.isArray(p.topicIds);
     var topicIds = hasIds ? p.topicIds : [];
+    var authorNames = metadataValues(p, "author");
+    var orgNames = metadataValues(p, "org");
     var hay = [
       p.title || "",
       p.abstract || "",
       p.venue || "",
-      (p.authors || []).join(" "),
+      authorNames.join(" "),
+      orgNames.join(" "),
       p.note || "",
       topicNames.join(" ")
     ].join(" ").toLowerCase();
-    var authors = {};
-    (p.authors || []).forEach(function (name) {
-      authors[String(name).toLowerCase()] = true;
-    });
     return {
       tagSet: new Set(topicIds.map(String)),
       untagged: hasIds ? topicIds.length === 0 : topicNames.length === 0,
@@ -118,7 +132,11 @@
       starred: !!p.starred,
       needsReview: !!p.needsReview,
       hay: hay,
-      authors: authors
+      metadata: {
+        "@author": new Set(authorNames.map(metadataKey)),
+        "@org": new Set(orgNames.map(metadataKey)),
+        "@venue": new Set(metadataValues(p, "venue").map(metadataKey))
+      }
     };
   }
 
@@ -127,7 +145,7 @@
     if (mode === "review" && !item.needsReview) return false;
     if (q && item.hay.indexOf(q) === -1) return false;
     for (var i = 0; i < authors.length; i++) {
-      if (!item.authors[authors[i]]) return false;
+      if (!item.metadata["@author"].has(authors[i])) return false;
     }
     return true;
   }
@@ -136,12 +154,13 @@
     var raw = filters.groups || [];
     return raw.map(function (g, index) {
       g = g || {};
-      var kind = g.kind === YEAR || g.kind === ATTR ? g.kind : TAG;
+      var kind = g.kind === YEAR || g.kind === ATTR || g.kind === META ? g.kind : TAG;
       var terms = Array.isArray(g.terms) ? g.terms : [];
       var options = Array.isArray(g.options) && g.options.length ? g.options : terms;
       var op = normalizeOp(kind, g.op);
-      var selected = {};
+      var selected = Object.create(null);
       terms.forEach(function (t) { selected[termKey(kind, t)] = true; });
+      var metadataOptions = kind === META ? new Map(options.map(function (t, i) { return [metadataKey(t), i]; })) : null;
       return {
         index: index,
         group_id: g.group_id || GROUP_DEFAULTS[kind],
@@ -150,6 +169,7 @@
         terms: terms,
         options: options,
         selected: selected,
+        metadataOptions: metadataOptions,
         /* 标签组的「全部」要算边际值；其余都是全库绝对值 */
         marginal: kind === TAG && op === "all"
       };
@@ -191,11 +211,17 @@
 
       /* ① 选项对应的项：一次遍历，全库绝对值，不看搜索 / 模式 / 其它组 */
       var optPass = groups.map(function (g) {
-        return g.options.map(function (term) { return termPass(item, g.kind, term); });
+        return g.kind === META ? null : g.options.map(function (term) { return termPass(item, g.kind, term); });
       });
       for (var gi = 0; gi < groups.length; gi++) {
         var g = groups[gi];
-        if (!g.marginal) {
+        if (g.kind === META) {
+          var values = item.metadata[g.group_id];
+          if (values) values.forEach(function (value) {
+            var index = g.metadataOptions.get(value);
+            if (index !== undefined) counts[gi][index] += 1;
+          });
+        } else if (!g.marginal) {
           for (var ci = 0; ci < g.options.length; ci++) {
             if (optPass[gi][ci]) counts[gi][ci] += 1;
           }
@@ -207,7 +233,7 @@
 
       /* ③ 组内命中与组条件 */
       var selPass = groups.map(function (gg) {
-        return gg.terms.map(function (term) { return termPass(item, gg.kind, term); });
+        return gg.terms.map(function (term) { return termPass(item, gg.kind, term, gg.group_id); });
       });
       var pass = groups.map(function (gg, gix) {
         if (!gg.terms.length) return true;
@@ -371,11 +397,13 @@
     TAG: TAG,
     YEAR: YEAR,
     ATTR: ATTR,
+    META: META,
     UNFILED: UNFILED,
     YEAR_GROUP: YEAR_GROUP,
     ATTR_GROUP: ATTR_GROUP,
     GROUP_DEFAULTS: GROUP_DEFAULTS,
     emptyFilters: emptyFilters,
+    metadataValues: metadataValues,
     termKey: termKey,
     evaluate: evaluate,
     rescue: rescue

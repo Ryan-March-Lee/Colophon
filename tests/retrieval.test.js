@@ -74,7 +74,7 @@ function naiveBase(it, f) {
   if (f.mode === "untagged" && it.topicIds.length !== 0) return false;
   if (f.mode === "review" && !it.needsReview) return false;
   const hay = [
-    it.title, it.abstract, it.venue, it.authors.join(" "), it.note,
+    it.title, it.abstract, it.venue, it.authors.join(" "), it.tags.org.join(" "), it.note,
     it.tags.topic.join(" "),
   ].join(" ").toLowerCase();
   if (q && !hay.includes(q)) return false;
@@ -233,6 +233,34 @@ const lib = [
   });
   eq("只选未知：只命中 D", unknownOnly.matched.map((p) => p.id), ["D"]);
   eq("只选未知：不再提示三角", unknownOnly.yearUnknown.show, false);
+}
+
+/* 年份单选项与连续区间；元数据与内容标签的组合 */
+{
+  const years = [item("old", { year: 2019 }), item("middle", { year: 2022 }), item("new", { year: 2025 })];
+  const getIds = (terms) => R.evaluate(years, { groups: [{ kind: R.YEAR, terms }] }).matched.map(p => p.id);
+  eq("分开选择 2019 和 2025：不含中间年份", getIds([{ range: [2019, 2019] }, { range: [2025, 2025] }]), ["old", "new"]);
+  eq("连续区间 2019–2025：包含中间年份", getIds([{ range: [2019, 2025] }]), ["old", "middle", "new"]);
+}
+
+{
+  const papers = [
+    item("A", { authors: ["Ada", "Lee"], orgs: ["North Lab", "north lab"], venue: "Journal A", tagIds: ["t_x"] }),
+    item("B", { authors: ["Bob"], orgs: ["South Lab"], venue: "Journal A" }),
+    item("C", { authors: ["Ada"], orgs: ["North Lab"], venue: "Journal B" }),
+    item("D", { tags: ["North Lab"], tagIds: ["t_org"] }),
+  ];
+  const meta = (key, terms, options = terms) => ({ kind: R.META, group_id: "@" + key, op: "any", terms, options });
+  const author = meta("author", ["ada", "Bob"], ["Ada", "Bob", "Lee"]);
+  const org = meta("org", ["North Lab"]);
+  const venue = meta("venue", ["Journal A"]);
+  const ids = (groups) => R.evaluate(papers, { groups }).matched.map(p => p.id);
+  eq("同类元数据任一命中", ids([author]), ["A", "B", "C"]);
+  eq("元数据之间且，不将同名内容标签当作单位", ids([author, org, venue]), ["A"]);
+  eq("单位选项每篇只数一次", R.evaluate(papers, { groups: [org] }).groups[0].options[0].count, 2);
+  eq("选项选择状态不区分大小写", R.evaluate(papers, { groups: [author] }).groups[0].options[0].selected, true);
+  eq("元数据与内容标签组合", ids([venue, tagGroup("g1", "any", ["t_x"])]), ["A"]);
+  eq("元数据可参与零结果放宽建议", R.rescue(papers, { groups: [org, meta("venue", ["Missing"])] }).map(x => x.group_id), ["@venue"]);
 }
 
 /* 7. 排除 + 年份区间：未知的保留（¬(A∨B)） */
