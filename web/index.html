@@ -106,20 +106,96 @@
   /* ---------- layout ---------- */
   .app{
     display:grid;
-    grid-template-columns:246px minmax(340px,1fr) 428px;
+    grid-template-columns:minmax(0,1fr) 428px;
     grid-template-rows:minmax(0,1fr);
     height:calc(100vh - 58px);
     min-height:0;
     overflow:hidden;
   }
-  .app.hide-facets{grid-template-columns:0 minmax(340px,1fr) 428px}
-  .app.hide-facets .facets{display:none}
+  .desk{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
 
-  /* ---------- facets ---------- */
-  .facets{
-    overflow-y:auto;border-right:1px solid var(--line);background:var(--panel-2);
-    padding:14px 12px 14px;display:flex;flex-direction:column;min-height:0;
-  }
+  /* ---------- retrieval groups ---------- */
+  .filterzone{flex:none;background:var(--panel);border-bottom:1px solid var(--line);padding:9px 14px 8px;overflow:hidden}
+  .group-tools{display:flex;align-items:center;gap:8px;min-height:26px;margin-bottom:7px}
+  .group-kicker{font-size:10px;font-weight:650;color:var(--muted);letter-spacing:.08em;flex:none}
+  .group-hint{font-size:10.5px;color:var(--muted-2);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .group-clear{margin-left:auto;flex:none}
+  .attr-row{display:flex;align-items:center;gap:7px;min-width:0;min-height:30px;white-space:nowrap;overflow-x:auto;overflow-y:hidden;padding:2px 0 5px}
+  .attr-label{font-size:10.5px;color:var(--muted);flex:none}
+  .attr-divider{width:1px;height:18px;background:var(--line);flex:none;margin:0 2px}
+  .year-options{display:flex;align-items:center;gap:4px;min-width:0;overflow-x:auto}
+  .year-form{display:inline-flex;align-items:center;gap:3px;flex:none}
+  .year-form input{width:54px;height:24px;border:1px solid var(--line);border-radius:5px;background:var(--panel-2);padding:0 5px;font-size:10.5px;outline:none}
+  .year-form input:focus{border-color:var(--accent)}
+  .year-dash{color:var(--muted-2);font-size:10px}
+  .filter-option{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 7px;border:1px solid var(--line);border-radius:5px;background:var(--panel);font-size:10.5px;color:var(--muted);white-space:nowrap;flex:none}
+  .filter-option:hover{border-color:var(--line-2);background:var(--hover);color:var(--ink)}
+  .filter-option[aria-pressed="true"]{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 40%,var(--line));color:var(--accent-2);font-weight:600}
+  .filter-option:disabled{opacity:.42;cursor:default}
+  .filter-option .fcount{font-size:9.5px;color:var(--muted-2);font-variant-numeric:tabular-nums}
+  .year-unknown{border-style:dashed;color:var(--warn)}
+  .year-unknown[aria-pressed="true"]{background:color-mix(in srgb,var(--warn) 10%,transparent);border-color:color-mix(in srgb,var(--warn) 40%,var(--line));color:var(--warn)}
+  .group-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:5px}
+  .query-group{--gc:var(--c-topic);min-width:0;border:1px solid var(--line);border-top:2px solid var(--gc);border-radius:6px;background:var(--panel-2);padding:5px 6px 6px}
+  .query-group.unfiled{--gc:var(--warn)}
+  .query-group[hidden]{display:none}
+  .qg-head{display:flex;align-items:center;gap:5px;min-width:0;margin-bottom:5px}
+  .qg-name{font-size:10.5px;font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+  .qg-mark{font-size:8.5px;color:var(--warn);flex:none}
+  .qg-ops{display:inline-flex;gap:1px;margin-left:auto;flex:none;background:var(--hover);padding:2px;border-radius:5px}
+  .qg-op{height:20px;min-width:27px;padding:0 4px;border-radius:3px;font-size:9px;color:var(--muted-2)}
+  .qg-op:hover{color:var(--ink)}
+  .qg-op[aria-pressed="true"]{background:var(--panel);color:var(--ink);box-shadow:0 1px 2px rgba(20,24,20,.08);font-weight:650}
+  .qg-foot{font-size:9px;color:var(--muted-2);font-variant-numeric:tabular-nums;flex:none}
+  .qg-options{display:flex;align-items:center;gap:4px;min-width:0;overflow:hidden;flex-wrap:wrap;max-height:26px}
+  .query-group.expanded .qg-options{max-height:84px;overflow-y:auto}
+  .qg-more{font-size:9.5px;color:var(--accent);white-space:nowrap;flex:none;padding:2px}
+  .qg-more:hover{text-decoration:underline}
+  .tag-option{--tc:var(--gc);height:22px;padding:0 6px;max-width:100%;font-size:10px}
+  .tag-option .tname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+  .tag-option .fcount{color:color-mix(in srgb,var(--tc) 78%,var(--muted))}
+  .group-overflow{display:flex;justify-content:center;margin-top:3px}
+  .group-overflow button{font-size:10px;color:var(--muted);padding:2px 6px}
+  .group-overflow button:hover{color:var(--accent);text-decoration:underline}
+  .group-empty{display:flex;align-items:center;gap:10px;border:1px dashed var(--line-2);border-radius:6px;padding:8px 10px;color:var(--muted);font-size:11px}
+  .group-empty .btn{margin-left:auto;flex:none}
+  .actionbar{display:flex;align-items:center;gap:7px;min-height:34px;padding:4px 14px;border-bottom:1px solid var(--line);background:var(--panel-2)}
+  .action-entry{height:25px;padding:0 8px;border:1px solid var(--line);border-radius:5px;background:var(--panel);font-size:10.5px;color:var(--ink);white-space:nowrap}
+  .action-entry:hover{border-color:var(--line-2);background:var(--hover)}
+  .action-entry[aria-pressed="true"]{border-color:color-mix(in srgb,var(--warn) 45%,var(--line));background:color-mix(in srgb,var(--warn) 8%,var(--panel));color:var(--warn)}
+  .action-entry b{font-variant-numeric:tabular-nums}
+  .action-spacer{flex:1}
+  .exprbar{display:flex;align-items:center;gap:7px;min-height:34px;padding:4px 14px;border-bottom:1px solid var(--line);background:var(--panel)}
+  .expr-label{font-size:9.5px;color:var(--muted-2);flex:none}
+  .expr-text{display:flex;align-items:center;gap:4px;flex:1;min-width:0;overflow-x:auto;white-space:nowrap;font-size:10.5px;color:var(--muted)}
+  .expr-seg{color:var(--ink);padding:2px 4px;border-radius:4px}
+  button.expr-seg:hover{background:var(--hover);color:var(--accent)}
+  .expr-and{color:var(--muted-2);flex:none}
+  .expr-actions{display:flex;align-items:center;gap:7px;flex:none}
+  .expr-action{font-size:10px;color:var(--accent);white-space:nowrap}
+  .expr-action:hover{text-decoration:underline}
+  .relax-box{display:none;position:absolute;right:14px;top:calc(100% + 3px);z-index:20;width:min(390px,calc(100vw - 28px));background:var(--panel);border:1px solid var(--line);border-radius:7px;box-shadow:var(--shadow);padding:7px}
+  .exprbar{position:relative}
+  .exprbar.relax-open .relax-box{display:block}
+  .relax-head{font-size:10px;color:var(--muted);padding:2px 5px 6px}
+  .relax-row{display:flex;width:100%;align-items:center;justify-content:space-between;gap:8px;padding:6px 5px;border-radius:4px;text-align:left;font-size:10.5px}
+  .relax-row:hover{background:var(--hover)}
+  .relax-row b{font-variant-numeric:tabular-nums;color:var(--accent);white-space:nowrap}
+  .relax-none{font-size:10px;color:var(--muted-2);padding:7px 5px}
+  .op-select{height:22px;border:1px solid var(--line);border-radius:5px;background:var(--panel);font-size:9.5px;padding:0 3px;color:var(--muted);outline:none;flex:none}
+  .op-select:focus{border-color:var(--accent)}
+  .qg-head .op-select{margin-left:auto}
+  .group-wrap{position:relative}
+  .year-gap{height:22px;padding:0 6px;border:1px dashed color-mix(in srgb,var(--warn) 45%,var(--line));border-radius:5px;color:var(--warn);font-size:9.5px;white-space:nowrap;flex:none}
+  .year-gap:hover,.year-gap:focus-visible{background:color-mix(in srgb,var(--warn) 8%,transparent)}
+  .filterzone.compact .group-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+
+  .fhead{display:flex;align-items:center;justify-content:space-between;padding:0 4px 10px}
+  .fhead-right{display:flex;align-items:center;gap:8px}
+  .fclose{display:none;width:22px;height:22px;align-items:center;justify-content:center;border-radius:5px;color:var(--muted)}
+  .fclose:hover{background:var(--hover);color:var(--ink)}
+  .ftitle{font-size:11px;letter-spacing:.14em;color:var(--muted);font-weight:600}
+  .fsub{font-size:10.5px;color:var(--muted-2)}
   .fhead{display:flex;align-items:center;justify-content:space-between;padding:0 4px 10px}
   .fhead-right{display:flex;align-items:center;gap:8px}
   .fclose{display:none;width:22px;height:22px;align-items:center;justify-content:center;border-radius:5px;color:var(--muted)}
@@ -199,8 +275,8 @@
   .dot.ok{background:var(--ok);box-shadow:0 0 0 2px color-mix(in srgb,var(--ok) 18%,transparent)}
 
   /* ---------- list ---------- */
-  .listcol{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--bg)}
-  .listbar{padding:11px 16px 9px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:8px;flex:none}
+  .listcol{display:flex;flex-direction:column;min-width:0;min-height:0;flex:1;background:var(--bg)}
+  .listbar{padding:7px 14px 6px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:5px;flex:none;background:var(--panel-2)}
   .chiprow{display:flex;flex-wrap:wrap;align-items:center;gap:5px;min-height:24px}
   .chiphint{font-size:11.5px;color:var(--muted-2)}
   .fchip{
@@ -222,33 +298,30 @@
     font-size:11.5px;padding:0 6px;outline:none;color:var(--muted);
   }
   .sel:focus{border-color:var(--accent)}
-  .papers{flex:1;min-height:0;overflow-y:auto;padding:12px 14px 40px;display:flex;flex-direction:column;gap:9px}
+  .papers{flex:1;min-height:0;overflow-y:auto;padding:7px 12px 30px;display:flex;flex-direction:column;gap:0}
   .paper{
-    position:relative;padding:12px 14px 11px;border:1px solid var(--line);border-radius:12px;
-    background:var(--panel);cursor:pointer;transition:border-color .12s,box-shadow .12s;
+    position:relative;min-height:54px;padding:6px 8px;border:0;border-bottom:1px solid var(--line);
+    border-radius:0;background:transparent;cursor:pointer;transition:background .12s;
   }
-  .paper:hover{border-color:var(--line-2);box-shadow:var(--shadow)}
+  .paper:hover{background:var(--panel)}
   .paper.on{
-    border-color:color-mix(in srgb,var(--accent) 45%,var(--line));
-    box-shadow:inset 3px 0 0 var(--accent),var(--shadow);
-    background:linear-gradient(100deg,var(--accent-soft),var(--panel) 72%);
+    box-shadow:inset 2px 0 0 var(--accent);
+    background:var(--accent-soft);
   }
   .paper:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-  .ptop{display:flex;align-items:center;gap:8px;font-size:10.5px;color:var(--muted-2);margin-bottom:6px}
-  .pstatus{display:inline-flex;align-items:center;gap:4px}
+  .pcompact-top{display:flex;align-items:center;gap:7px;min-width:0;height:20px}
+  .pstatus{display:inline-flex;align-items:center;gap:4px;flex:none}
   .pstatus .d{width:5px;height:5px;border-radius:99px;background:var(--muted-2)}
   .pstatus.read .d{background:var(--ok)}
   .pstatus.reading .d{background:var(--warn)}
-  .pvenue{color:var(--muted)}
-  .pcite{margin-left:auto}
-  .ptitle{
-    font-family:var(--serif);font-size:14.5px;line-height:1.42;font-weight:600;
-    margin:0 0 4px;letter-spacing:-.005em;
-    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
-  }
-  .pauthors{font-size:11.5px;color:var(--muted);margin:0 0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .ptags{display:flex;flex-wrap:wrap;gap:4px;overflow:hidden;max-height:22px}
-  .moretag{font-size:10.5px;color:var(--muted-2);padding:2px 2px}
+  .ptitle{flex:1;min-width:0}
+  .ptitle{font-family:var(--serif);font-size:13.5px;line-height:1.35;font-weight:600;margin:0;letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pcompact-bottom{display:flex;align-items:center;gap:7px;min-width:0;height:20px;padding-left:12px}
+  .pcompact-meta{font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
+  .pyear-missing{color:var(--warn);font-weight:600}
+  .ptags{display:flex;align-items:center;justify-content:flex-end;gap:3px;min-width:0;max-width:48%;overflow:hidden;white-space:nowrap}
+  .ptags .tag{height:18px;padding:0 5px;font-size:9.5px;max-width:110px;overflow:hidden;text-overflow:ellipsis}
+  .moretag{font-size:9.5px;color:var(--muted-2);padding:2px 2px;flex:none}
 
   .tag{
     display:inline-flex;align-items:center;gap:3px;height:20px;padding:0 7px;
@@ -374,8 +447,9 @@
   }
   .groupbar .btn{height:30px}
   .groupbar .gnew{font-size:11px;color:var(--accent);white-space:nowrap}
-  .app.workbench{grid-template-columns:minmax(340px,1fr)}
-  .app.workbench .facets,.app.workbench .detail,.app.workbench .listbar{display:none}
+  .app.workbench{grid-template-columns:minmax(0,1fr)}
+  .app.workbench .filterzone,.app.workbench .actionbar,.app.workbench .exprbar,.app.workbench .detail,.app.workbench .listbar{display:none}
+  .app.workbench .desk{grid-column:1}
   .app.workbench .papers{display:block;padding:20px 18px 40px}
   .wb-card{width:min(700px,100%);margin:0 auto}
   .wb-top{display:flex;align-items:center;gap:9px;font-size:11px;color:var(--muted)}
@@ -600,33 +674,41 @@
   .toast.show{opacity:1;transform:translate(-50%,0)}
   .toast b{font-weight:650}
 
-  /* facet toggle, narrow screens */
-  #facetToggle{display:none}
+  /* Narrow layouts keep the detail resident on desktop-sized windows; on phones it overlays. */
   @media (max-width:1180px){
-    .app{grid-template-columns:220px minmax(300px,1fr) 382px}
-    .app.hide-facets{grid-template-columns:0 minmax(300px,1fr) 382px}
+    .app{grid-template-columns:minmax(0,1fr) 382px}
   }
   @media (max-width:1080px){
-    .app{grid-template-columns:minmax(300px,1fr) 382px}
-    .app.hide-facets{grid-template-columns:minmax(300px,1fr) 382px}
-    .facets{display:none}
-    .app.show-facets .facets{
-      display:flex;position:fixed;left:0;top:58px;bottom:0;width:272px;z-index:45;
-      box-shadow:24px 0 50px -30px rgba(0,0,0,.45);
-    }
-    #facetToggle{display:inline-flex}
-    .fclose{display:inline-flex}
+    .group-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .filterzone{padding-left:10px;padding-right:10px}
   }
   @media (max-width:880px){
     .app{grid-template-columns:1fr}
     .detail{display:none}
     .app.show-detail .detail{display:flex;position:fixed;inset:58px 0 0 0;z-index:44}
     .dback{display:inline-flex}
+    .group-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .qg-options{flex-wrap:nowrap;overflow-x:auto}
+    .actionbar,.exprbar{padding-left:10px;padding-right:10px}
   }
   @media (max-width:620px){
+    header{gap:7px;padding:0 8px}
+    .brand{gap:6px}
+    .mark{width:26px;height:26px;border-radius:7px}
+    .brand h1{font-size:13px}
     .brand .sub{display:none}
     .search{margin-left:0}
-    .topacts{gap:4px}
+    .topacts{gap:3px}
+    .topacts .btn{height:30px;padding:0 5px;font-size:0;gap:0}
+    .topacts .btn svg{width:14px;height:14px}
+    .topacts button[data-act="import"]{font-size:10px;padding:0 5px}
+    .group-grid{grid-template-columns:minmax(0,1fr)}
+    .query-group:nth-child(n+3):not(.unfiled){display:none}
+    .filterzone.more-groups .query-group:nth-child(n+3):not(.unfiled){display:block}
+    .query-group.unfiled{display:block}
+    .qg-options{max-height:24px}
+    .expr-label{display:none}
+    .ptags{max-width:42%}
   }
 
   /* ---------- 元数据 ---------- */
@@ -789,10 +871,14 @@
 </header>
 
 <main class="app" id="app">
-  <aside class="facets" id="facets"></aside>
-  <section class="listcol">
-    <div class="listbar" id="listbar"></div>
-    <div class="papers" id="papers"></div>
+  <section class="desk">
+    <div class="filterzone" id="filterzone"></div>
+    <div class="actionbar" id="actionbar"></div>
+    <div class="exprbar" id="exprbar"></div>
+    <div class="listcol">
+      <div class="listbar" id="listbar"></div>
+      <div class="papers" id="papers"></div>
+    </div>
   </section>
   <section class="detail" id="detail"></section>
 </main>
@@ -826,6 +912,7 @@
 <div class="toast" id="toast"></div>
 
 <script src="/static/vendor/pdfjs/pdf.min.js"></script>
+<script src="/static/retrieval.js"></script>
 <script>
   if (window.pdfjsLib) {
     pdfjsLib.GlobalWorkerOptions.workerSrc = '/static/vendor/pdfjs/pdf.worker.min.js';
@@ -835,14 +922,13 @@
 /* ============================================================
    数据：全部从 /api/items 读取；连不上就显示重连提示，没有演示数据
    ============================================================ */
+const Retrieval = window.ColophonRetrieval;
 const FACETS = [
-  {key:'topic',  label:'标签', c:'--c-topic',  meta:false, hint:'你自己打的'},
-  {key:'year',   label:'年份', c:'--c-year',   meta:true,  hint:'来自元数据'},
-  {key:'author', label:'作者', c:'--c-author', meta:true,  hint:'主要作者'},
-  {key:'org',    label:'单位', c:'--c-org',    meta:true,  hint:'机构'}
+  {key:'topic', label:'标签', c:'--c-topic'},
+  {key:'year', label:'年份', c:'--c-year'},
+  {key:'author', label:'作者', c:'--c-author'},
+  {key:'org', label:'单位', c:'--c-org'}
 ];
-const FKEYS = FACETS.map(f => f.key);
-
 let apiOnline = false;
 let PAPERS = [];
 
@@ -861,16 +947,23 @@ const fieldLabel = k => ({title:'标题', authors:'作者', year:'年份', venue
 const state = {
   q:'',
   sort:'year',
-  selected:{year:new Set(), author:new Set(), org:new Set(), topic:new Set()},
+  mode:null,
+  authors:[],
+  groupFilters:{
+    '@year':{op:'any', terms:[]},
+    '@attr':{op:'any', terms:[]}
+  },
+  groupsExpanded:false,
+  expandedGroups:new Set(),
+  relaxOpen:false,
+  eval:null,
+  rescue:[],
   paperId:null,
-  reviewOnly:false,
   tab:'overview',
   chat:[],
   busy:false,
   sugg:{},
   dismissed:new Set(),
-  collapsed:new Set(),
-  expanded:new Set(),
   modalOpen:false,
   modalMode:'tags',
   metaBusy:null,
@@ -890,7 +983,6 @@ const state = {
   readerTags:true,    // 阅读器右侧的打标栏是否展开
   readerGroupNew:false,  // 阅读器侧栏正在内联新建组（全应用唯一的组状态）
   readerItemId:null,  // 阅读器里正在读的条目（loadPdf 完成前也有效）
-  readerItemId:null,  // 阅读器里正在读的条目（loadPdf 完成前也有效）
   wbSkip:new Set(),   // 工作台里跳过的（本次会话内）
   wbDone:0,           // 本次会话已打标的篇数
   wbHist:[],          // 回看的上一篇
@@ -907,16 +999,57 @@ function toast(msg){
 }
 
 /* ============================================================
-   派生数据
+   检索状态与求值
    ============================================================ */
-function matchesQuery(p){
-  if(!state.q) return true;
-  const hay = [
-    p.title, p.abstract, p.venue, p.authors.join(' '),
-    p.note || '',
-    ...p.tags.year, ...p.tags.author, ...p.tags.org, ...p.tags.topic
-  ].join(' ').toLowerCase();
-  return hay.includes(state.q.toLowerCase());
+function getGroupFilter(id, op){
+  if(!state.groupFilters[id]) state.groupFilters[id] = {op:op || 'any', terms:[]};
+  if(!Array.isArray(state.groupFilters[id].terms)) state.groupFilters[id].terms = [];
+  return state.groupFilters[id];
+}
+
+function normalizeYearTerms(terms){
+  const unknown = terms.some(t => t && t.unknown) ? [{unknown:true}] : [];
+  const ranges = terms.map(t => t && t.range).filter(r => Array.isArray(r) && r.length === 2)
+    .map(r => [Math.min(Number(r[0]), Number(r[1])), Math.max(Number(r[0]), Number(r[1]))])
+    .filter(r => Number.isFinite(r[0]) && Number.isFinite(r[1]))
+    .sort((a,b) => a[0] - b[0] || a[1] - b[1]);
+  const merged = [];
+  ranges.forEach(function(r){
+    const last = merged[merged.length - 1];
+    if(last && r[0] <= last[1] + 1) last[1] = Math.max(last[1], r[1]);
+    else merged.push(r.slice());
+  });
+  return merged.map(r => ({range:r})).concat(unknown);
+}
+
+function retrievalGroups(){
+  const groups = [];
+  const year = getGroupFilter(Retrieval.YEAR_GROUP, 'any');
+  const yearTerms = normalizeYearTerms(year.terms);
+  const years = Array.from(new Set(PAPERS.map(p => p.year).filter(Number.isFinite))).map(y => ({range:[y,y]}));
+  years.push({unknown:true});
+  groups.push({kind:Retrieval.YEAR, group_id:Retrieval.YEAR_GROUP, op:year.op, terms:yearTerms, options:years});
+
+  const attr = getGroupFilter(Retrieval.ATTR_GROUP, 'any');
+  const attrOptions = [{status:'todo'}, {status:'reading'}, {status:'read'}, {star:true}];
+  groups.push({kind:Retrieval.ATTR, group_id:Retrieval.ATTR_GROUP, op:attr.op, terms:attr.terms.slice(), options:attrOptions});
+
+  (state.groups || []).forEach(function(g){
+    const selection = getGroupFilter(g.id, 'any');
+    groups.push({kind:Retrieval.TAG, group_id:g.id, op:selection.op, terms:selection.terms.slice(), options:(g.tags || []).map(t => t.id)});
+  });
+  const unfiled = getGroupFilter(Retrieval.UNFILED, 'any');
+  groups.push({kind:Retrieval.TAG, group_id:Retrieval.UNFILED, op:unfiled.op, terms:unfiled.terms.slice(), options:(state.unfiled || []).map(t => t.id)});
+  return groups;
+}
+
+function retrievalFilter(){
+  return {q:state.q, mode:state.mode, authors:state.authors.slice(), groups:retrievalGroups()};
+}
+
+function currentEvaluation(){
+  if(!state.eval) state.eval = Retrieval.evaluate(PAPERS, retrievalFilter());
+  return state.eval;
 }
 
 function sorter(a,b){
@@ -925,145 +1058,76 @@ function sorter(a,b){
   return (parseInt(b.tags.year[0],10) || 0) - (parseInt(a.tags.year[0],10) || 0);
 }
 
-function getFiltered(skip){
-  return PAPERS.filter(p => {
-    if(state.reviewOnly && !p.needsReview) return false;
-    if(!matchesQuery(p)) return false;
-    return FKEYS.every(k => {
-      if(k === skip) return true;
-      const s = state.selected[k];
-      return !s.size || p.tags[k].some(v => s.has(v));
-    });
-  }).sort(sorter);
-}
-
-function countFor(facet, value){
-  return getFiltered(facet).filter(p => p.tags[facet].includes(value)).length;
-}
-
-function facetRows(key){
-  const vals = Array.from(new Set(PAPERS.flatMap(p => p.tags[key])));
-  const rows = vals.map(v => ({
-    value:v,
-    count:countFor(key, v),
-    on:state.selected[key].has(v)
-  }));
-  if(key === 'year'){
-    rows.sort((a,b) => (parseInt(b.value,10) || 0) - (parseInt(a.value,10) || 0));
-  } else {
-    rows.sort((a,b) => b.count - a.count || a.value.localeCompare(b.value, 'zh'));
-  }
-  return rows;
+function getFiltered(){
+  return currentEvaluation().matched.slice().sort(sorter);
 }
 
 function selectedCount(){
-  return FKEYS.reduce((n,k) => n + state.selected[k].size, 0);
+  return state.authors.length + Object.keys(state.groupFilters).reduce(function(n,id){
+    return n + ((state.groupFilters[id].terms || []).length);
+  },0);
 }
 
-/* ============================================================
-   渲染：侧栏
-   ============================================================ */
-function renderFacets(){
-  const el = $('#facets');
-  const scroll = el.scrollTop;
-  const total = selectedCount();
-
-  let html = '<div class="fhead"><span class="ftitle">筛选</span>' +
-    '<span class="fhead-right">' +
-      (total
-        ? '<button class="linkbtn" data-act="clear-all">清除 ' + total + '</button>'
-        : '<span class="fsub">可多选组合</span>') +
-      '<button class="fclose" data-act="close-facets" aria-label="关闭筛选">' +
-        '<svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">' +
-          '<path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>' +
-        '</svg>' +
-      '</button>' +
-    '</span>' +
-    '</div>';
-
-  html += FACETS.map(renderFacetGroup).join('');
-
-  html += '<div class="src">' +
-    '<div class="srcline"><span class="dot' + (apiOnline ? ' ok' : '') + '"></span>' +
-      (apiOnline ? '书库：本地 · 已托管' : '未连接 · 改动不会保存') + '</div>' +
-    '<div>' + PAPERS.length + ' 篇 · 4 个维度 · 单人空间</div>' +
-    '<div style="margin-top:6px">标签由你维护；年份 / 作者 / 单位来自元数据。</div>' +
-    '</div>';
-
-  el.innerHTML = html;
-  el.scrollTop = scroll;
+function findGroupDef(id){
+  if(id === Retrieval.UNFILED) return {id:id,name:'未分组',color:'var(--warn)',tags:state.unfiled || []};
+  return (state.groups || []).find(g => g.id === id) || null;
 }
 
-function renderFacetGroup(f){
-  const rows = facetRows(f.key);
-  const selN = state.selected[f.key].size;
-  const collapsed = state.collapsed.has(f.key);
-  const body = f.key === 'year' ? renderYearChart(rows) : renderFacetRows(f, rows);
+function findTagById(id){
+  for(const g of (state.groups || [])) for(const t of (g.tags || [])) if(t.id === id) return {group:g,tag:t};
+  for(const t of (state.unfiled || [])) if(t.id === id) return {group:null,tag:t};
+  return null;
+}
 
-  return '<section class="fgroup' + (collapsed ? ' collapsed' : '') + '" style="--c:' + colorOf(f.key) + '">' +
-    '<button class="fgroup-head" data-act="collapse" data-facet="' + f.key + '" aria-expanded="' + (!collapsed) + '">' +
-      '<span class="fgroup-title">' + f.label +
-        (selN ? '<b class="fcount-sel">' + selN + '</b>' : '') +
-      '</span>' +
-      '<svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">' +
-        '<path d="M3 4.5 6 7.5 9 4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>' +
-      '</svg>' +
-    '</button>' +
-    '<div class="fgroup-body">' + body + '</div>' +
-  '</section>';
+function groupEval(id){
+  return currentEvaluation().groups.find(g => g.group_id === id) || null;
+}
+
+function optionEval(id,key){
+  const g = groupEval(id);
+  return g ? g.options.find(o => o.key === key) || null : null;
+}
+
+function termLabel(kind,term){
+  if(kind === Retrieval.TAG){
+    const hit = findTagById(term);
+    return hit ? hit.tag.name : '已失效的标签';
+  }
+  if(kind === Retrieval.YEAR){
+    if(term && term.unknown) return '年份未知';
+    const r = term && term.range || [];
+    return r.length === 2 ? (r[0] === r[1] ? String(r[0]) : r[0] + '–' + r[1]) : '年份';
+  }
+  if(term && term.star) return '星标';
+  if(term && term.status) return statusLabel(term.status);
+  return '';
+}
+
+function opLabel(op){ return op === 'all' ? '全部' : op === 'none' ? '排除' : '任一'; }
+
+function activeExpressions(){
+  const out = [];
+  const f = retrievalFilter();
+  f.groups.forEach(function(g){
+    if(!g.terms.length) return;
+    const def = g.kind === Retrieval.TAG ? findGroupDef(g.group_id) : null;
+    const name = g.kind === Retrieval.YEAR ? '年份' : g.kind === Retrieval.ATTR ? '阅读状态 / 星标' : (def ? def.name : '标签组');
+    const labels = g.terms.map(t => termLabel(g.kind,t));
+    const joiner = g.op === 'all' ? ' 且 ' : ' 或 ';
+    let text = name + '：';
+    if(g.op === 'none') text += '不含（' + labels.join(joiner) + '）';
+    else text += labels.join(joiner);
+    out.push({id:g.group_id,text:text});
+  });
+  state.authors.forEach(name => out.push({id:'@author',text:'作者：' + name,author:name}));
+  if(state.mode === 'review') out.push({id:'@mode',text:'待补全模式'});
+  if(state.q) out.push({id:'@query',text:'搜索「' + state.q + '」'});
+  return out;
 }
 
 function tagDefinition(name){
   const hit = findTag(name);
-  return (hit && hit.tag && hit.tag.definition) ? hit.tag.definition : '';
-}
-
-function renderFacetRows(f, rows){
-  const visible = rows.filter(r => r.count > 0 || r.on);
-  const expanded = state.expanded.has(f.key);
-  const limit = expanded ? visible.length : 6;
-  let shown = visible.slice(0, limit);
-  if(limit < visible.length){
-    visible.forEach(r => { if(r.on && shown.indexOf(r) === -1) shown = shown.concat([r]); });
-  }
-
-  if(!visible.length){
-    return '<div class="none" style="padding:5px 6px">没有匹配项</div>';
-  }
-
-  const html = shown.map(function(r){
-    // 标签的一句话定义只做悬停提示：检索台靠它说明「这个标签收什么」。
-    const def = f.key === 'topic' ? tagDefinition(r.value) : '';
-    return '<button class="frow' + (r.on ? ' on' : '') + '"' +
-      ' data-act="toggle-facet" data-facet="' + f.key + '" data-value="' + esc(r.value) + '"' +
-      ' aria-pressed="' + r.on + '"' + (r.count === 0 && !r.on ? ' disabled' : '') +
-      ' title="' + esc(r.value) + ' · ' + r.count + ' 篇' + (def ? ' · ' + def : '') + '">' +
-      '<span class="fbox">' + (r.on ? checkSVG() : '') + '</span>' +
-      '<span class="flabel">' + esc(r.value) + '</span>' +
-      '<span class="fcount">' + r.count + '</span>' +
-    '</button>';
-  }).join('');
-
-  const more = visible.length > 6
-    ? '<button class="morebtn" data-act="more" data-facet="' + f.key + '">' +
-      (expanded ? '收起' : '展开全部 ' + visible.length) + '</button>'
-    : '';
-
-  return html + more;
-}
-
-function renderYearChart(rows){
-  const max = Math.max(1, ...rows.map(r => r.count));
-  return '<div class="years">' + rows.map(r =>
-    '<button class="ybar' + (r.on ? ' on' : '') + '"' +
-      ' data-act="toggle-facet" data-facet="year" data-value="' + esc(r.value) + '"' +
-      ' aria-pressed="' + r.on + '"' + (r.count === 0 && !r.on ? ' disabled' : '') +
-      ' title="' + r.value + ' · ' + r.count + ' 篇">' +
-      '<span class="ybarcount">' + (r.count || '') + '</span>' +
-      '<span class="ybarfill" style="height:' + (4 + Math.round(24 * r.count / max)) + 'px"></span>' +
-      '<span class="ybarlabel">' + r.value + '</span>' +
-    '</button>'
-  ).join('') + '</div>';
+  return hit && hit.tag && hit.tag.definition ? hit.tag.definition : '';
 }
 
 function checkSVG(){
@@ -1075,58 +1139,20 @@ function checkSVG(){
 /* ============================================================
    渲染：列表
    ============================================================ */
-function renderListbar(ps){
+function renderListbarLegacy(ps){
   const batch = state.batchProgress;
-  const sel = [];
-  FKEYS.forEach(k => state.selected[k].forEach(v => sel.push({k, v})));
-
-  const chips = sel.length
-    ? sel.map(x =>
-        '<button class="fchip" data-act="clear-facet" data-facet="' + x.k + '" data-value="' + esc(x.v) + '"' +
-          ' style="--c:' + colorOf(x.k) + '" title="移除这个筛选">' +
-          '<span class="cdot"></span>' + esc(x.v) + '<span class="x">×</span>' +
-        '</button>'
-      ).join('') + '<button class="linkbtn" data-act="clear-all" style="margin-left:2px">清除</button>'
-    : '<span class="chiphint">点左侧维度组合筛选，例如「2023 + Google Brain + 推理」</span>';
-
-  const q = state.q ? ' · 搜索「' + esc(state.q) + '」' : '';
-  const review = PAPERS.filter(p => p.needsReview).length;
-  const reviewChip = (review || state.reviewOnly)
-    ? '<button class="fchip" data-act="toggle-review" style="--c:var(--warn)" title="只看需要补全元数据的条目">' +
-        '<span class="cdot"></span>待补全 ' + review + (state.reviewOnly ? '<span class="x">×</span>' : '') +
-      '</button>'
-    : '';
-
-  $('#listbar').innerHTML =
-    '<div class="chiprow">' +
-      '<button class="btn tiny" data-act="toggle-facets" id="facetToggle">筛选</button>' +
-      chips + reviewChip +
-      '<button class="btn tiny" data-act="open-untagged" style="margin-left:auto" title="进入逐条打标工作台">未打标 ' +
-        PAPERS.filter(p => p.tags.topic.length === 0).length + ' · 去整理</button>' +
-    '</div>' +
-    '<div class="countrow">' +
-      '<div class="count"><b>' + ps.length + '</b> 篇' + q +
-        (state.reviewOnly ? ' <span style="color:var(--warn)">待补全</span>' : '') +
-        (sel.length ? ' <span style="color:var(--muted-2)">/ 全库 ' + PAPERS.length + '</span>' : '') +
-      '</div>' +
-      '<div class="countacts">' +
-        '<select class="sel" id="sort" aria-label="排序">' +
-          '<option value="year"' + (state.sort === 'year' ? ' selected' : '') + '>年份 新→旧</option>' +
-          '<option value="cites"' + (state.sort === 'cites' ? ' selected' : '') + '>引用最多</option>' +
-          '<option value="added"' + (state.sort === 'added' ? ' selected' : '') + '>入库顺序</option>' +
-        '</select>' +
-        (batch
-          ? '<span class="batch-progress" id="batchProgress" role="status">' + batchProgressText(batch) + '</span>'
-          : state.reviewOnly
-            ? '<button class="btn tiny primary" data-act="fetch-all"' + (ps.length ? '' : ' disabled') +
-                '>补全全部 ' + ps.length + ' 篇</button>'
-            : '') +
-        '<button class="btn tiny" data-act="to-ai"' + (ps.length ? '' : ' disabled') + '>问 AI · ' + ps.length + ' 篇</button>' +
-      '</div>' +
-    '</div>';
+  $('#listbar').innerHTML = '<div class="countrow"><div class="count"><b>' + ps.length + '</b> 篇 <span style="color:var(--muted-2)">· 全库 ' + PAPERS.length + '</span>' +
+    (state.mode === 'review' ? ' <span style="color:var(--warn)">· 待补全模式</span>' : '') + '</div>' +
+    '<div class="countacts"><select class="sel" id="sort" aria-label="排序">' +
+      '<option value="year"' + (state.sort === 'year' ? ' selected' : '') + '>年份 新→旧</option>' +
+      '<option value="cites"' + (state.sort === 'cites' ? ' selected' : '') + '>引用最多</option>' +
+      '<option value="added"' + (state.sort === 'added' ? ' selected' : '') + '>入库顺序</option></select>' +
+      (batch ? '<span class="batch-progress" id="batchProgress" role="status">' + batchProgressText(batch) + '</span>' :
+        state.mode === 'review' ? '<button class="btn tiny primary" data-act="fetch-all"' + (ps.length ? '' : ' disabled') + '>补全全部 ' + ps.length + ' 篇</button>' : '') +
+      '<button class="btn tiny" data-act="to-ai"' + (ps.length ? '' : ' disabled') + '>问 AI · ' + ps.length + ' 篇</button></div></div>';
 }
 
-function renderList(ps){
+function renderListLegacy(ps){
   const el = $('#papers');
   const scroll = el.scrollTop;
 
@@ -1151,11 +1177,14 @@ function renderList(ps){
           '<button class="btn primary" data-act="import" aria-haspopup="dialog">导入 PDF 或文件夹</button>' +
         '</div>' +
       '</div>';
-    }else{
+  }else{
+      const fixes = Retrieval.rescue(PAPERS,retrievalFilter(),5);
+      const suggestions = fixes.map(x => '<button class="relax-row" style="max-width:440px;margin:0 auto" data-act="apply-rescue" data-kind="' + x.action + '" data-group="' + esc(x.group_id) + '" data-key="' + esc(x.key) + '"><span>' + (x.action === 'add' ? '把「年份未知」加入' : '去掉「' + termLabel(x.kind,x.term) + '」') + '</span><b>能救回 ' + x.rescued + ' 篇</b></button>').join('');
       el.innerHTML = '<div class="empty">' +
         '<div class="em">○</div>' +
-        '<p>' + (state.reviewOnly ? '待补全里没有条目' : '没有符合这些条件的文献') + '</p>' +
+        '<p>' + (state.mode === 'review' ? '待补全队列为空' : '没有符合这些条件的文献') + '</p>' +
         '<p style="font-size:11px;color:var(--muted-2)">布尔条件不留余量：去掉一个条件才能看到结果。</p>' +
+        suggestions +
         '<button class="btn tiny" data-act="reset-all">清除搜索与筛选</button>' +
       '</div>';
     }
@@ -1163,30 +1192,184 @@ function renderList(ps){
     return;
   }
 
-  el.innerHTML = ps.map(p => {
-    const topics = p.tags.topic;
-    return '<article class="paper' + (p.id === state.paperId ? ' on' : '') + '"' +
-      ' data-act="select" data-id="' + p.id + '" tabindex="0" role="button" aria-pressed="' + (p.id === state.paperId) + '">' +
-      '<div class="ptop">' +
-        '<span class="pstatus ' + p.status + '"><span class="d"></span>' + statusLabel(p.status) + '</span>' +
-        (p.needsReview ? '<span class="pstatus" style="color:var(--warn)">待补全</span>' : '') +
-        '<span class="pvenue">' + esc(p.venue) + '</span>' +
-        '<span class="pvenue">' + (p.tags.year[0] || '') + '</span>' +
-        '<span class="pcite">' + p.cites.toLocaleString() + ' 引用</span>' +
-      '</div>' +
-      '<h3 class="ptitle">' + esc(p.title) + '</h3>' +
-      '<p class="pauthors">' + esc(p.authors.slice(0,3).join(' · ')) + (p.authors.length > 3 ? ' 等' : '') + '</p>' +
-      (p.needsReview && p.missing && p.missing.length
-        ? '<p class="pmeta-miss">缺 ' + p.missing.map(fieldLabel).join('、') + '</p>' : '') +
-      '<div class="ptags">' +
-        topics.slice(0,4).map(t =>
-          '<span class="tag" style="--c:' + topicColor(t) + '">' + esc(t) + '</span>'
-        ).join('') +
-        (topics.length > 4 ? '<span class="moretag">+' + (topics.length - 4) + '</span>' : '') +
-      '</div>' +
-    '</article>';
+  el.innerHTML = ps.map(function(p){
+    const ids = p.topicIds || [];
+    const ordered = [];
+    (state.groups || []).forEach(g => (g.tags || []).forEach(t => { if(ids.includes(t.id)) ordered.push(t); }));
+    (state.unfiled || []).forEach(t => { if(ids.includes(t.id)) ordered.push(t); });
+    const year = Number.isFinite(p.year) ? String(p.year) : '';
+    const meta = year ? year + (p.venue ? ' · ' + p.venue : '') : '<span class="pyear-missing">年份待补</span>' + (p.venue ? ' · ' + p.venue : '');
+    const tags = ordered.slice(0,2).map(t => {
+      const hit = findTagById(t.id);
+      return '<span class="tag" style="--c:' + ((hit && hit.group && hit.group.color) || 'var(--warn)') + '" title="' + esc(t.name) + '">' + esc(t.name) + '</span>';
+    }).join('');
+    return '<article class="paper' + (p.id === state.paperId ? ' on' : '') + '" data-act="select" data-id="' + p.id + '" tabindex="0" role="button" aria-pressed="' + (p.id === state.paperId) + '">' +
+      '<div class="pcompact-top"><span class="pstatus ' + p.status + '" title="' + statusLabel(p.status) + '"><span class="d"></span></span>' +
+      (p.needsReview ? '<span class="pstatus" style="color:var(--warn);font-size:9px">待补全</span>' : '') + '<h3 class="ptitle" title="' + esc(p.title) + '">' + esc(p.title) + '</h3></div>' +
+      '<div class="pcompact-bottom"><span class="pcompact-meta">' + meta + '</span><div class="ptags">' + tags + (ordered.length > 2 ? '<span class="moretag">+' + (ordered.length-2) + '</span>' : '') + '</div></div></article>';
   }).join('');
 
+  el.scrollTop = scroll;
+}
+
+function groupColor(id){
+  const def = findGroupDef(id);
+  return id === Retrieval.UNFILED ? 'var(--warn)' : ((def && def.color) || 'var(--c-topic)');
+}
+
+function opControl(groupId,kind,current){
+  const ops = kind === Retrieval.TAG ? [['any','任一'],['all','全部'],['none','排除']] : [['any','任一'],['none','排除']];
+  const def = kind === Retrieval.TAG ? findGroupDef(groupId) : null;
+  const name = kind === Retrieval.YEAR ? '年份' : kind === Retrieval.ATTR ? '阅读状态与星标' : ((def && def.name) || '标签组');
+  return '<select class="op-select" data-change="group-op" data-group="' + esc(groupId) + '" aria-label="' + name + '操作符">' +
+    ops.map(([value,label]) => '<option value="' + value + '"' + (value === current ? ' selected' : '') + '>' + label + '</option>').join('') + '</select>';
+}
+
+function renderYearOptions(){
+  const years = Array.from(new Set(PAPERS.map(p => p.year).filter(Number.isFinite))).sort((a,b) => b-a);
+  const filter = getGroupFilter(Retrieval.YEAR_GROUP,'any');
+  const evalGroup = groupEval(Retrieval.YEAR_GROUP);
+  const selected = filter.terms;
+  const chips = years.map(function(y){
+    const key = Retrieval.termKey(Retrieval.YEAR,{range:[y,y]});
+    const option = evalGroup && evalGroup.options.find(o => o.key === key);
+    const on = selected.some(t => t && t.range && y >= t.range[0] && y <= t.range[1]);
+    return '<button class="filter-option" data-act="year-toggle" data-year="' + y + '" aria-pressed="' + on + '"' +
+      (option && option.count === 0 && !on ? ' disabled' : '') + ' title="' + y + ' · ' + (option ? option.count : 0) + ' 篇">' + y + '<span class="fcount">' + (option ? option.count : 0) + '</span></button>';
+  }).join('');
+  const unknown = evalGroup && evalGroup.options.find(o => o.key === '@unknown');
+  const unknownOn = selected.some(t => t && t.unknown);
+  const unknownChip = '<button class="filter-option year-unknown" data-act="year-unknown" aria-pressed="' + unknownOn + '"' +
+    (unknown && unknown.count === 0 && !unknownOn ? ' disabled' : '') + '>未知 <span class="fcount">' + (unknown ? unknown.count : 0) + '</span></button>';
+  const hasUnknown = selected.some(t => t && t.unknown);
+  const gapCount = currentEvaluation().yearUnknown.count;
+  const gap = selected.length && filter.op === 'any' && !hasUnknown
+    ? '<button class="year-gap" data-act="year-unknown" aria-label="另有 ' + gapCount + ' 篇年份未知" title="另有 ' + gapCount + ' 篇年份未知">▸ 未知 ' + gapCount + '</button>' : '';
+  const rangeForm = '<span class="year-form"><input id="yearFrom" type="number" min="0" max="9999" placeholder="起年" aria-label="起始年份">' +
+    '<span class="year-dash">–</span><input id="yearTo" type="number" min="0" max="9999" placeholder="止年" aria-label="结束年份">' +
+    '<button class="btn tiny" data-act="year-range-add" title="添加年份区间">＋</button></span>';
+  return '<span class="attr-label">年份</span>' + opControl(Retrieval.YEAR_GROUP,Retrieval.YEAR,filter.op) + rangeForm +
+    '<div class="year-options">' + chips + unknownChip + gap + '</div>';
+}
+
+function renderAttrOptions(){
+  const id = Retrieval.ATTR_GROUP;
+  const filter = getGroupFilter(id,'any');
+  const options = [{status:'todo'}, {status:'reading'}, {status:'read'}, {star:true}];
+  return '<span class="attr-divider" aria-hidden="true"></span><span class="attr-label">阅读 / 星标</span>' +
+    opControl(id,Retrieval.ATTR,filter.op) + options.map(function(term){
+      const key = Retrieval.termKey(Retrieval.ATTR,term);
+      const on = filter.terms.some(t => Retrieval.termKey(Retrieval.ATTR,t) === key);
+      const result = optionEval(id,key);
+      const label = term.star ? '星标' : statusLabel(term.status);
+      return '<button class="filter-option" data-act="attr-toggle" data-key="' + esc(key) + '" aria-pressed="' + on + '"' +
+        (result && result.count === 0 && !on ? ' disabled' : '') + '>' + label + '<span class="fcount">' + (result ? result.count : 0) + '</span></button>';
+    }).join('');
+}
+
+function renderTagGroup(groupId,isUnfiled){
+  const def = findGroupDef(groupId);
+  if(!def || !(def.tags || []).length) return '';
+  const filter = getGroupFilter(groupId,'any');
+  const result = groupEval(groupId);
+  const tags = def.tags.slice();
+  const expanded = state.expandedGroups.has(groupId);
+  const visible = expanded ? tags : tags.slice(0,4);
+  const color = groupColor(groupId);
+  const options = visible.map(function(t){
+    const option = result && result.options.find(o => o.key === t.id);
+    const on = filter.terms.includes(t.id);
+    const definition = t.definition ? ' · ' + t.definition : '';
+    return '<button class="filter-option tag-option" style="--tc:' + color + '" data-act="tag-toggle" data-group="' + esc(groupId) + '" data-id="' + esc(t.id) + '"' +
+      ' aria-pressed="' + on + '"' + (option && option.count === 0 && !on ? ' disabled' : '') +
+      ' title="' + esc(t.name + ' · ' + (option ? option.count : 0) + ' 篇' + definition) + '"><span class="tname">' + esc(t.name) + '</span><span class="fcount">' + (option ? option.count : 0) + '</span></button>';
+  }).join('');
+  const more = tags.length > 4 ? '<button class="qg-more" data-act="group-expand" data-group="' + esc(groupId) + '">' + (expanded ? '收起' : '+' + (tags.length - 4)) + '</button>' : '';
+  const foot = result && result.foot !== null ? result.foot : '';
+  return '<section class="query-group' + (isUnfiled ? ' unfiled' : '') + (expanded ? ' expanded' : '') + '" style="--gc:' + color + '">' +
+    '<div class="qg-head"><span class="qg-name" title="' + esc(def.name) + '">' + esc(def.name) + '</span>' +
+    (isUnfiled ? '<span class="qg-mark">整理</span>' : '') + opControl(groupId,Retrieval.TAG,filter.op) + '<span class="qg-foot">' + foot + '</span></div>' +
+    '<div class="qg-options">' + options + more + '</div></section>';
+}
+
+function renderGroups(){
+  const el = $('#filterzone');
+  const regular = (state.groups || []).filter(g => (g.tags || []).length);
+  const limit = window.matchMedia('(max-width:620px)').matches ? 2 : window.matchMedia('(max-width:1080px)').matches ? 4 : 6;
+  const visibleRegular = state.groupsExpanded ? regular : regular.slice(0,limit);
+  el.classList.toggle('more-groups',state.groupsExpanded);
+  const hiddenN = Math.max(0,regular.length-visibleRegular.length);
+  const hasUnfiled = (state.unfiled || []).length > 0;
+  const tagGroups = visibleRegular.map(g => renderTagGroup(g.id,false)).join('') + (hasUnfiled ? renderTagGroup(Retrieval.UNFILED,true) : '');
+  const noGroups = !regular.length && !hasUnfiled;
+  const n = selectedCount();
+  el.innerHTML = '<div class="group-tools"><span class="group-kicker">检索条件</span><span class="group-hint">组间 AND · 标签组可选任一、全部或排除</span>' +
+    (n ? '<button class="linkbtn group-clear" data-act="clear-all">清除条件 ' + n + '</button>' : '<span class="group-clear fsub">空条件浏览全库</span>') + '</div>' +
+    '<div class="attr-row">' + renderYearOptions() + renderAttrOptions() + '</div>' +
+    (noGroups ? '<div class="group-empty"><span>还没有标签分组。打标时选一个组，它就会出现在这里。</span><button class="btn tiny" data-act="new-group">＋ 新建分组</button></div>' : '<div class="group-grid">' + tagGroups + '</div>') +
+    (hiddenN ? '<div class="group-overflow"><button data-act="groups-expand">更多组 ' + hiddenN + '</button></div>' : (state.groupsExpanded && regular.length > limit ? '<div class="group-overflow"><button data-act="groups-expand">收起分组</button></div>' : ''));
+}
+
+function renderActionBar(){
+  const untagged = PAPERS.filter(p => !(p.topicIds || []).length).length;
+  const review = PAPERS.filter(p => p.needsReview).length;
+  $('#actionbar').innerHTML = '<button class="action-entry" data-act="open-untagged" title="进入逐条打标工作台">未打标 <b>' + untagged + '</b> · 去整理 ›</button>' +
+    '<button class="action-entry" data-act="toggle-review" aria-pressed="' + (state.mode === 'review') + '" title="进入待补全队列">待补全 <b>' + review + '</b> · 去补全 ›</button>' +
+    '<span class="action-spacer"></span>' + (state.mode === 'review' ? '<button class="linkbtn" data-act="mode-clear">退出待补全</button>' : '');
+}
+
+function renderExpression(){
+  const el = $('#exprbar');
+  const parts = activeExpressions();
+  const content = parts.length ? parts.map((p,i) => (i ? '<span class="expr-and">且</span>' : '') + '<button class="expr-seg" data-act="jump-group" data-group="' + esc(p.id) + '">' + esc(p.text) + '</button>').join('') : '<span class="expr-seg">浏览全库</span>';
+  const near = currentEvaluation().count === 0 && (state.q || selectedCount() || state.mode);
+  const fixes = near ? Retrieval.rescue(PAPERS,retrievalFilter(),5) : [];
+  const rows = fixes.map(x => '<button class="relax-row" data-act="apply-rescue" data-kind="' + x.action + '" data-group="' + esc(x.group_id) + '" data-key="' + esc(x.key) + '"><span>' + (x.action === 'add' ? '把「年份未知」加入' : '去掉「' + termLabel(x.kind,x.term) + '」') + '</span><b>能救回 ' + x.rescued + ' 篇</b></button>').join('');
+  el.classList.toggle('relax-open',state.relaxOpen);
+  el.innerHTML = '<span class="expr-label">表达式</span><div class="expr-text">' + content + '</div><div class="expr-actions">' +
+    (near ? '<button class="expr-action" data-act="relax-toggle">放宽建议</button>' : '') +
+    (parts.length || state.q || state.mode ? '<button class="expr-action" data-act="reset-all">清除</button>' : '') + '</div>' +
+    (near ? '<div class="relax-box"><div class="relax-head">只测试单项变更，不组合条件</div>' + (rows || '<div class="relax-none">没有单项调整能恢复结果</div>') + '</div>' : '');
+}
+
+function renderListbar(ps){
+  const batch = state.batchProgress;
+  $('#listbar').innerHTML = '<div class="countrow"><div class="count"><b>' + ps.length + '</b> 篇 <span style="color:var(--muted-2)">· 全库 ' + PAPERS.length + '</span>' + (state.mode === 'review' ? ' <span style="color:var(--warn)">· 待补全模式</span>' : '') + '</div>' +
+    '<div class="countacts"><select class="sel" id="sort" aria-label="排序"><option value="year"' + (state.sort === 'year' ? ' selected' : '') + '>年份 新→旧</option>' +
+    '<option value="cites"' + (state.sort === 'cites' ? ' selected' : '') + '>引用最多</option><option value="added"' + (state.sort === 'added' ? ' selected' : '') + '>入库顺序</option></select>' +
+    (batch ? '<span class="batch-progress" id="batchProgress" role="status">' + batchProgressText(batch) + '</span>' : state.mode === 'review' ? '<button class="btn tiny primary" data-act="fetch-all"' + (ps.length ? '' : ' disabled') + '>补全全部 ' + ps.length + ' 篇</button>' : '') +
+    '<button class="btn tiny" data-act="to-ai"' + (ps.length ? '' : ' disabled') + '>问 AI · ' + ps.length + ' 篇</button></div></div>';
+}
+
+function renderList(ps){
+  const el = $('#papers');
+  const scroll = el.scrollTop;
+  if(!ps.length){
+    if(!apiOnline) el.innerHTML = '<div class="empty"><div class="em">○</div><p>连不上本地服务</p><div style="font-size:11px;color:var(--muted-2);line-height:1.7;margin-bottom:12px">确认 run.py 还在运行，然后点下面重试。</div><button class="btn" data-act="reconnect">重试连接</button></div>';
+    else if(!PAPERS.length) el.innerHTML = '<div class="empty"><div class="em">◇</div><p>书库还是空的</p><div style="font-size:11px;color:var(--muted-2);line-height:1.7;margin-bottom:12px">导入第一篇 PDF 开始。文件会复制进本地书库，原文件不动。</div><button class="btn primary" data-act="import">导入 PDF 或文件夹</button></div>';
+    else {
+      const fixes = Retrieval.rescue(PAPERS,retrievalFilter(),5);
+      const suggestions = fixes.map(x => '<button class="relax-row" style="max-width:440px;margin:0 auto" data-act="apply-rescue" data-kind="' + x.action + '" data-group="' + esc(x.group_id) + '" data-key="' + esc(x.key) + '"><span>' + (x.action === 'add' ? '把「年份未知」加入' : '去掉「' + termLabel(x.kind,x.term) + '」') + '</span><b>能救回 ' + x.rescued + ' 篇</b></button>').join('');
+      el.innerHTML = '<div class="empty"><div class="em">○</div><p>' + (state.mode === 'review' ? '待补全队列为空' : '没有符合这些条件的文献') + '</p><p style="font-size:11px;color:var(--muted-2)">布尔条件不留余量：去掉一个条件才能看到结果。</p>' + suggestions + '<button class="btn tiny" data-act="reset-all">清除搜索与筛选</button></div>';
+    }
+    el.scrollTop = 0;
+    return;
+  }
+  el.innerHTML = ps.map(function(p){
+    const ids = p.topicIds || [];
+    const ordered = [];
+    (state.groups || []).forEach(g => (g.tags || []).forEach(t => { if(ids.includes(t.id)) ordered.push(t); }));
+    (state.unfiled || []).forEach(t => { if(ids.includes(t.id)) ordered.push(t); });
+    const year = Number.isFinite(p.year) ? String(p.year) : '';
+    const meta = year ? year + (p.venue ? ' · ' + p.venue : '') : '<span class="pyear-missing">年份待补</span>' + (p.venue ? ' · ' + p.venue : '');
+    const tags = ordered.slice(0,2).map(t => {
+      const hit = findTagById(t.id);
+      return '<span class="tag" style="--c:' + ((hit && hit.group && hit.group.color) || 'var(--warn)') + '" title="' + esc(t.name) + '">' + esc(t.name) + '</span>';
+    }).join('');
+    return '<article class="paper' + (p.id === state.paperId ? ' on' : '') + '" data-act="select" data-id="' + p.id + '" tabindex="0" role="button" aria-pressed="' + (p.id === state.paperId) + '">' +
+      '<div class="pcompact-top"><span class="pstatus ' + p.status + '" title="' + statusLabel(p.status) + '"><span class="d"></span></span>' + (p.needsReview ? '<span class="pstatus" style="color:var(--warn);font-size:9px">待补全</span>' : '') + '<h3 class="ptitle" title="' + esc(p.title) + '">' + esc(p.title) + '</h3></div>' +
+      '<div class="pcompact-bottom"><span class="pcompact-meta">' + meta + '</span><div class="ptags">' + tags + (ordered.length > 2 ? '<span class="moretag">+' + (ordered.length-2) + '</span>' : '') + '</div></div></article>';
+  }).join('');
   el.scrollTop = scroll;
 }
 
@@ -2414,12 +2597,8 @@ function renderModal(){
   if(state.modalMode === 'clean'){ renderCleanModal(); return; }
   modal.classList.add('open');
 
-  const counts = FKEYS.map(function(k){
-    return new Set(PAPERS.flatMap(p => p.tags[k])).size;
-  });
-  const summary = FACETS.map(function(f, i){
-    return f.label + ' ' + counts[i];
-  }).join(' · ');
+  const summary = '标签 ' + new Set(PAPERS.flatMap(p => p.tags.topic)).size + ' · 作者 ' +
+    new Set(PAPERS.flatMap(p => p.tags.author)).size + ' · 单位 ' + new Set(PAPERS.flatMap(p => p.tags.org)).size;
 
   const mergeSection =
     '<section class="mergesec">' +
@@ -2677,23 +2856,29 @@ function paintMergeOptions(){
 /* ============================================================
    交互
    ============================================================ */
-function toggleFacet(facet, value){
-  const s = state.selected[facet];
-  if(s.has(value)) s.delete(value); else s.add(value);
+function toggleTerm(groupId, term){
+  const filter = getGroupFilter(groupId,'any');
+  const kind = groupId === Retrieval.YEAR_GROUP ? Retrieval.YEAR : groupId === Retrieval.ATTR_GROUP ? Retrieval.ATTR : Retrieval.TAG;
+  const key = Retrieval.termKey(kind,term);
+  const i = filter.terms.findIndex(t => Retrieval.termKey(kind,t) === key);
+  if(i >= 0) filter.terms.splice(i,1); else filter.terms.push(term);
+  state.eval = null;
   state.pendingScroll = 'top';
   renderAll();
 }
 
 function clearAll(){
-  FKEYS.forEach(k => state.selected[k].clear());
-  state.reviewOnly = false;
+  Object.keys(state.groupFilters).forEach(id => { state.groupFilters[id].terms = []; });
+  state.authors = [];
+  state.mode = null;
+  state.eval = null;
+  state.relaxOpen = false;
   state.pendingScroll = 'top';
   renderAll();
 }
 
 function resetAll(){
-  FKEYS.forEach(k => state.selected[k].clear());
-  state.reviewOnly = false;
+  clearAll();
   state.q = '';
   const s = $('#search');
   if(s) s.value = '';
@@ -2705,7 +2890,6 @@ function selectPaper(id){
   state.paperId = id;
   state.tab = 'overview';
   state.pendingScroll = 'top';
-  $('#app').classList.remove('show-facets');
   renderAll();
   if(window.matchMedia('(max-width:880px)').matches){
     $('#app').classList.add('show-detail');
@@ -2821,6 +3005,9 @@ async function refreshGroups(){
     const data = await fetchTags();
     state.groups = data.groups || [];
     state.unfiled = data.unfiled || [];
+    const valid = new Set([Retrieval.YEAR_GROUP,Retrieval.ATTR_GROUP,Retrieval.UNFILED].concat(state.groups.map(g => g.id)));
+    Object.keys(state.groupFilters).forEach(id => { if(!valid.has(id)) delete state.groupFilters[id]; });
+    state.eval = null;
     // 记住的组被删了：清掉，回落到未分组，不把标签静默塞进别的组
     if(state.groupSel && !state.groups.some(g => g.id === state.groupSel)){
       state.groupSel = null;
@@ -2952,8 +3139,16 @@ async function removeTag(facet, value){
 }
 
 async function mergeTags(facet, from, to){
-  const s = state.selected[facet];
-  if(s.has(from)){ s.delete(from); s.add(to); }
+  if(facet === 'topic'){
+    const oldTag = findTag(from);
+    const newTag = findTag(to);
+    if(oldTag && newTag){
+      Object.values(state.groupFilters).forEach(function(filter){
+        filter.terms = filter.terms.map(id => id === oldTag.tag.id ? newTag.tag.id : id);
+      });
+    }
+  }
+  state.eval = null;
 
   if(apiOnline){
     try{
@@ -2964,6 +3159,7 @@ async function mergeTags(facet, from, to){
       });
       if(!res.ok) throw new Error('merge');
       await refreshPapers();
+      state.eval = null;
       toast('已合并：' + esc(from) + ' → <b>' + esc(to) + '</b>');
       renderModal();
       return;
@@ -2981,6 +3177,7 @@ async function mergeTags(facet, from, to){
       n++;
     }
   });
+  state.eval = null;
   toast('已合并 ' + n + ' 处：' + esc(from) + ' → <b>' + esc(to) + '</b>');
   renderAll();
   renderModal();
@@ -3003,6 +3200,7 @@ function renderAll(){
     if(state.modalOpen) renderModal();
     return;
   }
+  state.eval = null;
   let ps = getFiltered();
   if(!ps.length){
     state.paperId = null;
@@ -3011,7 +3209,9 @@ function renderAll(){
     state.pendingScroll = 'top';
   }
   syncScope(ps);
-  renderFacets();
+  renderGroups();
+  renderActionBar();
+  renderExpression();
   renderListbar(ps);
   renderList(ps);
   renderDetail();
@@ -3030,31 +3230,94 @@ document.addEventListener('click', function(e){
   if(!el) return;
   const act = el.dataset.act;
 
-  if(act === 'toggle-facet'){ toggleFacet(el.dataset.facet, el.dataset.value); }
-  else if(act === 'toggle-review'){
-    state.reviewOnly = !state.reviewOnly;
+  if(act === 'toggle-review'){
+    state.mode = state.mode === 'review' ? null : 'review';
+    state.eval = null;
+    state.paperId = null;
     state.pendingScroll = 'top';
     renderAll();
   }
-  else if(act === 'clear-facet'){
-    state.selected[el.dataset.facet].delete(el.dataset.value);
+  else if(act === 'mode-clear'){
+    state.mode = null;
+    state.eval = null;
+    renderAll();
+  }
+  else if(act === 'tag-toggle'){
+    toggleTerm(el.dataset.group,el.dataset.id);
+  }
+  else if(act === 'attr-toggle'){
+    const terms = [{status:'todo'}, {status:'reading'}, {status:'read'}, {star:true}];
+    const term = terms.find(t => Retrieval.termKey(Retrieval.ATTR,t) === el.dataset.key);
+    if(term) toggleTerm(Retrieval.ATTR_GROUP,term);
+  }
+  else if(act === 'year-toggle'){
+    const year = Number(el.dataset.year);
+    const filter = getGroupFilter(Retrieval.YEAR_GROUP,'any');
+    const key = Retrieval.termKey(Retrieval.YEAR,{range:[year,year]});
+    const has = filter.terms.some(t => t && t.range && year >= t.range[0] && year <= t.range[1]);
+    if(has){
+      filter.terms = filter.terms.flatMap(function(t){
+        if(!t || !t.range || year < t.range[0] || year > t.range[1]) return [t];
+        const pieces = [];
+        if(t.range[0] < year) pieces.push({range:[t.range[0],year-1]});
+        if(year < t.range[1]) pieces.push({range:[year+1,t.range[1]]});
+        return pieces;
+      });
+    }else{
+      filter.terms.push({range:[year,year]});
+    }
+    state.eval = null;
     state.pendingScroll = 'top';
     renderAll();
+  }
+  else if(act === 'year-unknown'){
+    toggleTerm(Retrieval.YEAR_GROUP,{unknown:true});
+  }
+  else if(act === 'apply-rescue'){
+    const groupId = el.dataset.group;
+    const filter = getGroupFilter(groupId,'any');
+    const kind = groupId === Retrieval.YEAR_GROUP ? Retrieval.YEAR : groupId === Retrieval.ATTR_GROUP ? Retrieval.ATTR : Retrieval.TAG;
+    if(el.dataset.kind === 'add'){
+      if(groupId === Retrieval.YEAR_GROUP && !filter.terms.some(t => t && t.unknown)) filter.terms.push({unknown:true});
+    }else{
+      filter.terms = filter.terms.filter(t => Retrieval.termKey(kind,t) !== el.dataset.key);
+    }
+    state.eval = null;
+    state.relaxOpen = false;
+    state.pendingScroll = 'top';
+    renderAll();
+  }
+  else if(act === 'relax-toggle'){
+    state.relaxOpen = !state.relaxOpen;
+    renderExpression();
+  }
+  else if(act === 'group-expand'){
+    const id = el.dataset.group;
+    if(state.expandedGroups.has(id)) state.expandedGroups.delete(id); else state.expandedGroups.add(id);
+    renderGroups();
+  }
+  else if(act === 'groups-expand'){
+    state.groupsExpanded = !state.groupsExpanded;
+    renderGroups();
   }
   else if(act === 'clear-all'){ clearAll(); }
   else if(act === 'reset-all'){ resetAll(); }
-  else if(act === 'collapse'){
-    const k = el.dataset.facet;
-    if(state.collapsed.has(k)) state.collapsed.delete(k); else state.collapsed.add(k);
-    renderFacets();
+  else if(act === 'jump-group'){
+    const id = el.dataset.group;
+    const target = id === '@query' ? $('#search') : id === '@mode' ? $('#actionbar') : document.querySelector('[data-group="' + CSS.escape(id) + '"]');
+    if(target){ target.scrollIntoView({behavior:'smooth',block:'nearest'}); if(id === '@query') target.focus(); }
   }
-  else if(act === 'more'){
-    const k = el.dataset.facet;
-    if(state.expanded.has(k)) state.expanded.delete(k); else state.expanded.add(k);
-    renderFacets();
+  else if(act === 'year-range-add'){
+    const fromText = $('#yearFrom').value.trim(), toText = $('#yearTo').value.trim();
+    const from = Number(fromText), to = Number(toText);
+    if(!fromText || !toText || !Number.isInteger(from) || !Number.isInteger(to) || from < 0 || to < 9999 || from > 9999 || to > 9999){ toast('请输入 0 到 9999 之间的整数年份'); return; }
+    const filter = getGroupFilter(Retrieval.YEAR_GROUP,'any');
+    filter.terms.push({range:[Math.min(from,to),Math.max(from,to)]});
+    filter.terms = normalizeYearTerms(filter.terms);
+    state.eval = null;
+    state.pendingScroll = 'top';
+    renderAll();
   }
-  else if(act === 'toggle-facets'){ $('#app').classList.toggle('show-facets'); }
-  else if(act === 'close-facets'){ $('#app').classList.remove('show-facets'); }
   else if(act === 'close-detail'){ $('#app').classList.remove('show-detail'); }
   else if(act === 'select'){ selectPaper(el.dataset.id); }
   else if(act === 'tab'){
@@ -3071,6 +3334,7 @@ document.addEventListener('click', function(e){
     const p = PAPERS.find(x => x.id === state.paperId);
     if(!p) return;
     p.status = p.status === 'read' ? 'todo' : 'read';
+    state.eval = null;
     toast('已标记为 <b>' + statusLabel(p.status) + '</b>');
     renderAll();
     scheduleSave(p.id, {status: p.status});
@@ -3096,11 +3360,12 @@ document.addEventListener('click', function(e){
     } else { toast('当前浏览器不支持自动复制'); }
   }
   else if(act === 'filter-tag'){
-    const f = el.dataset.facet, v = el.dataset.value;
-    state.selected[f].add(v);
-    state.pendingScroll = 'top';
-    renderAll();
-    toast('已筛入 <b>' + labelOf(f) + '：' + esc(v) + '</b>');
+    const hit = findTag(el.dataset.value);
+    if(hit){
+      const id = hit.group ? hit.group.id : Retrieval.UNFILED;
+      toggleTerm(id,hit.tag.id);
+    }
+    toast('已筛入 <b>标签：' + esc(el.dataset.value) + '</b>');
   }
   else if(act === 'del-tag'){
     removeTag(el.dataset.facet, el.dataset.value);
@@ -3242,6 +3507,7 @@ document.addEventListener('click', function(e){
     const p = readerPaper();
     if(!p) return;
     p.status = el.dataset.status;
+    state.eval = null;
     renderReaderSide();
     renderAll();
     scheduleSave(p.id, {status: p.status});
@@ -3252,6 +3518,7 @@ document.addEventListener('click', function(e){
     const p = readerPaper();
     if(!p) return;
     p.starred = !p.starred;
+    state.eval = null;
     renderReaderSide();
     renderAll();
     scheduleSave(p.id, {starred: p.starred});
@@ -3398,6 +3665,14 @@ document.addEventListener('submit', function(e){
 });
 
 document.addEventListener('change', function(e){
+  if(e.target.dataset.change === 'group-op'){
+    const filter = getGroupFilter(e.target.dataset.group,'any');
+    filter.op = e.target.value;
+    state.eval = null;
+    state.relaxOpen = false;
+    renderAll();
+    return;
+  }
   if(e.target.id === 'sort'){
     state.sort = e.target.value;
     renderAll();
@@ -3434,6 +3709,8 @@ document.addEventListener('change', function(e){
 document.addEventListener('input', function(e){
   if(e.target.id === 'search'){
     state.q = e.target.value.trim();
+    state.eval = null;
+    state.relaxOpen = false;
     state.pendingScroll = 'top';
     renderAll();
     return;
@@ -3616,6 +3893,7 @@ function openReader(){
 
   if(p.status === 'todo'){
     p.status = 'reading';
+    state.eval = null;
     scheduleSave(p.id, { status:'reading' });
     renderAll();
   }
@@ -3921,6 +4199,7 @@ async function refreshPapers(){
   if(!apiOnline) return;
   try{
     PAPERS = await fetchPapers();
+    state.eval = null;
     await refreshGroups();
     renderAll();
   }catch(err){
