@@ -14,6 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from . import ai as ai_src
+from . import clean
 from . import metadata as metadata_src
 from . import repo
 from .db import init_db, connect
@@ -67,6 +68,21 @@ class ItemPatch(BaseModel):
 class TagIn(BaseModel):
     facet: Literal["topic", "author", "org", "year"]
     name: str = Field(min_length=1, max_length=120)
+    # 只在 facet="topic" 时生效；都给或都不给都合法（都不给 = 未分组）
+    group_id: str | None = None
+    group_name: str | None = Field(default=None, max_length=120)
+
+
+class GroupIn(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    color: str | None = Field(default=None, max_length=32)
+
+
+class GroupAssignIn(BaseModel):
+    tag_id: str
+    # 省略或 null = 移回未分组
+    group_id: str | None = None
+    group_name: str | None = Field(default=None, max_length=120)
 
 
 class MergeIn(BaseModel):
@@ -189,10 +205,64 @@ def import_queue() -> dict:
 def list_tags() -> dict:
     conn = connect()
     try:
+        return repo.list_tag_groups(conn)
+    finally:
+        conn.close()
+
+
+@app.get("/api/tags/flat")
+def list_tags_flat() -> dict:
+    conn = connect()
+    try:
         tags = repo.list_tags(conn)
     finally:
         conn.close()
     return {"tags": tags, "total": len(tags)}
+
+
+@app.post("/api/groups")
+def create_group(payload: GroupIn) -> dict:
+    conn = connect()
+    try:
+        try:
+            group_id = repo.ensure_tag_group(conn, payload.name, payload.color or "")
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        conn.commit()
+    finally:
+        conn.close()
+    return {"id": group_id, "name": payload.name.strip()}
+
+
+@app.delete("/api/groups/{group_id}")
+def delete_group(group_id: str) -> dict:
+    conn = connect()
+    try:
+        affected = repo.delete_tag_group(conn, group_id)
+    finally:
+        conn.close()
+    if affected is None:
+        raise HTTPException(status_code=404, detail="group not found")
+    return {"ok": True, "movedToUnfiled": affected}
+
+
+@app.post("/api/groups/assign")
+def assign_group(payload: GroupAssignIn) -> dict:
+    conn = connect()
+    try:
+        group_id = payload.group_id
+        try:
+            if not group_id and payload.group_name and payload.group_name.strip():
+                group_id = repo.ensure_tag_group(conn, payload.group_name)
+                conn.commit()
+            result = repo.set_tag_group(conn, payload.tag_id, group_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+    finally:
+        conn.close()
+    if not result:
+        raise HTTPException(status_code=404, detail="tag not found")
+    return result
 
 
 # ---------------------------------------------------------------- 写
@@ -215,7 +285,14 @@ def add_tag(item_id: str, payload: TagIn) -> dict:
     conn = connect()
     try:
         try:
-            item = repo.add_tag(conn, item_id, payload.facet, payload.name)
+            item = repo.add_tag(
+                conn,
+                item_id,
+                payload.facet,
+                payload.name,
+                group_id=payload.group_id,
+                group_name=payload.group_name,
+            )
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
     finally:
@@ -716,3 +793,39 @@ async def import_files(files: list[UploadFile] = File(...)) -> dict:
         "errors": [r for r in results if r["status"] == "error"],
         "results": results,
     }
+
+
+# ---------------------------------------------------------------- 数据清洗
+
+class CleanOp(BaseModel):
+    id: str
+    action: Literal["rename", "drop"]
+    value: str | None = None
+
+
+class CleanApplyIn(BaseModel):
+    authors: list[CleanOp] = Field(default_factory=list, max_length=2000)
+    orgs: list[CleanOp] = Field(default_factory=list, max_length=2000)
+
+
+@app.get("/api/clean/scan")
+def clean_scan() -> dict:
+    conn = connect()
+    try:
+        return clean.scan(conn)
+    finally:
+        conn.close()
+
+
+@app.post("/api/clean/apply")
+def clean_apply(payload: CleanApplyIn) -> dict:
+    conn = connect()
+    try:
+        result = clean.apply(
+            conn,
+            author_ops=[op.model_dump() for op in payload.authors],
+            org_ops=[op.model_dump() for op in payload.orgs],
+        )
+    finally:
+        conn.close()
+    return result

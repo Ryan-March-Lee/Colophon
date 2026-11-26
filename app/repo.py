@@ -13,37 +13,94 @@ TAG_COLORS = ["#1c7566", "#a2672c", "#7757a6", "#5b6f83", "#8a5a22", "#2f7d4f"]
 # ---------------------------------------------------------------- 读取
 
 def _row_to_item(conn: sqlite3.Connection, row: sqlite3.Row) -> dict:
+    return _rows_to_items(conn, [row])[0]
+
+
+def list_items(conn: sqlite3.Connection) -> list[dict]:
+    rows = conn.execute(
+        "SELECT * FROM item WHERE deleted_at IS NULL ORDER BY rowid"
+    ).fetchall()
+    return _rows_to_items(conn, rows)
+
+
+def _rows_to_items(conn: sqlite3.Connection, rows: list[sqlite3.Row]) -> list[dict]:
+    """一次查齐作者 / 单位 / 标签 / 分组，再拼装。
+
+    逐条调用 `_row_to_item` 会按条目数 × 3 次查询打一遍库（65 篇 200 次往返），
+    几百篇时首页每次筛选都要等它。这里固定 4 次查询，与条目数无关。
+    """
+    ids = [row["id"] for row in rows]
+    if not ids:
+        return []
+
+    authors: dict[str, list[str]] = {}
+    orgs: dict[str, list[str]] = {}
+    topics: list[dict] = []
+    for chunk_start in range(0, len(ids), 900):
+        chunk = ids[chunk_start : chunk_start + 900]
+        marks = ",".join("?" * len(chunk))
+        for r in conn.execute(
+            f"SELECT ia.item_id, a.display_name FROM item_author ia "
+            f"JOIN author a ON a.id = ia.author_id "
+            f"WHERE ia.item_id IN ({marks}) ORDER BY ia.position, a.display_name",
+            chunk,
+        ):
+            authors.setdefault(r["item_id"], []).append(r["display_name"])
+        for r in conn.execute(
+            f"SELECT io.item_id, o.name FROM item_org io "
+            f"JOIN org o ON o.id = io.org_id "
+            f"WHERE io.item_id IN ({marks}) ORDER BY io.position, o.name",
+            chunk,
+        ):
+            orgs.setdefault(r["item_id"], []).append(r["name"])
+        for r in conn.execute(
+            f"SELECT it.item_id, t.name, t.color, g.id AS group_id "
+            f"FROM item_tag it JOIN tag t ON t.id = it.tag_id "
+            f"LEFT JOIN tag_group_member m ON m.tag_id = t.id "
+            f"LEFT JOIN tag_group g ON g.id = m.group_id AND g.deleted_at IS NULL "
+            f"WHERE it.item_id IN ({marks}) AND t.deleted_at IS NULL "
+            f"ORDER BY it.created_at, t.name",
+            chunk,
+        ):
+            topics.append(dict(r))
+
+    files = {}
+    for r in conn.execute(
+        f"SELECT item_id, original_name FROM file WHERE item_id IN ("
+        f"{','.join('?' * len(ids))}) ORDER BY added_at",
+        ids,
+    ):
+        files.setdefault(r["item_id"], r["original_name"])
+
+    topic_map: dict[str, list[str]] = {}
+    topic_group: dict[str, str | None] = {}
+    for t in topics:
+        names = topic_map.setdefault(t["item_id"], [])
+        if t["name"] not in names:
+            names.append(t["name"])
+        topic_group.setdefault(t["name"], t["group_id"])
+    return [
+        _dict_to_item(
+            row,
+            authors.get(row["id"], []),
+            orgs.get(row["id"], []),
+            topic_map.get(row["id"], []),
+            topic_group,
+            files.get(row["id"]),
+        )
+        for row in rows
+    ]
+
+
+def _dict_to_item(
+    row: sqlite3.Row,
+    authors: list[str],
+    orgs: list[str],
+    topics: list[str],
+    topic_group: dict[str, str | None],
+    file_name: str | None,
+) -> dict:
     item_id = row["id"]
-    authors = [
-        r["display_name"]
-        for r in conn.execute(
-            "SELECT a.display_name FROM item_author ia "
-            "JOIN author a ON a.id = ia.author_id "
-            "WHERE ia.item_id = ? ORDER BY ia.position, a.display_name",
-            (item_id,),
-        )
-    ]
-    orgs = [
-        r["name"]
-        for r in conn.execute(
-            "SELECT o.name FROM item_org io JOIN org o ON o.id = io.org_id "
-            "WHERE io.item_id = ? ORDER BY io.position, o.name",
-            (item_id,),
-        )
-    ]
-    topics = [
-        r["name"]
-        for r in conn.execute(
-            "SELECT t.name FROM item_tag it JOIN tag t ON t.id = it.tag_id "
-            "WHERE it.item_id = ? AND t.deleted_at IS NULL "
-            "ORDER BY it.created_at, t.name",
-            (item_id,),
-        )
-    ]
-    file_row = conn.execute(
-        "SELECT original_name FROM file WHERE item_id = ? ORDER BY added_at LIMIT 1",
-        (item_id,),
-    ).fetchone()
     missing = []
     if not row["title"]:
         missing.append("title")
@@ -69,9 +126,12 @@ def _row_to_item(conn: sqlite3.Connection, row: sqlite3.Row) -> dict:
         "aiBrief": row["ai_brief"],
         "memory": row["memory"],
         "note": row["note_md"],
+        "year": row["year"],
+        "starred": bool(row["starred"]),
+        "addedAt": row["added_at"],
         "needsReview": bool(row["needs_review"]),
-        "hasFile": bool(file_row),
-        "fileName": file_row["original_name"] if file_row else "",
+        "hasFile": bool(file_name),
+        "fileName": file_name or "",
         "missing": missing,
         "tags": {
             "year": [str(row["year"])] if row["year"] else [],
@@ -79,14 +139,8 @@ def _row_to_item(conn: sqlite3.Connection, row: sqlite3.Row) -> dict:
             "org": orgs,
             "topic": topics,
         },
+        "topicGroups": [topic_group.get(name) for name in topics],
     }
-
-
-def list_items(conn: sqlite3.Connection) -> list[dict]:
-    rows = conn.execute(
-        "SELECT * FROM item WHERE deleted_at IS NULL ORDER BY rowid"
-    ).fetchall()
-    return [_row_to_item(conn, row) for row in rows]
 
 
 def get_item(conn: sqlite3.Connection, item_id: str) -> dict | None:
@@ -154,6 +208,139 @@ def list_tags(conn: sqlite3.Connection) -> list[dict]:
     return [dict(row) for row in rows]
 
 
+def list_tag_groups(conn: sqlite3.Connection) -> dict:
+    """按组返回标签：groups[] + unfiled[]。
+
+    没有 tag_group_member 行的标签就是「未分组」；未分组不是数据库行，
+    永远排在 groups 之外、由前端固定在组区末尾。
+    """
+    groups = [
+        dict(row)
+        for row in conn.execute(
+            "SELECT id, name, color, position FROM tag_group "
+            "WHERE deleted_at IS NULL ORDER BY position, rowid"
+        ).fetchall()
+    ]
+    tags = [
+        dict(row)
+        for row in conn.execute(
+            "SELECT t.id, t.name, t.color, t.definition, "
+            "       g.id AS group_id, g.name AS group_name, "
+            "       COUNT(DISTINCT i.id) AS count "
+            "FROM tag t "
+            "LEFT JOIN tag_group_member m ON m.tag_id = t.id "
+            "LEFT JOIN tag_group g ON g.id = m.group_id AND g.deleted_at IS NULL "
+            "LEFT JOIN item_tag it ON it.tag_id = t.id "
+            "LEFT JOIN item i ON i.id = it.item_id AND i.deleted_at IS NULL "
+            "WHERE t.deleted_at IS NULL "
+            "GROUP BY t.id, g.id, g.name ORDER BY t.name"
+        ).fetchall()
+    ]
+
+    by_group: dict[str, list[dict]] = {g["id"]: [] for g in groups}
+    unfiled: list[dict] = []
+    for tag in tags:
+        gid = tag.pop("group_id")
+        tag.pop("group_name", None)
+        if gid and gid in by_group:
+            by_group[gid].append(tag)
+        else:
+            # 组被软删 / 组行缺失时，标签退回未分组，不消失
+            unfiled.append(tag)
+
+    for g in groups:
+        g["tags"] = by_group[g["id"]]
+        g["count"] = len(g["tags"])
+    for tag in unfiled:
+        tag["group_id"] = None
+
+    unfiled.sort(key=lambda t: (-t["count"], t["name"]))
+    return {
+        "groups": groups,
+        "unfiled": unfiled,
+        "total": len(tags),
+        "unfiledCount": len(unfiled),
+    }
+
+
+def ensure_tag_group(conn: sqlite3.Connection, name: str, color: str = "") -> str:
+    """按名字复用组（大小写不敏感，忽略软删）；没有就建一个，排到末尾。"""
+    name = name.strip()
+    if not name:
+        raise ValueError("empty group name")
+    row = conn.execute(
+        "SELECT id, deleted_at FROM tag_group WHERE name = ? COLLATE NOCASE", (name,)
+    ).fetchone()
+    if row:
+        if row["deleted_at"]:
+            conn.execute(
+                "UPDATE tag_group SET deleted_at = NULL WHERE id = ?", (row["id"],)
+            )
+        return row["id"]
+    group_id = new_id("grp")
+    position = conn.execute(
+        "SELECT COALESCE(MAX(position), -1) + 1 FROM tag_group WHERE deleted_at IS NULL"
+    ).fetchone()[0]
+    conn.execute(
+        "INSERT INTO tag_group (id, name, color, position, created_at) "
+        "VALUES (?, ?, ?, ?, ?)",
+        (group_id, name, color, position, now()),
+    )
+    return group_id
+
+
+def set_tag_group(
+    conn: sqlite3.Connection, tag_id: str, group_id: str | None
+) -> dict | None:
+    """把一个标签放进某个组；group_id 为 None 表示移回未分组。"""
+    tag = conn.execute(
+        "SELECT id FROM tag WHERE id = ? AND deleted_at IS NULL", (tag_id,)
+    ).fetchone()
+    if not tag:
+        return None
+    if group_id:
+        group = conn.execute(
+            "SELECT id FROM tag_group WHERE id = ? AND deleted_at IS NULL", (group_id,)
+        ).fetchone()
+        if not group:
+            raise ValueError("unknown group")
+        position = conn.execute(
+            "SELECT COALESCE(MAX(position), -1) + 1 FROM tag_group_member "
+            "WHERE group_id = ?",
+            (group_id,),
+        ).fetchone()[0]
+        conn.execute(
+            "INSERT INTO tag_group_member (tag_id, group_id, position, added_at) "
+            "VALUES (?, ?, ?, ?) "
+            "ON CONFLICT(tag_id) DO UPDATE SET group_id = excluded.group_id, "
+            "position = excluded.position, added_at = excluded.added_at",
+            (tag_id, group_id, position, now()),
+        )
+    else:
+        conn.execute("DELETE FROM tag_group_member WHERE tag_id = ?", (tag_id,))
+    conn.commit()
+    return {"tag_id": tag_id, "group_id": group_id or None}
+
+
+def delete_tag_group(conn: sqlite3.Connection, group_id: str) -> int | None:
+    """软删组并清掉成员行：标签退回未分组，不级联删标签。返回受影响的标签数。
+
+    组不存在（或已经软删）时返回 None，供接口区分 404 与「空组删除」。
+    """
+    group = conn.execute(
+        "SELECT id FROM tag_group WHERE id = ? AND deleted_at IS NULL", (group_id,)
+    ).fetchone()
+    if not group:
+        return None
+    affected = conn.execute(
+        "SELECT COUNT(*) FROM tag_group_member WHERE group_id = ?", (group_id,)
+    ).fetchone()[0]
+    conn.execute("DELETE FROM tag_group_member WHERE group_id = ?", (group_id,))
+    conn.execute("UPDATE tag_group SET deleted_at = ? WHERE id = ?", (now(), group_id))
+    conn.commit()
+    return affected
+
+
 # ---------------------------------------------------------------- 实体
 
 def _find_tag(conn: sqlite3.Connection, name: str) -> str | None:
@@ -170,26 +357,58 @@ def _find_tag(conn: sqlite3.Connection, name: str) -> str | None:
     return None
 
 
-def ensure_tag(conn: sqlite3.Connection, name: str) -> str:
+def ensure_tag(
+    conn: sqlite3.Connection, name: str, group_id: str | None = None
+) -> str:
+    """按名字取标签（补全别名、软删复用）；没有就新建。
+
+    group_id 给定时：新标签直接落进该组；已有但还没有组归属的标签一并落进去。
+    已经在别的组里的标签**不会**被悄悄改组——一个标签只属于一个组。
+    """
     name = name.strip()
     row = conn.execute(
         "SELECT tag_id FROM tag_alias WHERE alias = ? COLLATE NOCASE", (name,)
     ).fetchone()
+    tag_id = None
     if row:
-        return row["tag_id"]
-    row = conn.execute(
-        "SELECT id, deleted_at FROM tag WHERE name = ? COLLATE NOCASE", (name,)
-    ).fetchone()
-    if row:
-        if row["deleted_at"]:
-            conn.execute("UPDATE tag SET deleted_at = NULL WHERE id = ?", (row["id"],))
-        return row["id"]
-    tag_id = new_id("tg")
-    color = TAG_COLORS[sum(ord(c) for c in name) % len(TAG_COLORS)]
-    conn.execute(
-        "INSERT INTO tag (id, name, color, created_at) VALUES (?, ?, ?, ?)",
-        (tag_id, name, color, now()),
-    )
+        tag_id = row["tag_id"]
+    else:
+        row = conn.execute(
+            "SELECT id, deleted_at FROM tag WHERE name = ? COLLATE NOCASE", (name,)
+        ).fetchone()
+        if row:
+            if row["deleted_at"]:
+                conn.execute(
+                    "UPDATE tag SET deleted_at = NULL WHERE id = ?", (row["id"],)
+                )
+            tag_id = row["id"]
+        else:
+            tag_id = new_id("tg")
+            color = TAG_COLORS[sum(ord(c) for c in name) % len(TAG_COLORS)]
+            conn.execute(
+                "INSERT INTO tag (id, name, color, created_at) VALUES (?, ?, ?, ?)",
+                (tag_id, name, color, now()),
+            )
+
+    if group_id:
+        group = conn.execute(
+            "SELECT id FROM tag_group WHERE id = ? AND deleted_at IS NULL", (group_id,)
+        ).fetchone()
+        if not group:
+            raise ValueError("unknown group")
+        if not conn.execute(
+            "SELECT 1 FROM tag_group_member WHERE tag_id = ?", (tag_id,)
+        ).fetchone():
+            position = conn.execute(
+                "SELECT COALESCE(MAX(position), -1) + 1 FROM tag_group_member "
+                "WHERE group_id = ?",
+                (group_id,),
+            ).fetchone()[0]
+            conn.execute(
+                "INSERT INTO tag_group_member (tag_id, group_id, position, added_at) "
+                "VALUES (?, ?, ?, ?)",
+                (tag_id, group_id, position, now()),
+            )
     return tag_id
 
 
@@ -434,7 +653,18 @@ def mark_items_missing_metadata_for_review(conn: sqlite3.Connection) -> int:
     return cursor.rowcount
 
 
-def add_tag(conn: sqlite3.Connection, item_id: str, facet: str, name: str) -> dict | None:
+def add_tag(
+    conn: sqlite3.Connection,
+    item_id: str,
+    facet: str,
+    name: str,
+    group_id: str | None = None,
+    group_name: str | None = None,
+) -> dict | None:
+    """打标。topic 时可以顺带给标签定组（group_id 或 group_name 二选一）。
+
+    手动打标应带组；AI 建议 / 导入继承不带，落到未分组。
+    """
     if not conn.execute(
         "SELECT 1 FROM item WHERE id = ? AND deleted_at IS NULL", (item_id,)
     ).fetchone():
@@ -453,7 +683,10 @@ def add_tag(conn: sqlite3.Connection, item_id: str, facet: str, name: str) -> di
             (year, now(), item_id),
         )
     elif facet == "topic":
-        tag_id = ensure_tag(conn, name)
+        target_group = group_id
+        if not target_group and group_name and group_name.strip():
+            target_group = ensure_tag_group(conn, group_name)
+        tag_id = ensure_tag(conn, name, group_id=target_group)
         conn.execute(
             "INSERT OR IGNORE INTO item_tag (item_id, tag_id, source, created_at) "
             "VALUES (?, ?, 'user', ?)",
@@ -548,6 +781,20 @@ def merge(conn: sqlite3.Connection, facet: str, from_name: str, to_name: str) ->
             (to_id, from_id),
         )
         conn.execute("DELETE FROM item_tag WHERE tag_id = ?", (from_id,))
+        # 组归属随保留的标签走：保留的标签还没组时才继承被并掉那个的组，
+        # 已经有组就保持原样（一个标签只属于一个组）。
+        from_member = conn.execute(
+            "SELECT group_id, position FROM tag_group_member WHERE tag_id = ?", (from_id,)
+        ).fetchone()
+        if from_member and not conn.execute(
+            "SELECT 1 FROM tag_group_member WHERE tag_id = ?", (to_id,)
+        ).fetchone():
+            conn.execute(
+                "INSERT INTO tag_group_member (tag_id, group_id, position, added_at) "
+                "VALUES (?, ?, ?, ?)",
+                (to_id, from_member["group_id"], from_member["position"], now()),
+            )
+        conn.execute("DELETE FROM tag_group_member WHERE tag_id = ?", (from_id,))
         conn.execute(
             "INSERT OR REPLACE INTO tag_alias (alias, tag_id, created_at) VALUES (?, ?, ?)",
             (from_name, to_id, now()),

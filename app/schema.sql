@@ -89,6 +89,28 @@ CREATE TABLE IF NOT EXISTS item_tag (
 );
 CREATE INDEX IF NOT EXISTS ix_item_tag_tag ON item_tag(tag_id);
 
+-- ---------- 标签分组（检索台用） ----------
+-- 一个标签只属于一个组：由 tag_group_member.tag_id 做主键在库层面强制。
+-- 没有成员行的标签 = 未分组（虚拟组，不建行，不参与排序）。
+CREATE TABLE IF NOT EXISTS tag_group (
+  id          TEXT PRIMARY KEY,
+  name        TEXT NOT NULL,
+  color       TEXT NOT NULL DEFAULT '',
+  position    INTEGER NOT NULL DEFAULT 0,
+  created_at  TEXT NOT NULL,
+  deleted_at  TEXT
+);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_tag_group_name
+  ON tag_group(name COLLATE NOCASE) WHERE deleted_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS tag_group_member (
+  tag_id    TEXT PRIMARY KEY REFERENCES tag(id) ON DELETE CASCADE,
+  group_id  TEXT NOT NULL REFERENCES tag_group(id) ON DELETE CASCADE,
+  position  INTEGER NOT NULL DEFAULT 0,
+  added_at  TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_tgm_group ON tag_group_member(group_id, position);
+
 -- ---------- 文件 / 批注 ----------
 CREATE TABLE IF NOT EXISTS file (
   id             TEXT PRIMARY KEY,

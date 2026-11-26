@@ -372,6 +372,59 @@
   .sug-act .btn{height:24px;font-size:11px;padding:0 8px}
   .sugempty{font-size:11.5px;color:var(--muted-2);display:flex;align-items:center;gap:8px}
 
+  /* ---------- 打标 / 组 ---------- */
+  .groupbar{display:flex;align-items:center;gap:5px;margin-top:9px;flex-wrap:wrap}
+  .groupbar .glabel{font-size:11px;color:var(--muted);flex:none}
+  .groupbar .gdot{width:6px;height:6px;border-radius:99px;background:var(--accent);flex:none}
+  .groupbar select{
+    height:30px;max-width:190px;border:1px solid var(--line);border-radius:7px;
+    background:var(--panel-2);font-size:11.5px;padding:0 4px;outline:none;color:var(--ink);
+  }
+  .groupbar select:focus{border-color:var(--accent);background:var(--panel)}
+  .groupbar input{
+    flex:1;min-width:100px;height:30px;border:1px solid var(--accent);border-radius:7px;
+    background:var(--panel);padding:0 9px;font-size:12px;outline:none;
+  }
+  .groupbar .btn{height:30px}
+  .groupbar .gnew{font-size:11px;color:var(--accent);white-space:nowrap}
+  .grouphint{font-size:10.5px;color:var(--muted-2);line-height:1.6;margin:5px 0 0}
+  .app.workbench{grid-template-columns:minmax(340px,1fr)}
+  .app.workbench .facets,.app.workbench .detail,.app.workbench .listbar{display:none}
+  .app.workbench .papers{display:block;padding:20px 18px 40px}
+  .wb-card{width:min(700px,100%);margin:0 auto}
+  .wb-top{display:flex;align-items:center;gap:9px;font-size:11px;color:var(--muted)}
+  .wb-num{font-variant-numeric:tabular-nums;font-weight:650;color:var(--ink)}
+  .wb-top .sp{margin-left:auto}
+  .wb-title{font-family:var(--serif);font-size:20px;line-height:1.32;font-weight:600;margin:11px 0 6px;letter-spacing:-.01em}
+  .wb-sub{font-size:11.5px;color:var(--muted);margin-bottom:10px}
+  .wb-abs{font-size:12.5px;line-height:1.72;color:var(--ink);opacity:.88;max-height:156px;overflow:hidden}
+  .wb-meta{display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;border:1px solid var(--line);border-radius:8px;background:var(--panel-2);padding:7px 9px;margin-top:11px}
+  .wb-meta.warn{border-color:color-mix(in srgb,var(--warn) 32%,var(--line));background:color-mix(in srgb,var(--warn) 7%,var(--panel))}
+  .wb-meta-info{flex:1;min-width:0;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+  .wb-meta-title{font-size:11.5px;font-weight:600;flex:none}
+  .wb-meta-miss{font-size:11px;color:var(--warn)}
+  .wb-meta-doi{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+  .wb-meta-hint{font-size:10.5px;color:var(--muted-2)}
+  .wb-meta-acts{display:flex;gap:5px;flex:none}
+  .wb-quick{margin-top:9px;border-top:1px dashed var(--line);padding-top:9px}
+  .wb-quick-head{font-size:10.5px;color:var(--muted);margin-bottom:5px}
+  .wb-quick-head .h{color:var(--muted-2)}
+  .wb-quick-list{display:flex;flex-wrap:wrap;gap:5px}
+  .wb-quick-empty{font-size:10.5px;color:var(--muted-2);line-height:1.6;margin:9px 0 0;border-top:1px dashed var(--line);padding-top:9px}
+  .qtag{
+    display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;
+    border:1px solid color-mix(in srgb,var(--c) 28%,transparent);border-radius:99px;
+    background:color-mix(in srgb,var(--c) 6%,transparent);color:color-mix(in srgb,var(--c) 88%,var(--ink));
+    font-size:11px;
+  }
+  .qtag:hover{background:color-mix(in srgb,var(--c) 16%,transparent);border-color:color-mix(in srgb,var(--c) 46%,transparent)}
+  .qtag b{font-weight:600;font-size:9.5px;opacity:.6}
+  .qtag.has{opacity:.42;cursor:default}
+  .wb-mem{margin-top:13px}
+  .wb-tags{margin-top:15px;border-top:1px solid var(--line);padding-top:13px}
+  .wb-foot{display:flex;align-items:center;gap:8px;margin-top:16px}
+  .wb-foot .skip{margin-left:auto}
+  .wb-empty{margin:auto;text-align:center;color:var(--muted);padding:40px 20px}
   /* chat */
   .dbody.chat{display:flex;flex-direction:column;overflow:hidden;padding:0}
   .chat-top{padding:12px 20px 0;flex:none}
@@ -483,6 +536,34 @@
   .libhead span:last-child{letter-spacing:0}
   .libvals{display:flex;flex-wrap:wrap;gap:4px}
   .libvals .tag{height:21px;font-size:11px}
+  .libacts{display:flex;gap:9px;margin-top:5px}
+  .libhead .hint{letter-spacing:0;text-transform:none;font-weight:400;color:var(--muted-2)}
+  .pickgrouplist{display:flex;flex-direction:column;gap:5px;margin-top:4px}
+  .pickgroup{
+    display:flex;align-items:center;gap:8px;padding:8px 10px;text-align:left;
+    border:1px solid var(--line);border-left:2px solid var(--c);border-radius:8px;
+    background:var(--panel-2);font-size:12.5px;
+  }
+  .pickgroup:hover{background:var(--hover)}
+  .pickgroup .gdot{width:7px;height:7px;border-radius:99px;background:var(--c);flex:none}
+  .pickgroup .cnt{margin-left:auto;font-size:10.5px;color:var(--muted-2)}
+  .clean-card{width:min(860px,100%)}
+  .clean-policy{font-size:10.5px;line-height:1.65;color:var(--muted);background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:6px}
+  .clean-policy b{color:var(--ink);font-weight:600}
+  .csec{margin-top:12px}
+  .crow{display:flex;align-items:flex-start;gap:8px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;margin-bottom:4px;background:var(--panel)}
+  .crow.skipped{opacity:.55}
+  .cbadge{flex:none;font-size:9.5px;padding:1px 5px;border-radius:4px;background:color-mix(in srgb,var(--tone) 14%,transparent);color:var(--tone);border:1px solid color-mix(in srgb,var(--tone) 30%,transparent);margin-top:2px}
+  .cbadge.warn{background:color-mix(in srgb,var(--warn) 12%,transparent);color:var(--warn);border-color:color-mix(in srgb,var(--warn) 30%,transparent)}
+  .cname{flex:1;min-width:0}
+  .cold{font-size:12px;word-break:break-word}
+  .carrow{color:var(--muted-2);margin:0 5px;font-size:11px}
+  .cnew{font-size:12px;font-weight:600;color:var(--ok)}
+  .cwhy{font-size:10px;color:var(--muted-2);margin-top:2px}
+  .cact{display:flex;gap:3px;flex:none;flex-wrap:wrap;justify-content:flex-end;max-width:46%}
+  .tbtn{font-size:10.5px;padding:2px 6px;border:1px solid var(--line);border-radius:5px;background:var(--panel-2);color:var(--muted)}
+  .tbtn:hover{border-color:var(--line-2);color:var(--ink)}
+  .tbtn.on{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 40%,transparent);color:var(--accent-2);font-weight:600}
   .mnote{font-size:10.5px;color:var(--muted-2);line-height:1.6;margin:4px 0 0;border-top:1px solid var(--line);padding-top:10px}
 
   /* ---------- 导入浏览 ---------- */
@@ -596,9 +677,55 @@
   .rtitle{flex:1;min-width:0;font-size:13px;font-weight:550;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .rtitle .rname{font-weight:400;font-size:11px;color:var(--muted-2);margin-left:8px}
   .rgroup{flex:none;display:flex;align-items:center;gap:4px}
+  .rtagbtn{display:inline-flex}
+  .rtagbtn[aria-pressed="true"]{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 40%,var(--line));color:var(--accent-2);font-weight:600}
+  .rmain{flex:1;min-height:0;display:flex;position:relative;overflow:hidden}
+  .rbody{flex:1;min-width:0;overflow:auto;padding:18px 24px 64px;background:var(--bg);position:relative}
+  .rbody.blank{overflow:hidden}
+
+  /* ---------- 阅读时打标签（右侧不遮挡原文） ---------- */
+  .rside{
+    width:318px;flex:none;overflow-y:auto;background:var(--panel);
+    border-left:1px solid var(--line);padding:13px 14px 20px;
+    display:flex;flex-direction:column;gap:11px;
+  }
+  .rside[hidden]{display:none}
+  .rside .rs-kicker{font-size:9.5px;letter-spacing:.12em;color:var(--muted-2);text-transform:uppercase}
+  .rside .rs-title{font-family:var(--serif);font-size:13px;font-weight:600;line-height:1.42;margin-top:3px;max-height:3.9em;overflow:hidden}
+  .rside .rs-now{font-size:10.5px;color:var(--muted-2);font-variant-numeric:tabular-nums}
+  .rs-lab{font-size:10px;letter-spacing:.08em;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:6px}
+  .rs-lab .hint{letter-spacing:0;text-transform:none;font-weight:400;color:var(--muted-2);font-size:9.5px}
+  .rs-lab .sp{margin-left:auto}
+  .rs-mmem{display:flex;gap:5px}
+  .rs-mmem input{flex:1;min-width:0;height:30px;border:1px solid var(--line);border-radius:7px;background:var(--panel-2);padding:0 9px;font-size:11.5px;outline:none}
+  .rs-mmem input:focus{border-color:var(--accent);background:var(--panel);box-shadow:0 0 0 3px var(--accent-soft)}
+  .rs-tags{display:flex;flex-wrap:wrap;gap:4px}
+  .rs-add{display:flex;gap:5px}
+  .rs-add select{
+    height:30px;max-width:132px;border:1px solid var(--line);border-radius:7px;
+    background:var(--panel-2);font-size:11px;padding:0 4px;outline:none;color:var(--ink);
+  }
+  .rs-add input{flex:1;min-width:0;height:30px;border:1px solid var(--line);border-radius:7px;background:var(--panel-2);padding:0 9px;font-size:11.5px;outline:none}
+  .rs-add input:focus{border-color:var(--accent);background:var(--panel);box-shadow:0 0 0 3px var(--accent-soft)}
+  .rs-add .btn{height:30px;padding:0 9px}
+  .rs-group select{
+    width:100%;height:30px;border:1px solid var(--line);border-radius:7px;
+    background:var(--panel-2);font-size:11.5px;padding:0 6px;outline:none;color:var(--ink);
+  }
+  .rs-group select:focus{border-color:var(--accent);background:var(--panel);box-shadow:0 0 0 3px var(--accent-soft)}
+  .rs-group .groupbar{padding:0;margin:0;gap:5px}
+  .rs-group .groupbar input{flex:1;min-width:0;height:30px}
+  .rs-group .groupbar .btn{height:30px}
+  .rs-quick{display:flex;flex-wrap:wrap;gap:5px}
+  .qtag.sm{height:22px;font-size:10.5px;padding:0 7px}
+  .rs-status{display:flex;gap:5px;flex-wrap:wrap}
+  .rs-st{font-size:10.5px;padding:3px 8px;border:1px solid var(--line);border-radius:99px;color:var(--muted);background:var(--panel-2)}
+  .rs-st.on{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 40%,var(--line));color:var(--accent-2);font-weight:650}
+  .rs-foot{margin-top:auto;display:flex;align-items:center;gap:6px}
+  .rs-foot .save{font-size:10px;color:var(--muted-2);margin-left:auto}
   .rpage{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:66px;text-align:center}
   .rz{min-width:58px;font-variant-numeric:tabular-nums;font-size:12px}
-  .rbody{flex:1;overflow:auto;padding:18px 24px 64px;background:var(--bg);position:relative}
+  .rbody{flex:1;min-width:0;overflow:auto;padding:18px 24px 64px;background:var(--bg);position:relative}
   .rbody.blank{overflow:hidden}
   .rpage-wrap{position:relative;margin:0 auto 16px;background:#fff;border-radius:2px;box-shadow:0 2px 12px rgba(20,24,20,.14);overflow:hidden}
   .rpage-wrap canvas{display:block}
@@ -610,9 +737,17 @@
   .rloading.show{display:grid}
   @media (max-width:700px){
     .rtitle .rname{display:none}
+    .rtitle{font-size:12px}
     .rbody{padding:12px 8px 48px}
     .rpage{min-width:52px}
     .rz{min-width:46px}
+  }
+  /* 窄屏：打标签栏覆盖整个阅读区，而不是挤窄 PDF */
+  @media (max-width:900px){
+    .rside{
+      position:absolute;inset:0;width:auto;z-index:3;
+      box-shadow:-18px 0 34px -26px rgba(0,0,0,.5);
+    }
   }
 </style>
 </head>
@@ -692,9 +827,13 @@
       <button class="rbtn" data-act="reader-zoom-in" title="放大" aria-label="放大">+</button>
       <button class="rbtn" data-act="reader-rotate" title="旋转 90°" aria-label="旋转">⟳</button>
     </div>
+    <button class="rbtn rtagbtn" data-act="reader-tags" id="readerTagsBtn" title="打标签（T）" aria-pressed="true" aria-controls="readerSide">标签</button>
   </div>
-  <div class="rbody" id="readerBody"></div>
-  <div class="rloading" id="readerLoading">正在载入 PDF…</div>
+  <div class="rmain">
+    <div class="rbody" id="readerBody"></div>
+    <div class="rloading" id="readerLoading">正在载入 PDF…</div>
+    <aside class="rside" id="readerSide" aria-label="打标签"></aside>
+  </div>
   <input type="file" id="attachInput" accept="application/pdf,.pdf" hidden>
 </div>
 
@@ -757,7 +896,20 @@ const state = {
   conversationId:null,
   scopeIds:undefined,
   readerOpen:false,
-  pendingScroll:null
+  pendingScroll:null,
+  groups:[],          // 后端按组返回的标签树
+  unfiled:[],         // 未分组的标签（后端算出来的，不是数据库行）
+  clean:null,         // 数据清洗的扫描结果与逐条选择
+  workbench:false,    // 逐条打标工作台
+  groupNew:false,     // 打标面板里正在内联新建组
+  groupSel:null,      // 打标面板当前的组 id
+  readerTags:true,    // 阅读器右侧的打标栏是否展开
+  readerGroupNew:false,
+  readerItemId:null,  // 阅读器里正在读的条目（loadPdf 完成前也有效）
+  wbSkip:new Set(),   // 工作台里跳过的（本次会话内）
+  wbDone:0,           // 本次会话已打标的篇数
+  wbHist:[],          // 回看的上一篇
+  wbId:null           // 正在看的那篇（null = 队列里的下一篇）
 };
 
 let toastTimer = null;
@@ -776,6 +928,7 @@ function matchesQuery(p){
   if(!state.q) return true;
   const hay = [
     p.title, p.abstract, p.venue, p.authors.join(' '),
+    p.memory || '', p.note || '',
     ...p.tags.year, ...p.tags.author, ...p.tags.org, ...p.tags.topic
   ].join(' ').toLowerCase();
   return hay.includes(state.q.toLowerCase());
@@ -956,6 +1109,8 @@ function renderListbar(ps){
     '<div class="chiprow">' +
       '<button class="btn tiny" data-act="toggle-facets" id="facetToggle">筛选</button>' +
       chips + reviewChip +
+      '<button class="btn tiny" data-act="open-untagged" style="margin-left:auto" title="进入逐条打标工作台">未打标 ' +
+        PAPERS.filter(p => p.tags.topic.length === 0).length + ' · 去整理</button>' +
     '</div>' +
     '<div class="countrow">' +
       '<div class="count"><b>' + ps.length + '</b> 篇' + q +
@@ -1008,6 +1163,7 @@ function renderList(ps){
       el.innerHTML = '<div class="empty">' +
         '<div class="em">○</div>' +
         '<p>' + (state.reviewOnly ? '待补全里没有条目' : '没有符合这些条件的文献') + '</p>' +
+        '<p style="font-size:11px;color:var(--muted-2)">布尔条件不留余量：去掉一个条件才能看到结果。</p>' +
         '<button class="btn tiny" data-act="reset-all">清除搜索与筛选</button>' +
       '</div>';
     }
@@ -1033,7 +1189,7 @@ function renderList(ps){
       '<p class="pbrief">' + esc(p.aiBrief) + '</p>' +
       '<div class="ptags">' +
         topics.slice(0,4).map(t =>
-          '<span class="tag" style="--c:' + colorOf('topic') + '">' + esc(t) + '</span>'
+          '<span class="tag" style="--c:' + topicColor(t) + '">' + esc(t) + '</span>'
         ).join('') +
         (topics.length > 4 ? '<span class="moretag">+' + (topics.length - 4) + '</span>' : '') +
       '</div>' +
@@ -1207,6 +1363,11 @@ function renderTags(p){
         '<datalist id="addList"></datalist>' +
         '<button class="btn primary" data-act="add-tag">添加</button>' +
       '</div>' +
+      '<div class="groupbar">' +
+        '<span class="glabel">归入</span>' +
+        groupPickerHTML() +
+      '</div>' +
+      '<p class="grouphint">新标签会落到这里选的组。选「未分组」也能存，但会带「整理」标记，之后要归组。</p>' +
     '</div>' +
     '<div class="section">' +
       '<div class="slabel">AI 建议 <span class="hint">从摘要与全文提候选</span></div>' +
@@ -1214,6 +1375,458 @@ function renderTags(p){
       '<p class="hintline">建议只是候选，采纳后才会写进这篇文献；你也可以完全不理它，自己打。</p>' +
     '</div>' +
   '</div>';
+}
+
+/* ---------- 确认 / 归组弹层 ---------- */
+function openGroupDialog(kind, tagId, name){
+  state.modalMode = 'group-dialog';
+  state.modalOpen = true;
+  state.dialog = { kind: kind, tagId: tagId, name: name, groupId: kind === 'delete-group' ? tagId : null };
+  renderModal();
+}
+
+function renderGroupDialog(){
+  const modal = $('#modal');
+  const d = state.dialog || {};
+  const groups = state.groups || [];
+  modal.classList.add('open');
+
+  if(d.kind === 'delete-group'){
+    modal.innerHTML = '<div class="modal-card" style="width:min(460px,92vw)">' +
+      '<div class="mhead"><div><h3>删除组「' + esc(d.name) + '」？</h3>' +
+        '<p>组里的标签会退回未分组，标签本身不会被删掉。</p></div></div>' +
+      '<div class="metafoot">' +
+        '<button class="btn" data-act="dialog-cancel">取消</button>' +
+        '<button class="btn primary" data-act="dialog-confirm" style="background:var(--warn);border-color:var(--warn)">删除组</button>' +
+      '</div>' +
+    '</div>';
+    return;
+  }
+
+  modal.innerHTML = '<div class="modal-card" style="width:min(460px,92vw)">' +
+    '<div class="mhead"><div><h3>把「' + esc(d.name) + '」归入哪个组？</h3>' +
+      '<p>一个标签只属于一个组；选「未分组」就会留在未分组里。</p></div></div>' +
+    (groups.length
+      ? '<div class="pickgrouplist">' + groups.map(function(g){
+          return '<button class="pickgroup' + (g.id === state.groupSel ? ' on' : '') + '"' +
+            ' data-act="dialog-pick-group" data-id="' + g.id + '" style="--c:' + (g.color || 'var(--c-topic)') + '">' +
+            '<span class="gdot"></span>' + esc(g.name) +
+            '<span class="cnt">' + g.tags.length + ' 个标签</span>' +
+          '</button>';
+        }).join('') + '</div>'
+      : '<p class="hintline">还没有组。先到「分组」里新建一个。</p>') +
+    '<div class="metafoot">' +
+      '<button class="btn" data-act="dialog-unfiled">移到未分组</button>' +
+      '<button class="btn" data-act="dialog-cancel" style="margin-left:auto">取消</button>' +
+    '</div>' +
+  '</div>';
+}
+
+/* ---------- 组 ---------- */
+function findTag(name){
+  const groups = state.groups || [];
+  for(const g of groups){
+    for(const t of g.tags) if(t.name === name) return { group:g, tag:t };
+  }
+  for(const t of (state.unfiled || [])) if(t.name === name) return { group:null, tag:t };
+  return null;
+}
+
+function topicColor(name){
+  const hit = findTag(name);
+  if(hit) return (hit.group && hit.group.color) || hit.tag.color || 'var(--c-topic)';
+  return 'var(--c-topic)';
+}
+
+/* 三个打标面板各自的新建组状态：add（详情页）/ wb（工作台）/ rt（阅读器） */
+function isNewGroupMode(prefix){
+  prefix = prefix || 'add';
+  if(prefix === 'rt') return !!state.readerGroupNew;
+  return !!state.groupNew;
+}
+
+function setNewGroupMode(prefix, on){
+  prefix = prefix || 'add';
+  if(prefix === 'rt') state.readerGroupNew = !!on;
+  else state.groupNew = !!on;
+}
+
+function groupPickerHTML(prefix){
+  prefix = prefix || 'add';
+  if(isNewGroupMode(prefix)){
+    return '<div class="groupbar rs-groupbar">' +
+      '<input id="' + prefix + 'NewName" placeholder="新组名，如「功放组」" autocomplete="off" maxlength="120">' +
+      '<button class="btn primary" data-act="create-group" data-prefix="' + prefix + '">建组</button>' +
+      '<button class="linkbtn" data-act="cancel-new-group" data-prefix="' + prefix + '">取消</button>' +
+    '</div>';
+  }
+  const groups = state.groups || [];
+  const pick = state.groupSel;
+  const opts = ['<option value="">未分组</option>'].concat(
+    groups.map(g => '<option value="' + g.id + '"' + (g.id === pick ? ' selected' : '') + '>'
+      + esc(g.name) + '</option>')
+  ).concat(['<option value="__new">＋ 新建组…</option>']).join('');
+  return '<select id="' + prefix + 'Group" aria-label="标签所属的组">' + opts + '</select>';
+}
+
+/**
+ * 读出这个面板当前要归入的组。
+ *
+ * 返回 `{id, name}` / `{id:null}`（未分组） / `null`（面板还没就绪）。
+ * 新建组模式下**组名没填就返回 undefined**，让调用方提示并停下，
+ * 而不是静默把标签丢进未分组——这正是标签建不出组的根源。
+ */
+function groupFrom(prefix){
+  prefix = prefix || 'add';
+  if(isNewGroupMode(prefix)){
+    const input = $('#' + prefix + 'NewName');
+    if(!input) return null;
+    const name = input.value.trim();
+    return name ? { id:null, name:name, isNew:true } : undefined;
+  }
+  const sel = $('#' + prefix + 'Group');
+  if(!sel) return null;
+  const value = sel.value;
+  if(!value) return { id:null };
+  if(value === '__new') return null;
+  return { id:value };
+}
+
+/* ---------- 打标加速：上次用过的组 + 本组快捷标签 ---------- */
+function loadGroupPref(){
+  try{
+    const saved = localStorage.getItem('colophon.group');
+    if(saved && (state.groups || []).some(g => g.id === saved)) return saved;
+  }catch(err){ /* localStorage 不可用时退化为不记忆 */ }
+  return null;
+}
+
+function rememberGroup(id){
+  if(!id) return;
+  try{ localStorage.setItem('colophon.group', id); }catch(err){}
+}
+
+function currentGroup(){
+  if(!state.groupSel) return null;
+  return (state.groups || []).find(g => g.id === state.groupSel) || null;
+}
+
+function quickTagsHTML(p, prefix){
+  prefix = prefix || '';
+  const g = currentGroup();
+  const emptyCls = prefix ? 'rs-quick rs-empty' : 'wb-quick-empty';
+  if(!g){
+    if(!(state.groups || []).length){
+      return '<p class="' + emptyCls + '">还没有组。先建一个组，之后同类标签就能一键加。</p>';
+    }
+    return '<p class="' + emptyCls + '">现在归入的是「未分组」。选一个组，里面的标签就会排在这里供一键复用。</p>';
+  }
+  if(!g.tags.length){
+    return '<p class="' + emptyCls + '">「' + esc(g.name) + '」还是空的。第一次打标签后，它会出现在这里供下次一键复用。</p>';
+  }
+  const onPaper = new Set(p.tags.topic);
+  const picks = g.tags
+    .slice()
+    .sort((a,b) => b.count - a.count || a.name.localeCompare(b.name, 'zh'))
+    .slice(0, 12);
+  const sm = prefix ? ' sm' : '';
+  if(prefix){
+    return '<div class="rs-quick">' + picks.map(function(t){
+      const has = onPaper.has(t.name);
+      return '<button class="qtag sm' + (has ? ' has' : '') + '"' +
+        ' data-act="rt-quick" data-name="' + esc(t.name) + '"' +
+        ' style="--c:' + (g.color || 'var(--c-topic)') + '"' +
+        (has ? ' disabled' : '') +
+        ' title="' + esc(t.name) + ' · 已有 ' + t.count + ' 篇">' +
+        esc(t.name) + '<b>' + t.count + '</b>' +
+      '</button>';
+    }).join('') + '</div>';
+  }
+  return '<div class="wb-quick">' +
+    '<div class="wb-quick-head">「' + esc(g.name) + '」里的标签 <span class="h">点一下即加，不用再打字</span></div>' +
+    '<div class="wb-quick-list">' +
+      picks.map(function(t){
+        const has = onPaper.has(t.name);
+        return '<button class="qtag' + (has ? ' has' : '') + '"' +
+          ' data-act="wb-quick" data-name="' + esc(t.name) + '"' +
+          ' style="--c:' + (g.color || 'var(--c-topic)') + '"' +
+          (has ? ' disabled' : '') +
+          ' title="' + esc(t.name) + ' · 已有 ' + t.count + ' 篇' + (has ? ' · 这篇已加了' : '') + '">' +
+          esc(t.name) + '<b>' + t.count + '</b>' +
+        '</button>';
+      }).join('') +
+    '</div>' +
+  '</div>';
+}
+
+/* 供两处打标面板共用：按当前组优先排列输入补全 */
+function paintQuickOptions(listId, prefix){
+  const list = $('#' + listId);
+  if(!list) return;
+  const g = currentGroup();
+  const inGroup = g ? g.tags.map(t => t.name) : [];
+  const rest = (state.groups || [])
+    .filter(x => !g || x.id !== g.id)
+    .flatMap(x => x.tags.map(t => t.name))
+    .concat((state.unfiled || []).map(t => t.name))
+    .filter(n => inGroup.indexOf(n) === -1);
+  const all = inGroup.concat(rest);
+  list.innerHTML = all.map(n => '<option value="' + esc(n) + '"></option>').join('');
+}
+/* ---------- 阅读器右侧打标栏 ---------- */
+function readerPaper(){
+  // 打开阅读器时 pdfView.itemId 还没赋值（loadPdf 是异步的），
+  // 所以用 state.readerItemId 作为唯一来源，避免侧栏先渲染成「不在书库」。
+  const id = state.readerItemId || pdfView.itemId;
+  return PAPERS.find(x => x.id === id) || null;
+}
+
+function renderReaderSide(){
+  const el = $('#readerSide');
+  if(!el) return;
+  const on = state.readerTags !== false;
+  el.hidden = !on;
+  const btn = $('#readerTagsBtn');
+  if(btn) btn.setAttribute('aria-pressed', String(on));
+  if(!on){ el.innerHTML = ''; return; }
+
+  const p = readerPaper();
+  if(!p){
+    el.innerHTML = '<p class="rs-now">这一篇不在书库里，无法打标。</p>';
+    return;
+  }
+
+  const existing = p.tags.topic;
+  const total = pdfView.doc ? pdfView.doc.numPages : 0;
+  const page = pdfView.current || 1;
+
+  el.innerHTML =
+    '<div>' +
+      '<div class="rs-kicker">正在读 · 第 ' + page + (total ? ' / ' + total : '') + ' 页</div>' +
+      '<div class="rs-title">' + esc(p.title) + '</div>' +
+    '</div>' +
+    '<div>' +
+      '<div class="rs-lab">阅读状态</div>' +
+      '<div class="rs-status">' +
+        ['todo','reading','read'].map(function(s){
+          return '<button class="rs-st' + (p.status === s ? ' on' : '') + '"' +
+            ' data-act="rt-status" data-status="' + s + '">' + statusLabel(s) + '</button>';
+        }).join('') +
+        '<button class="rs-st' + (p.starred ? ' on' : '') + '" data-act="rt-star">' +
+          (p.starred ? '★ 已标' : '☆ 标星') + '</button>' +
+      '</div>' +
+    '</div>' +
+    '<div>' +
+      '<div class="rs-lab">一句话记忆 <span class="hint">会进检索</span></div>' +
+      '<div class="rs-mmem">' +
+        '<input data-memory value="' + esc(p.memory) + '" placeholder="这一篇讲了什么，一句话">' +
+      '</div>' +
+    '</div>' +
+    '<div>' +
+      '<div class="rs-lab">标签 <span class="hint">' + (existing.length ? existing.length + ' 个' : '还没打') + '</span>' +
+        '<span class="sp"><button class="linkbtn" data-act="rt-open-lib">标签库</button></span>' +
+      '</div>' +
+      '<div class="rs-tags">' +
+        (existing.length
+          ? existing.map(function(t){
+              return '<span class="tag" style="--c:' + topicColor(t) + '">' +
+                '<span class="taglabel">' + esc(t) + '</span>' +
+                '<button class="tagx" data-act="rt-del-tag" data-name="' + esc(t) + '" title="从这篇移除">×</button>' +
+              '</span>';
+            }).join('')
+          : '<span class="none">还没有标签</span>') +
+      '</div>' +
+    '</div>' +
+    '<div>' +
+      '<div class="rs-lab">新标签 <span class="hint">回车即加</span></div>' +
+      '<div class="rs-group">' + groupPickerHTML('rt') + '</div>' +
+      '<div class="rs-add" style="margin-top:5px">' +
+        '<input id="rtValue" list="rtList" placeholder="打一个标签，回车即加入" autocomplete="off">' +
+        '<datalist id="rtList"></datalist>' +
+        '<button class="btn primary" data-act="rt-add">加上</button>' +
+      '</div>' +
+      quickTagsHTML(p, 'rt') +
+    '</div>' +
+    '<div class="rs-foot">' +
+      '<button class="linkbtn" data-act="rt-edit-meta">补元数据</button>' +
+      '<span class="save">' + (apiOnline ? '改动即时存库' : '未连接 · 不保存') + '</span>' +
+    '</div>';
+
+  paintQuickOptions('rtList', 'rt');
+}
+
+function openReaderTagPanel(){
+  state.readerTags = true;
+  renderReaderSide();
+}
+
+function toggleReaderTagPanel(){
+  state.readerTags = state.readerTags === false;
+  if(state.readerTags) renderReaderSide();
+  else renderReaderSide();
+  const p = readerPaper();
+  if(p) scheduleSave(p.id, {});
+}
+
+async function readerAddTag(){
+  const p = readerPaper();
+  const input = $('#rtValue');
+  if(!p || !input) return;
+  const value = input.value.trim();
+  if(!value){ input.focus(); return; }
+  const ok = await addTag('topic', value, p.id, 'rt');
+  if(ok) input.value = '';
+  renderReaderSide();
+  setTimeout(function(){ const i = $('#rtValue'); if(i) i.focus(); }, 0);
+  return ok;
+}
+
+function readerRemoveTag(name){
+  const p = readerPaper();
+  if(!p || !name) return;
+  p.tags.topic = p.tags.topic.filter(function(t){ return t !== name; });
+  renderReaderSide();
+  renderAll();
+  if(!apiOnline) return;
+  fetch('/api/items/' + encodeURIComponent(p.id) + '/tags?facet=topic&name=' +
+    encodeURIComponent(name), {method:'DELETE'})
+    .then(function(res){ if(!res.ok) throw new Error('save'); return refreshPapers(); })
+    .then(function(){ renderReaderSide(); })
+    .catch(function(){ toast('保存失败，改动只在本页'); });
+}
+function wbQueue(){
+  return PAPERS.filter(p => p.tags.topic.length === 0 && !state.wbSkip.has(p.id));
+}
+
+function workbenchCurrent(){
+  const queue = wbQueue();
+  if(state.wbId){
+    const pinned = PAPERS.find(x => x.id === state.wbId);
+    if(pinned) return { paper: pinned, queue: queue, pinned: true };
+  }
+  return queue.length ? { paper: queue[0], queue: queue, pinned: false } : null;
+}
+
+function renderWorkbench(){
+  const el = $('#papers');
+  const app = $('#app');
+  if(!state.workbench){
+    app.classList.remove('workbench');
+    if(el.classList.contains('wb')) el.className = 'papers';
+    return;
+  }
+  app.classList.add('workbench');
+  el.className = 'papers wb';
+
+  const cur = workbenchCurrent();
+  if(!cur){
+    el.innerHTML = '<div class="wb-empty">' +
+      '<p>这一轮没有剩下的未打标文献了。</p>' +
+      '<button class="btn tiny" data-act="wb-exit">回到列表</button>' +
+    '</div>';
+    return;
+  }
+
+  const p = cur.paper;
+  const existing = p.tags.topic;
+  const left = cur.queue.length;
+  const done = state.wbDone;
+  const metaBusy = state.metaBusy === p.id;
+  const missing = (p.missing || []).map(fieldLabel);
+  const metaBlock =
+    '<div class="wb-meta' + (p.needsReview ? ' warn' : '') + '">' +
+      '<div class="wb-meta-info">' +
+        '<span class="wb-meta-title">' + (p.needsReview ? '元数据待补全' : '元数据') + '</span>' +
+        (missing.length
+          ? '<span class="wb-meta-miss">缺 ' + esc(missing.join('、')) + '</span>'
+          : (p.doi
+              ? '<span class="wb-meta-doi">' + esc(p.doi) + '</span>'
+              : '<span class="wb-meta-doi">字段齐了</span>')) +
+        (!p.abstract
+          ? '<span class="wb-meta-hint">没有摘要，只能靠标题打标</span>' +
+            '<button class="linkbtn" data-act="wb-edit-meta">补摘要</button>'
+          : '') +
+      '</div>' +
+      '<div class="wb-meta-acts">' +
+        '<button class="btn tiny" data-act="wb-read">' + (p.hasFile ? '边读边打标' : '无 PDF') + '</button>' +
+        '<button class="btn tiny" data-act="wb-fetch"' + (metaBusy ? ' disabled' : '') + '>' +
+          (metaBusy ? '抓取中…' : '抓取元数据') + '</button>' +
+        '<button class="btn tiny" data-act="wb-edit-meta">手动补全</button>' +
+      '</div>' +
+    '</div>';
+
+  el.innerHTML = '<div class="wb-card">' +
+    '<div class="wb-top">' +
+      '<span class="wb-num">已打标 ' + done + '</span>' +
+      '<span>· 还剩 ' + left + ' 篇未打标</span>' +
+      '<span class="sp">全库 ' + PAPERS.length + ' 篇</span>' +
+      '<button class="linkbtn" data-act="wb-exit">退出</button>' +
+    '</div>' +
+    '<h2 class="wb-title">' + esc(p.title) + '</h2>' +
+    '<p class="wb-sub">' + wbSubline(p) + '</p>' +
+    metaBlock +
+    (p.abstract
+      ? '<p class="wb-abs">' + esc(p.abstract) + '</p>'
+      : '') +
+    '<div class="wb-mem section">' +
+      '<div class="slabel">一句话记忆 <span class="hint">会进检索</span></div>' +
+      '<input class="textinput" data-memory value="' + esc(p.memory) + '" placeholder="读完后，用一句话记住它">' +
+    '</div>' +
+    '<div class="wb-tags">' +
+      '<div class="slabel">标签 <span class="hint">' + (existing.length ? '已有 ' + existing.length + ' 个，可继续加' : '这篇还没打标，加一个再按「完成这篇」') + '</span></div>' +
+      '<div class="tagcloud" style="margin-bottom:2px">' +
+        (existing.length
+          ? existing.map(t => '<span class="tag" style="--c:' + topicColor(t) + '"><span class="taglabel">' + esc(t) + '</span></span>').join('')
+          : '<span class="none">还没有标签</span>') +
+      '</div>' +
+      '<div class="groupbar">' +
+        '<span class="glabel">归入</span>' +
+        groupPickerHTML('wb') +
+      '</div>' +
+      '<div class="addrow" style="margin-top:6px">' +
+        '<input id="wbValue" list="wbList" placeholder="打一个标签，回车即加入（不跳走）" autocomplete="off">' +
+        '<datalist id="wbList"></datalist>' +
+        '<button class="btn primary" data-act="wb-add">加上</button>' +
+      '</div>' +
+      quickTagsHTML(p) +
+    '</div>' +
+    '<div class="wb-foot">' +
+      '<button class="btn" data-act="wb-prev"' + (state.wbHist.length ? '' : ' disabled') + '>← 上一篇</button>' +
+      '<button class="btn primary" data-act="wb-done">完成这篇 →</button>' +
+      '<button class="btn skip" data-act="wb-skip">跳过</button>' +
+    '</div>' +
+  '</div>';
+
+  paintWorkbenchOptions();
+}
+
+function wbSubline(p){
+  const year = p.tags.year[0];
+  const venue = p.venue ? esc(p.venue) : '';
+  const yearBit = year
+    ? esc(year)
+    : '<span style="color:var(--warn)">年份待补</span>';
+  const authors = (p.authors || []).slice(0,3).map(esc).join('、');
+  return [venue, yearBit, authors].filter(Boolean).join(' · ');
+}
+
+function paintWorkbenchOptions(){
+  paintQuickOptions('wbList', 'wb');
+}
+
+async function wbAddFromInput(){
+  const input = $('#wbValue');
+  const cur = workbenchCurrent();
+  if(!input || !cur) return;
+  const value = input.value.trim();
+  if(!value){ input.focus(); return; }
+  // 先钉住这一篇：打标成功后它立刻离开未打标队列，不钉住就会跳走
+  state.wbId = cur.paper.id;
+  const ok = await addTag('topic', value, cur.paper.id, 'wb');
+  // 只有成功才清空输入；失败（例如组名没填）要留着字让用户补
+  if(ok) input.value = '';
+  renderAll();
+  setTimeout(function(){ const i = $('#wbValue'); if(i) i.focus(); }, 0);
 }
 
 function aiScope(){
@@ -1760,8 +2373,11 @@ async function saveMetaFields(){
   }
 }
 
-async function fetchMeta(itemId){
+async function fetchMeta(itemId, opts){
+  opts = opts || {};
   if(!apiOnline){ toast('未连接本地服务，无法抓取元数据'); return; }
+  // 钉住这一篇：抓完可能已不在队列里，工作台不能因此跳走
+  if(opts.keepWorkbench) state.wbId = itemId;
   state.metaBusy = itemId;
   renderAll();
   try{
@@ -1779,11 +2395,13 @@ async function fetchMeta(itemId){
       toast((report.source ? '<b>' + esc(report.source) + '</b> · ' : '') + esc(report.message || '已补全'));
     }
     await refreshPapers();
+    if(opts.keepWorkbench) state.wbId = itemId;
   }catch(err){
     toast('抓取失败：检查网络或模型设置后再试');
   }finally{
     state.metaBusy = null;
     renderAll();
+    if(opts.keepWorkbench) setTimeout(function(){ const i = $('#wbValue'); if(i) i.focus(); }, 0);
   }
 }
 
@@ -1835,6 +2453,8 @@ function renderModal(){
   if(state.modalMode === 'import'){ renderImportModal(); return; }
   if(state.modalMode === 'meta'){ renderMetaModal(); return; }
   if(state.modalMode === 'settings'){ renderSettingsModal(); return; }
+  if(state.modalMode === 'group-dialog'){ renderGroupDialog(); return; }
+  if(state.modalMode === 'clean'){ renderCleanModal(); return; }
   modal.classList.add('open');
 
   const counts = FKEYS.map(function(k){
@@ -1861,7 +2481,42 @@ function renderModal(){
       '<datalist id="mergeToList"></datalist>' +
     '</section>';
 
-  const groups = FACETS.map(function(f){
+  const byName = new Map();
+  (state.groups || []).forEach(function(g){
+    g.tags.forEach(function(t){ byName.set(t.name, {group:g, tag:t}); });
+  });
+  (state.unfiled || []).forEach(function(t){ byName.set(t.name, {group:null, tag:t}); });
+
+  const groupsHTML = (state.groups || []).map(function(g){
+    const vals = g.tags.slice().sort(function(a,b){ return b.count - a.count || a.name.localeCompare(b.name,'zh'); });
+    return '<section class="libgroup" style="--c:' + (g.color || 'var(--c-topic)') + '">' +
+      '<div class="libhead"><span>' + esc(g.name) + '</span><span>' + (vals.length ? vals.length + ' 个' : '空组') + '</span></div>' +
+      '<div class="libvals">' + (vals.length
+        ? vals.map(function(t){
+            return '<span class="tag" style="--c:' + (g.color || 'var(--c-topic)') + '">' +
+              '<span class="taglabel">' + esc(t.name) + '</span><b>' + t.count + '</b></span>';
+          }).join('')
+        : '<span class="none">还没有标签。打标时选这个组，标签就落进来。</span>') +
+      '</div>' +
+      '<div class="libacts">' +
+        '<button class="linkbtn" data-act="del-group" data-id="' + g.id + '" data-name="' + esc(g.name) + '">删除组</button>' +
+      '</div>' +
+    '</section>';
+  }).join('');
+
+  const unfiledHTML = '<section class="libgroup" style="--c:var(--warn)">' +
+    '<div class="libhead"><span>未分组</span><span>' + ((state.unfiled || []).length || '无') + '</span></div>' +
+    '<div class="libvals">' + ((state.unfiled || []).length
+      ? state.unfiled.map(function(t){
+          return '<span class="tag" style="--c:var(--warn)"><span class="taglabel">' + esc(t.name) + '</span><b>' + t.count + '</b>' +
+            '<button class="tagx" data-act="file-tag" data-id="' + t.id + '" data-name="' + esc(t.name) + '" title="归入某个组">↗</button></span>';
+        }).join('')
+      : '<span class="none">没有落在未分组的标签。</span>') +
+    '</div>' +
+    '<p class="hintline" style="margin-top:6px">未分组的标签可以检索，但会带「整理」标记。点 ↗ 把它归入某个组。</p>' +
+  '</section>';
+
+  const metaHTML = FACETS.filter(function(f){ return f.key !== 'topic'; }).map(function(f){
     const vals = Array.from(new Set(PAPERS.flatMap(p => p.tags[f.key]))).sort(function(a,b){
       return a.localeCompare(b, 'zh');
     });
@@ -1874,9 +2529,11 @@ function renderModal(){
     '</section>';
   }).join('');
 
+  const groupCount = (state.groups || []).length;
+
   modal.innerHTML = '<div class="modal-card">' +
     '<div class="mhead">' +
-      '<div><h3>标签库</h3><p>' + summary + '</p></div>' +
+      '<div><h3>标签库</h3><p>' + summary + ' · ' + groupCount + ' 个组</p></div>' +
       '<button class="btn icon" data-act="close-lib" title="关闭">' +
         '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">' +
           '<path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>' +
@@ -1885,12 +2542,159 @@ function renderModal(){
     '</div>' +
     mergeSection +
     '<section>' +
-      '<div class="slabel">全部词表</div>' +
-      groups +
+      '<div class="slabel">分组 <button class="linkbtn" data-act="new-group" style="margin-left:auto">＋ 新建组</button></div>' +
+      groupsHTML + unfiledHTML +
     '</section>' +
-    '<p class="mnote">合并会改写所有文献上的标签；旧名会记为别名，之后输入旧名仍指向新名。</p>' +
+    '<section>' +
+      '<div class="slabel">数据清洗 <span class="hint">作者 / 单位的脏写法</span>' +
+        '<button class="linkbtn" data-act="open-clean" style="margin-left:auto">检查</button></div>' +
+      '<p class="hintline" style="margin:0">PDF 抽字会把上标、重音、邮箱和正文片段粘进作者名；单位常有 HTML 实体和截断。检查后逐条确认，不会自动写库。</p>' +
+    '</section>' +
+    '<section>' +
+      '<div class="slabel">元数据词表 <span class="hint">来自 Crossref / OpenAlex，不需要分组</span></div>' +
+      metaHTML +
+    '</section>' +
+    '<p class="mnote">合并会改写所有文献上的标签；旧名会记为别名，之后输入旧名仍指向新名。组归属随保留的标签走。</p>' +
   '</div>';
   paintMergeOptions();
+}
+
+function renderCleanModal(){
+  const modal = $('#modal');
+  const s = state.clean || { loading: true };
+  modal.classList.add('open');
+
+  if(s.loading){
+    modal.innerHTML = '<div class="modal-card clean-card"><div class="mhead"><div>' +
+      '<h3>检查作者 / 单位</h3><p>正在扫一遍词表…</p></div></div></div>';
+    return;
+  }
+  if(s.error){
+    modal.innerHTML = '<div class="modal-card clean-card"><div class="mhead"><div>' +
+      '<h3>检查作者 / 单位</h3><p style="color:var(--warn)">' + esc(s.error) + '</p></div>' +
+      '<button class="btn icon" data-act="close-clean" title="关闭">✕</button></div>' +
+      '<div class="metafoot"><button class="btn" data-act="open-clean">重试</button></div></div>';
+    return;
+  }
+
+  const picks = s.picks;
+  const renameN = s.data.authors.filter(a => picks[a.id] === 'rename').length
+    + s.data.orgs.filter(o => picks[o.id] === 'rename').length;
+  const dropN = s.data.authors.filter(a => picks[a.id] === 'drop').length
+    + s.data.orgs.filter(o => picks[o.id] === 'drop').length;
+
+  const row = function(kind, it){
+    const pick = picks[it.id] || 'skip';
+    const isAuto = it.action === 'auto';
+    let target = '';
+    if(pick === 'rename'){
+      target = '<span class="carrow">→</span><span class="cnew">' +
+        (it.id === 'custom' ? '' : esc(it.suggest || '')) + '</span>';
+    }
+    return '<div class="crow' + (pick === 'skip' ? ' skipped' : '') + '" style="--tone:' +
+        (it.action === 'drop' ? 'var(--warn)' : (isAuto ? 'var(--ok)' : 'var(--muted)')) + '">' +
+      '<span class="cbadge' + (it.action === 'drop' ? ' warn' : '') + '">' +
+        (it.action === 'drop' ? '非人名' : (isAuto ? '自动' : '待确认')) + '</span>' +
+      '<div class="cname"><span class="cold">' + esc(it.name) + '</span>' + target +
+        '<div class="cwhy">' + esc(it.reason || '') + ' · ' + it.count + ' 篇</div>' +
+      '</div>' +
+      '<div class="cact">' +
+        (it.action === 'drop'
+          ? '<button class="tbtn' + (pick === 'drop' ? ' on' : '') + '"' +
+              ' data-act="clean-pick" data-id="' + it.id + '" data-pick="drop">删掉</button>'
+          : '<button class="tbtn' + (pick === 'rename' ? ' on' : '') + '"' +
+              ' data-act="clean-pick" data-id="' + it.id + '" data-pick="rename">改为' + esc(it.suggest) + '</button>' +
+            '<button class="tbtn' + (pick === 'drop' ? ' on' : '') + '"' +
+              ' data-act="clean-pick" data-id="' + it.id + '" data-pick="drop">删掉</button>') +
+        '<button class="tbtn' + (pick === 'skip' ? ' on' : '') + '"' +
+          ' data-act="clean-pick" data-id="' + it.id + '" data-pick="skip">保留</button>' +
+      '</div>' +
+    '</div>';
+  };
+
+  const sect = function(title, list, kind, hint){
+    return '<section class="csec">' +
+      '<div class="slabel">' + title + ' <span class="hint">' + hint + '</span></div>' +
+      (list.length
+        ? list.map(it => row(kind, it)).join('')
+        : '<p class="hintline">没有发现可疑写法。</p>') +
+    '</section>';
+  };
+
+  modal.innerHTML = '<div class="modal-card clean-card">' +
+    '<div class="mhead">' +
+      '<div><h3>检查作者 / 单位</h3>' +
+        '<p>共 ' + s.data.totals.authors + ' 位作者、' + s.data.totals.orgs + ' 个单位；' +
+          '发现 ' + (s.data.authors.length + s.data.orgs.length) + ' 条可疑，' +
+          '将改 ' + renameN + ' 条、删 ' + dropN + ' 条。写库前请逐条看。</p></div>' +
+      '<button class="btn icon" data-act="close-clean" title="关闭">✕</button>' +
+    '</div>' +
+    '<div class="clean-policy">' +
+      '<b>规则</b>「自动」= 去上标 / 修重音 / 解实体，可直接采纳；' +
+      '「待确认」= 尾部单字母去掉后对不上任何已有作者，默认不动；' +
+      '「非人名」= 邮箱、机构、地名与正文片段。' +
+    '</div>' +
+    sect('作者', s.data.authors, 'author', '按可疑程度排列，可逐条改判') +
+    sect('单位', s.data.orgs, 'org', '多为 HTML 实体与截断') +
+    '<div class="metafoot">' +
+      '<span class="mnote-inline">只改你确认过的条目，其余一律不碰</span>' +
+      '<button class="btn primary" data-act="clean-apply" style="margin-left:auto">应用 ' +
+        (renameN + dropN) + ' 条</button>' +
+    '</div>' +
+  '</div>';
+}
+
+async function openClean(){
+  state.modalMode = 'clean';
+  state.modalOpen = true;
+  state.clean = { loading: true };
+  renderModal();
+  try{
+    const res = await fetch('/api/clean/scan', {cache:'no-store'});
+    if(!res.ok) throw new Error('http ' + res.status);
+    const data = await res.json();
+    const picks = {};
+    // 默认只预选「自动」与「非人名」；「待确认」一律默认保留。
+    // 注意：action 是 auto/drop/review，pick 是 rename/drop/skip，两者不是同一个词。
+    data.authors.concat(data.orgs).forEach(function(it){
+      if(it.action === 'drop') picks[it.id] = 'drop';
+      else if(it.action === 'auto' && it.suggest) picks[it.id] = 'rename';
+      else picks[it.id] = 'skip';
+    });
+    state.clean = { loading:false, data:data, picks:picks };
+  }catch(err){
+    state.clean = { loading:false, error:'读取失败，请重试' };
+  }
+  renderModal();
+}
+
+async function applyClean(){
+  const s = state.clean;
+  if(!s || !s.data) return;
+  const authors = s.data.authors
+    .filter(it => s.picks[it.id] === 'rename' || s.picks[it.id] === 'drop')
+    .map(it => ({ id: it.id, action: s.picks[it.id], value: it.suggest || '' }));
+  const orgs = s.data.orgs
+    .filter(it => s.picks[it.id] === 'rename' || s.picks[it.id] === 'drop')
+    .map(it => ({ id: it.id, action: s.picks[it.id], value: it.suggest || '' }));
+  if(!authors.length && !orgs.length){ toast('没有勾选任何改动'); return; }
+  try{
+    const res = await fetch('/api/clean/apply', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({authors: authors, orgs: orgs})
+    });
+    if(!res.ok) throw new Error('apply');
+    const r = await res.json();
+    await refreshPapers();
+    state.modalMode = 'tags';
+    state.clean = null;
+    renderModal();
+    toast('已改 ' + (r.authorsRenamed + r.orgsRenamed) + ' 条、删 ' +
+      (r.authorsDropped + r.orgsDropped) + ' 条，涉及 ' + r.itemsTouched + ' 篇');
+  }catch(err){
+    toast('应用失败，请重试');
+  }
 }
 
 function paintMergeOptions(){
@@ -1971,33 +2775,188 @@ function scheduleSave(itemId, patch){
   }, 600);
 }
 
-async function addTag(facet, value){
-  const p = PAPERS.find(x => x.id === state.paperId);
-  if(!p || !value) return;
+async function addTag(facet, value, itemId, prefix, opts){
+  const p = itemId ? PAPERS.find(x => x.id === itemId) : PAPERS.find(x => x.id === state.paperId);
+  if(!p || !value) return false;
   value = value.trim();
-  if(!value) return;
+  if(!value) return false;
   if(p.tags[facet].indexOf(value) !== -1){
     toast('这篇已经有「' + esc(value) + '」了');
-    return;
+    return false;
   }
 
+  const pg = prefix || (state.workbench ? 'wb' : 'add');
+  let target = null;
+  if(facet === 'topic'){
+    if(opts && opts.keepGroup){
+      // 快捷标签一定是库里已有的标签：不解析组，也不新建组，
+      // 让后端保持它原有的组归属（新标签落未分组）。
+      target = { id:null };
+    } else {
+      target = groupFrom(pg);
+      if(target === undefined){
+        toast('新组还没名字。填好组名再按回车，或点「取消」回到选组。');
+        const nameInput = $('#' + pg + 'NewName');
+        if(nameInput) nameInput.focus();
+        return false;
+      }
+      if(target === null){
+        toast('还没选定组，请先选一个组或新建组。');
+        return false;
+      }
+    }
+  }
+
+  // 先落本地，界面立刻有反馈
   if(facet === 'year') p.tags.year = [value];
   else p.tags[facet].push(value);
-  renderAll();
-  toast('已加入 <b>' + labelOf(facet) + '：' + esc(value) + '</b>');
 
-  if(!apiOnline) return;
+  if(!apiOnline){
+    renderAll();
+    toast('未连接本地服务，改动只在本页');
+    return true;
+  }
+
   try{
     const res = await fetch('/api/items/' + encodeURIComponent(p.id) + '/tags', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({facet: facet, name: value})
+      body: JSON.stringify({
+        facet: facet,
+        name: value,
+        group_id: target.id || undefined,
+        group_name: target.name || undefined
+      })
     });
     if(!res.ok) throw new Error('save');
+    // 新建组成功后，面板切回选组模式，并把新组设为当前组
+    if(target.isNew && target.name){
+      await refreshGroups();
+      const created = (state.groups || []).find(function(g){ return g.name === target.name; });
+      if(created){
+        state.groupSel = created.id;
+        rememberGroup(created.id);
+      }
+      setNewGroupMode(pg, false);
+    }
     await refreshPapers();
+    await refreshGroups();
+    renderAll();
+    if(state.readerOpen) renderReaderSide();
+    toast('已加入 <b>' + labelOf(facet) + '：' + esc(value) + '</b>' +
+      (target.isNew && target.name ? '，新组「' + esc(target.name) + '」' : ''));
+    return true;
   }catch(err){
-    toast('保存失败，改动只在本页');
+    // 落库失败：把本地加上的撤回，界面不能显示一条没存住的数据
+    if(facet === 'year') p.tags.year = [];
+    else p.tags[facet] = p.tags[facet].filter(function(t){ return t !== value; });
+    renderAll();
+    if(state.readerOpen) renderReaderSide();
+    toast('保存失败，改动已撤回');
+    return false;
   }
+}
+
+/* ---------- 组 ---------- */
+async function refreshGroups(){
+  if(!apiOnline) return;
+  try{
+    const data = await fetchTags();
+    state.groups = data.groups || [];
+    state.unfiled = data.unfiled || [];
+    // 记住的组被删了：清掉，回落到未分组，不把标签静默塞进别的组
+    if(state.groupSel && !state.groups.some(g => g.id === state.groupSel)){
+      state.groupSel = null;
+    }
+    if(!state.groupSel) state.groupSel = loadGroupPref();
+  }catch(err){ /* 组读不到不影响主流程 */ }
+}
+
+async function fetchTags(){
+  const res = await fetch('/api/tags', {cache:'no-store'});
+  if(!res.ok) throw new Error('tags');
+  return res.json();
+}
+
+async function createGroup(name, color){
+  if(!apiOnline){ toast('未连接本地服务'); return null; }
+  try{
+    const res = await fetch('/api/groups', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({name: name, color: color || undefined})
+    });
+    if(!res.ok) throw new Error('group');
+    const data = await res.json();
+    await refreshGroups();
+    state.groupSel = data.id;
+    rememberGroup(data.id);
+    return data.id;
+  }catch(err){
+    toast('建组失败，请重试');
+    return null;
+  }
+}
+
+async function assignTagGroup(tagId, groupId){
+  if(!apiOnline) return;
+  try{
+    const res = await fetch('/api/groups/assign', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({tag_id: tagId, group_id: groupId || null})
+    });
+    if(!res.ok) throw new Error('assign');
+    await refreshGroups();
+  }catch(err){
+    toast('改组失败，请重试');
+  }
+}
+
+function closeDialog(){
+  state.dialog = null;
+  if(state.modalMode === 'group-dialog'){
+    state.modalMode = 'tags';
+    state.modalOpen = false;
+  }
+  renderModal();
+}
+
+async function deleteGroup(id, name){
+  if(!apiOnline){ toast('未连接本地服务'); return; }
+  try{
+    const res = await fetch('/api/groups/' + encodeURIComponent(id), {method:'DELETE'});
+    if(!res.ok) throw new Error('delete');
+    const data = await res.json();
+    await refreshGroups();
+    await refreshPapers();
+    renderModal();
+    toast('已删除组 <b>' + esc(name) + '</b>' + (data.movedToUnfiled ? '，' + data.movedToUnfiled + ' 个标签退回未分组' : ''));
+  }catch(err){
+    toast('删除失败，请重试');
+  }
+}
+
+async function commitNewGroup(prefix){
+  prefix = prefix || (state.workbench ? 'wb' : 'add');
+  const input = $('#' + prefix + 'NewName');
+  const name = input ? input.value.trim() : '';
+  if(!name){
+    toast('组名不能为空');
+    if(input) input.focus();
+    return;
+  }
+  const id = await createGroup(name);
+  if(!id) return;
+  setNewGroupMode(prefix, false);
+  state.groupSel = id;
+  renderAll();
+  if(state.readerOpen) renderReaderSide();
+  toast('已新建组 <b>' + esc(name) + '</b>');
+  setTimeout(function(){
+    const i = $('#' + (prefix === 'rt' ? 'rtValue' : (prefix === 'wb' ? 'wbValue' : 'addValue')));
+    if(i) i.focus();
+  }, 0);
 }
 
 async function removeTag(facet, value){
@@ -2067,6 +3026,11 @@ function syncScope(ps){
 }
 
 function renderAll(){
+  renderWorkbench();
+  if(state.workbench){
+    if(state.modalOpen) renderModal();
+    return;
+  }
   let ps = getFiltered();
   if(!ps.length){
     state.paperId = null;
@@ -2186,8 +3150,176 @@ document.addEventListener('click', function(e){
   else if(act === 'gen-sug' || act === 'regen-sug'){
     loadSuggestions(state.paperId);
   }
+  else if(act === 'open-clean'){
+    openClean();
+    return;
+  }
+  else if(act === 'close-clean'){
+    state.modalMode = 'tags';
+    state.clean = null;
+    renderModal();
+  }
+  else if(act === 'clean-pick'){
+    const id = el.dataset.id;
+    if(!state.clean || !state.clean.picks) return;
+    state.clean.picks[id] = el.dataset.pick;
+    renderModal();
+  }
+  else if(act === 'clean-apply'){
+    applyClean();
+    return;
+  }
   else if(act === 'add-tag'){
     addTag($('#addFacet').value, $('#addValue').value);
+  }
+  else if(act === 'open-untagged'){
+    state.workbench = true;
+    state.wbDone = 0;
+    state.wbHist = [];
+    state.wbSkip = new Set();
+    state.wbId = null;
+    state.pendingScroll = 'top';
+    renderAll();
+    setTimeout(function(){ const i = $('#wbValue'); if(i) i.focus(); }, 0);
+  }
+  else if(act === 'wb-exit'){
+    state.workbench = false;
+    setNewGroupMode('wb', false);
+    state.wbId = null;
+    renderAll();
+  }
+  else if(act === 'wb-add'){
+    wbAddFromInput();
+  }
+  else if(act === 'wb-skip'){    const cur = workbenchCurrent();
+    if(!cur) return;
+    state.wbSkip.add(cur.paper.id);
+    state.wbId = null;
+    renderAll();
+    setTimeout(function(){ const i = $('#wbValue'); if(i) i.focus(); }, 0);
+  }
+  else if(act === 'wb-done'){
+    const cur = workbenchCurrent();
+    if(!cur) return;
+    if(cur.paper.tags.topic.length === 0){
+      toast('这一篇还没打标签。想先放着就点「跳过」。');
+      return;
+    }
+    state.wbHist.push(cur.paper.id);
+    state.wbDone += 1;
+    state.wbId = null;
+    setNewGroupMode('wb', false);
+    renderAll();
+    setTimeout(function(){ const i = $('#wbValue'); if(i) i.focus(); }, 0);
+  }
+  else if(act === 'wb-quick'){
+    const cur = workbenchCurrent();
+    if(!cur || el.disabled) return;
+    state.wbId = cur.paper.id;
+    addTag('topic', el.dataset.name, cur.paper.id, 'wb', {keepGroup:true});
+    return;
+  }
+  else if(act === 'wb-prev'){
+    const prev = state.wbHist.pop();
+    if(prev){ state.wbId = prev; state.wbDone = Math.max(0, state.wbDone - 1); }
+    renderAll();
+  }
+  else if(act === 'wb-read'){
+    const cur = workbenchCurrent();
+    if(!cur) return;
+    state.wbId = cur.paper.id;
+    state.paperId = cur.paper.id;
+    openReader();
+    return;
+  }
+  else if(act === 'wb-fetch'){
+    const cur = workbenchCurrent();
+    if(cur) fetchMeta(cur.paper.id, { keepWorkbench: true });
+  }
+  else if(act === 'wb-edit-meta'){
+    const cur = workbenchCurrent();
+    if(!cur) return;
+    state.wbId = cur.paper.id;
+    state.paperId = cur.paper.id;
+    state.modalMode = 'meta';
+    state.modalOpen = true;
+    renderModal();
+  }
+  else if(act === 'create-group'){
+    commitNewGroup(el.dataset.prefix || (state.workbench ? 'wb' : 'add'));
+  }
+  else if(act === 'new-group'){
+    setNewGroupMode('add', true);
+    renderAll();
+    setTimeout(function(){
+      const i = $('#addNewName') || $('#wbNewName');
+      if(i) i.focus();
+    }, 0);
+  }
+  else if(act === 'cancel-new-group'){
+    const prefix = el.dataset.prefix || '';
+    setNewGroupMode(prefix, false);
+    renderAll();
+    if(state.readerOpen) renderReaderSide();
+  }
+  /* ---------- 阅读器里的打标签 ---------- */
+  else if(act === 'reader-tags'){
+    state.readerTags = state.readerTags === false;
+    renderReaderSide();
+    if(state.readerTags){
+      setTimeout(function(){ const i = $('#rtValue'); if(i) i.focus(); }, 0);
+    }
+  }
+  else if(act === 'rt-add'){
+    readerAddTag();
+    return;
+  }
+  else if(act === 'rt-quick'){
+    const p = readerPaper();
+    if(!p || el.disabled) return;
+    addTag('topic', el.dataset.name, p.id, 'rt', {keepGroup:true}).then(function(){
+      renderReaderSide();
+    });
+    return;
+  }
+  else if(act === 'rt-del-tag'){
+    readerRemoveTag(el.dataset.name);
+    return;
+  }
+  else if(act === 'rt-status'){
+    const p = readerPaper();
+    if(!p) return;
+    p.status = el.dataset.status;
+    renderReaderSide();
+    renderAll();
+    scheduleSave(p.id, {status: p.status});
+    toast('已标记为 <b>' + statusLabel(p.status) + '</b>');
+    return;
+  }
+  else if(act === 'rt-star'){
+    const p = readerPaper();
+    if(!p) return;
+    p.starred = !p.starred;
+    renderReaderSide();
+    renderAll();
+    scheduleSave(p.id, {starred: p.starred});
+    return;
+  }
+  else if(act === 'rt-edit-meta'){
+    const p = readerPaper();
+    if(!p) return;
+    state.paperId = p.id;
+    state.modalMode = 'meta';
+    state.modalOpen = true;
+    renderModal();
+    return;
+  }
+  else if(act === 'rt-open-lib'){
+    closeReader();
+    state.modalMode = 'tags';
+    state.modalOpen = true;
+    renderModal();
+    return;
   }
   else if(act === 'quick'){ send(el.dataset.q); }
   else if(act === 'cite'){
@@ -2233,6 +3365,31 @@ document.addEventListener('click', function(e){
   else if(act === 'fetch-meta'){ fetchMeta(state.paperId); }
   else if(act === 'fetch-all'){ fetchAllMissing(); }
   else if(act === 'merge'){ mergeTags(el.dataset.facet, el.dataset.from, el.dataset.to); }
+  else if(act === 'del-group'){
+    openGroupDialog('delete-group', el.dataset.id, el.dataset.name || '');
+  }
+  else if(act === 'file-tag'){
+    openGroupDialog('assign-tag', el.dataset.id, el.dataset.name || '');
+  }
+  else if(act === 'dialog-pick-group'){
+    const tagId = state.dialog ? state.dialog.tagId : null;
+    if(tagId) assignTagGroup(tagId, el.dataset.id);
+    closeDialog();
+  }
+  else if(act === 'dialog-unfiled'){
+    const tagId = state.dialog ? state.dialog.tagId : null;
+    if(tagId) assignTagGroup(tagId, null);
+    closeDialog();
+  }
+  else if(act === 'dialog-confirm'){
+    const id = state.dialog ? state.dialog.groupId : null;
+    const name = state.dialog ? state.dialog.name : '';
+    closeDialog();
+    if(id) deleteGroup(id, name);
+  }
+  else if(act === 'dialog-cancel'){
+    closeDialog();
+  }
   else if(act === 'merge-manual'){
     const facet = $('#mergeFacet') ? $('#mergeFacet').value : 'topic';
     const from = $('#mergeFrom') ? $('#mergeFrom').value.trim() : '';
@@ -2277,6 +3434,41 @@ document.addEventListener('change', function(e){
   if(e.target.id === 'mergeFacet'){
     paintMergeOptions();
   }
+  if(e.target.id === 'addGroup'){
+    if(e.target.value === '__new'){
+      setNewGroupMode('add', true);
+      renderAll();
+      setTimeout(function(){ const i = $('#addNewName'); if(i) i.focus(); }, 0);
+      return;
+    }
+    state.groupSel = e.target.value || null;
+    if(state.groupSel) rememberGroup(state.groupSel);
+    renderAll();
+  }
+  if(e.target.id === 'wbGroup'){
+    if(e.target.value === '__new'){
+      setNewGroupMode('wb', true);
+      renderAll();
+      setTimeout(function(){ const i = $('#wbNewName'); if(i) i.focus(); }, 0);
+      return;
+    }
+    state.groupSel = e.target.value || null;
+    if(state.groupSel) rememberGroup(state.groupSel);
+    renderAll();
+    setTimeout(function(){ const i = $('#wbValue'); if(i) i.focus(); }, 0);
+  }
+  if(e.target.id === 'rtGroup'){
+    if(e.target.value === '__new'){
+      setNewGroupMode('rt', true);
+      renderReaderSide();
+      setTimeout(function(){ const i = $('#rtNewName'); if(i) i.focus(); }, 0);
+      return;
+    }
+    state.groupSel = e.target.value || null;
+    if(state.groupSel) rememberGroup(state.groupSel);
+    renderReaderSide();
+    setTimeout(function(){ const i = $('#rtValue'); if(i) i.focus(); }, 0);
+  }
   if(e.target.matches('[data-import-check]') && !importView.importing){
     const path = e.target.dataset.path;
     if(e.target.checked) importView.selected.add(path);
@@ -2303,8 +3495,16 @@ document.addEventListener('input', function(e){
     if(p){ p.note = e.target.value; scheduleSave(p.id, {note_md: p.note}); }
   }
   if(e.target.matches('[data-memory]')){
-    const p = PAPERS.find(x => x.id === state.paperId);
-    if(p){ p.memory = e.target.value; scheduleSave(p.id, {memory: p.memory}); }
+    const p = state.readerOpen
+      ? readerPaper()
+      : (state.workbench
+          ? (workbenchCurrent() || {}).paper
+          : PAPERS.find(x => x.id === state.paperId));
+    if(p){
+      p.memory = e.target.value;
+      scheduleSave(p.id, {memory: p.memory});
+      if(state.readerOpen) renderReaderSide();
+    }
   }
 });
 
@@ -2320,11 +3520,23 @@ $('#readerBody').addEventListener('scroll', function(){
 
 document.addEventListener('keydown', function(e){
   if(state.readerOpen){
+    // 正在侧栏输入时，Esc 只退出输入框，不关阅读器——否则打了一半的标签会丢
+    if(e.key === 'Escape' && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){
+      document.activeElement.blur();
+      return;
+    }
     if(e.key === 'Escape'){ e.preventDefault(); closeReader(); return; }
     if(e.key === 'ArrowRight'){ e.preventDefault(); goToPage(pdfView.current + 1, true); return; }
     if(e.key === 'ArrowLeft'){ e.preventDefault(); goToPage(pdfView.current - 1, true); return; }
     if(e.key === '+' || e.key === '='){ e.preventDefault(); zoomBy(1.15); return; }
     if(e.key === '-'){ e.preventDefault(); zoomBy(1 / 1.15); return; }
+    if((e.key === 't' || e.key === 'T') && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){
+      e.preventDefault();
+      state.readerTags = state.readerTags === false;
+      renderReaderSide();
+      if(state.readerTags) setTimeout(function(){ const i = $('#rtValue'); if(i) i.focus(); }, 0);
+      return;
+    }
   }
   if(e.key === 'Escape' && state.modalOpen){
     if(state.modalMode === 'import'){ closeImportBrowser(); return; }
@@ -2347,6 +3559,31 @@ document.addEventListener('keydown', function(e){
   if(e.key === '/' && !state.readerOpen && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){
     e.preventDefault();
     $('#search').focus();
+  }
+  if(e.key === 'Enter' && e.target.id === 'rtValue'){
+    e.preventDefault();
+    readerAddTag();
+    return;
+  }
+  if(e.key === 'Enter' && e.target.id === 'wbValue'){
+    e.preventDefault();
+    wbAddFromInput();
+    return;
+  }
+  if(e.key === 'Enter' && e.target.id === 'rtNewName'){
+    e.preventDefault();
+    commitNewGroup('rt');
+    return;
+  }
+  if(e.key === 'Enter' && e.target.id === 'wbNewName'){
+    e.preventDefault();
+    commitNewGroup('wb');
+    return;
+  }
+  if(e.key === 'Enter' && e.target.id === 'addNewName'){
+    e.preventDefault();
+    commitNewGroup('add');
+    return;
   }
   if(e.key === 'Enter' && e.target.id === 'addValue'){
     e.preventDefault();
@@ -2435,6 +3672,8 @@ function openReader(){
   const p = currentPaper();
   if(!p) return;
   state.readerOpen = true;
+  state.readerGroupNew = false;
+  state.readerItemId = p.id;
   $('#reader').hidden = false;
   $('#readerTitle').innerHTML =
     '<span>' + esc(p.title || '未命名') + '</span>' +
@@ -2442,6 +3681,7 @@ function openReader(){
   const body = $('#readerBody');
   body.classList.remove('blank');
   body.innerHTML = '';
+  renderReaderSide();
 
   if(!p.hasFile){ readerMissing(p); return; }
   if(pdfView.itemId !== p.id) loadPdf(p);
@@ -2451,18 +3691,25 @@ function openReader(){
     scheduleSave(p.id, { status:'reading' });
     renderAll();
   }
+  if(state.readerTags !== false){
+    setTimeout(function(){ const i = $('#rtValue'); if(i) i.focus(); }, 0);
+  }
 }
 
 function closeReader(){
   if(!state.readerOpen) return;
   rememberPosition();
   state.readerOpen = false;
+  state.readerGroupNew = false;
+  state.readerItemId = null;
   $('#reader').hidden = true;
   const body = $('#readerBody');
   body.innerHTML = '';
   body.classList.remove('blank');
   setReaderLoading(false);
   destroyPdf();
+  const side = $('#readerSide');
+  if(side){ side.innerHTML = ''; }
 }
 
 async function loadPdf(p){
@@ -2625,6 +3872,7 @@ function goToPage(n, smooth){
   body.scrollTo({ top: Math.max(0, ps.wrap.offsetTop - 8), behavior: smooth ? 'smooth' : 'auto' });
   updateReaderChrome();
   rememberPosition();
+  syncReaderSidePage();
 }
 
 function syncCurrentPage(){
@@ -2639,7 +3887,16 @@ function syncCurrentPage(){
     pdfView.current = cur;
     updateReaderChrome();
     rememberPosition();
+    syncReaderSidePage();
   }
+}
+
+/* 换页只更新侧栏顶部的页码，不重绘整块面板——否则输入框会被打断 */
+function syncReaderSidePage(){
+  const el = $('#readerSide .rs-kicker');
+  if(!el) return;
+  const total = pdfView.doc ? pdfView.doc.numPages : 0;
+  el.textContent = '正在读 · 第 ' + (pdfView.current || 1) + (total ? ' / ' + total : '') + ' 页';
 }
 
 async function zoomBy(factor){
@@ -2734,6 +3991,7 @@ async function refreshPapers(){
   if(!apiOnline) return;
   try{
     PAPERS = await fetchPapers();
+    await refreshGroups();
     renderAll();
   }catch(err){
     toast('读取书库失败，界面可能不是最新');
@@ -2941,6 +4199,7 @@ async function boot(){
     state.paperId = null;
   }
   if(apiOnline){
+    await refreshGroups();
     await loadAISettings();
     await restoreConversation();
   }
