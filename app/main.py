@@ -61,8 +61,11 @@ def favicon() -> FileResponse:
 class ItemPatch(BaseModel):
     status: Literal["todo", "reading", "read"] | None = None
     starred: bool | None = None
-    memory: str | None = None
     note_md: str | None = None
+
+
+class TagEditIn(BaseModel):
+    definition: str = Field(default="", max_length=120)
 
 
 class TagIn(BaseModel):
@@ -258,6 +261,18 @@ def assign_group(payload: GroupAssignIn) -> dict:
             result = repo.set_tag_group(conn, payload.tag_id, group_id)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
+    finally:
+        conn.close()
+    if not result:
+        raise HTTPException(status_code=404, detail="tag not found")
+    return result
+
+
+@app.patch("/api/tags/{tag_id}/definition")
+def patch_tag_definition(tag_id: str, payload: TagEditIn) -> dict:
+    conn = connect()
+    try:
+        result = repo.set_tag_definition(conn, tag_id, payload.definition)
     finally:
         conn.close()
     if not result:

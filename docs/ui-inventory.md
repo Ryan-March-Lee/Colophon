@@ -39,7 +39,8 @@
 | `SelectedChips` | 列表顶 | 无筛选、有筛选、清除全部 |
 | `PaperCard` | 列表 | 默认、选中、悬停、无标签、文件缺失 |
 | `StatusPill` | 列表 / 详情 | 待读、在读、已读 |
-| `TagChip` | 全局 | 默认、可删、可筛选、相似提示 |
+| `TagChip` | 全局 | 默认、可删、可筛选、悬停读一句话定义 |
+| `TagDefinitionEditor` | 标签库 | 空、输入中、保存失败 |
 | `PdfViewer` | 阅读 | 加载、渲染、无文本层、文件缺失、缩放、旋转 |
 | `PageNav` | 阅读 | 首页 / 中间 / 末页、跳页、记住位置 |
 | `MetaBar` | 详情 | 完整、待补全、抓取中、抓取失败、DOI 冲突 |
@@ -78,10 +79,9 @@
 |---|---|---|---|
 | 1 阅读中 | `PdfViewer`、`PageNav`、`ZoomControl`、`ReaderSidePanel` | 加载中、渲染失败、无文本层、文件缺失、无托管 PDF（只凭标题打标）、保存失败 | 记录页码；侧栏打标 |
 | 2 侧栏打标 | `TagEditor`、`MetadataChips`、`QuickTags`、`GroupPicker` | 空标签、相似标签、新建组（组名空要拦）、保存中 | 写 `item_tag`，组归属随标签走 |
-| 3 一句话记忆 | `MemoryInput` | 空、输入中、保存失败 | 写 `memory`（防抖 600ms） |
-| 4 AI 建议 | `TagSuggestCard` | 无 Key、生成中、待采纳、已采纳、已忽略、失败 | 采纳写 `item_tag` 且落未分组 |
-| 5 未打标队列 | `QueueCard`、`MetaBar`、`NextButton`、`SkipButton` | 队列空、元数据缺失、无 PDF | 只路由：进阅读器打标 / 跳过 / 退出 |
-| 6 回流 | `FacetCounts`、`Toast`、`ViewLink` | 已保存、计数更新、保存失败 | 刷新左栏与智能视图 |
+| 3 AI 建议 | `TagSuggestCard` | 无 Key、生成中、待采纳、已采纳、已忽略、失败 | 采纳写 `item_tag` 且落未分组 |
+| 4 未打标队列 | `QueueCard`、`MetaBar`、`NextButton`、`SkipButton` | 队列空、元数据缺失、无 PDF | 只路由：进阅读器打标 / 跳过 / 退出 |
+| 5 回流 | `FacetCounts`、`Toast`、`ViewLink` | 已保存、计数更新、保存失败 | 刷新左栏与智能视图 |
 
 ### 范围问答
 

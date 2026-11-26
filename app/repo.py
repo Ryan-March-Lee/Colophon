@@ -123,8 +123,6 @@ def _dict_to_item(
         "cites": row["cites"],
         "status": row["status"],
         "abstract": row["abstract"],
-        "aiBrief": row["ai_brief"],
-        "memory": row["memory"],
         "note": row["note_md"],
         "year": row["year"],
         "starred": bool(row["starred"]),
@@ -322,6 +320,23 @@ def set_tag_group(
     return {"tag_id": tag_id, "group_id": group_id or None}
 
 
+def set_tag_definition(
+    conn: sqlite3.Connection, tag_id: str, definition: str
+) -> dict | None:
+    """标签的一句话定义：压的是一个概念，不是一篇文献。"""
+    tag = conn.execute(
+        "SELECT id FROM tag WHERE id = ? AND deleted_at IS NULL", (tag_id,)
+    ).fetchone()
+    if not tag:
+        return None
+    definition = " ".join((definition or "").split())[:120]
+    conn.execute(
+        "UPDATE tag SET definition = ? WHERE id = ?", (definition, tag_id)
+    )
+    conn.commit()
+    return {"tag_id": tag_id, "definition": definition}
+
+
 def delete_tag_group(conn: sqlite3.Connection, group_id: str) -> int | None:
     """软删组并清掉成员行：标签退回未分组，不级联删标签。返回受影响的标签数。
 
@@ -445,7 +460,7 @@ def ensure_org(conn: sqlite3.Connection, name: str) -> str:
 # ---------------------------------------------------------------- 写入
 
 def patch_item(conn: sqlite3.Connection, item_id: str, fields: dict) -> dict | None:
-    allowed = {"status", "starred", "memory", "note_md"}
+    allowed = {"status", "starred", "note_md"}
     sets: list[str] = []
     values: list = []
     for key, value in fields.items():

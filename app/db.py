@@ -24,11 +24,34 @@ def connect() -> sqlite3.Connection:
     return conn
 
 
+LEGACY_COLUMNS = {
+    # 一篇文献不压成一句话：这两列已整体移除，老库需要显式删掉。
+    # schema.sql 只有 IF NOT EXISTS，删列不能靠它。
+    "item": ("memory", "ai_brief"),
+}
+
+
+def _drop_legacy_columns(conn: sqlite3.Connection) -> None:
+    for table, columns in LEGACY_COLUMNS.items():
+        existing = {
+            row["name"] for row in conn.execute(f"PRAGMA table_info({table})")
+        }
+        for name in columns:
+            if name in existing:
+                try:
+                    conn.execute(f"ALTER TABLE {table} DROP COLUMN {name}")
+                except sqlite3.OperationalError:
+                    # 老 SQLite（< 3.35）不支持 DROP COLUMN：代码已不再读这两列，
+                    # 留着也不影响，下次换到新版本时会自动删掉。
+                    pass
+
+
 def init_db() -> None:
     ensure_library()
     conn = connect()
     try:
         conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
+        _drop_legacy_columns(conn)
         conn.commit()
     finally:
         conn.close()

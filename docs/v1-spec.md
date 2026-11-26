@@ -23,7 +23,7 @@
 
 默认值（不再单独决策）：
 
-- 标签字段：名称、颜色、一句话定义、自动计数。
+- 标签字段：名称、颜色、一句话定义（压一个概念，不压一篇文献）、自动计数。
 - 标签输入：补全已有标签，但允许新建。
 - 笔记：每篇一个 Markdown 笔记；v1 不做 PDF 高亮。
 - 阅读状态：待读 / 在读 / 已读 + 星标。
@@ -67,8 +67,9 @@
 
 ### 6. 阅读工作台
 - 阅读状态 + 星标。
-- 一句话记忆（用户手写）。
-- 每篇一个 Markdown 笔记。
+- 每篇一个 Markdown 笔记（长文、分条、只写疑问都可以）。
+
+**不做「一句话记忆 / 一句话概括」**：一篇文献涉及的技术细节写不进一行；一旦它进列表行和检索字段，就成了标签之外的第二个分类轴。短文本只允许落在概念层，即标签的一句话定义。
 
 ### 7. 范围锁定的 AI 阅读
 - 默认范围 = 当前筛选 / 当前智能视图，界面显示「只读这 N 篇」。
@@ -91,7 +92,7 @@
 
 | 表 | 作用 | 关键字段 |
 |---|---|---|
-| `item` | 文献条目 | `id`, `type`, `title`, `abstract`, `year`, `venue`, `doi`, `arxiv_id`, `url`, `language`, `status`, `starred`, `memory`, `note_md`, `added_at`, `updated_at`, `deleted_at` |
+| `item` | 文献条目 | `id`, `type`, `title`, `abstract`, `year`, `venue`, `doi`, `arxiv_id`, `url`, `language`, `status`, `starred`, `note_md`, `added_at`, `updated_at`, `deleted_at` |
 | `author` | 作者 | `id`, `display_name`, `sort_name`, `orcid` |
 | `item_author` | 条目—作者 | `item_id`, `author_id`, `position`, `role` |
 | `org` | 单位 | `id`, `name`, `normalized_name` |
