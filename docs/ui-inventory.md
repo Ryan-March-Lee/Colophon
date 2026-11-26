@@ -73,7 +73,7 @@
 
 ### 读完打标
 
-标签只有一个写入口：阅读器右侧栏。详情页的标签页只读，未打标工作台只做队列。
+标签只有一个写入口：阅读器右侧栏。详情页的标签页只读，未打标工作台只做队列。详情页没有「概览」页：标题下常驻摘要（长摘要可展开），标签页最下面才是「我的笔记」。
 
 | 屏 | 主要组件 | 必须状态 | 数据 / 动作 |
 |---|---|---|---|
@@ -113,7 +113,7 @@
 1. `AppShell` + `TopBar` + 三栏布局
 2. `FacetGroup` / `FacetRow` / `SelectedChips`
 3. `PaperCard` + 列表虚拟滚动
-4. `DetailPane` + `ViewTabs`
+4. `DetailPane` + `ViewTabs`（标签 / AI 阅读两页；摘要与笔记见上）
 5. `PdfViewer` + `PageNav` + `ZoomControl` + `ReaderSidePanel`
 6. `TagEditor` + `TagChip` + `QuickTags`（只在阅读器侧栏）
 7. `ImportDialog` + `BatchSummary` + `QueueList`

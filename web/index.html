@@ -399,7 +399,18 @@
     font-size:9px;letter-spacing:.04em;padding:1px 5px;border-radius:4px;
     background:var(--accent-soft);color:var(--accent);font-weight:600;
   }
-  .abstract{font-size:12.8px;line-height:1.75;color:var(--ink);margin:0;opacity:.9}
+  .dabs{
+    font-size:12px;line-height:1.7;color:var(--muted);margin:0 0 8px;
+    max-height:3.4em;overflow:hidden;position:relative;
+    -webkit-mask-image:linear-gradient(180deg,#000 60%,transparent);
+    mask-image:linear-gradient(180deg,#000 60%,transparent);
+  }
+  .dabs.open{max-height:none;-webkit-mask-image:none;mask-image:none}
+  .dabs-toggle{
+    font-size:10.5px;color:var(--accent);margin:-3px 0 8px;padding:0;
+  }
+  .dabs-toggle:hover{text-decoration:underline}
+  .dabs-miss{font-size:10.5px;color:var(--muted-2);display:block;margin:0 0 8px}
   .textinput{
     width:100%;height:34px;border:1px solid var(--line);border-radius:8px;
     padding:0 10px;background:var(--panel-2);font-size:12.5px;outline:none;
@@ -959,7 +970,9 @@ const state = {
   eval:null,
   rescue:[],
   paperId:null,
-  tab:'overview',
+  tab:'tags',
+  absOpen:false,
+  absId:null,
   chat:[],
   busy:false,
   sugg:{},
@@ -1405,6 +1418,9 @@ function renderDetail(){
     return;
   }
 
+  // 摘要折叠状态跟着条目走：换一篇就回到折叠，不沿用上一篇的展开
+  if(state.absId !== p.id){ state.absId = p.id; state.absOpen = false; }
+
   const n = getFiltered().length;
   const topics = p.tags.topic;
   const metaBusy = state.metaBusy === p.id;
@@ -1441,6 +1457,12 @@ function renderDetail(){
       '</div>' +
       '<h2 class="dtitle">' + esc(p.title) + '</h2>' +
       '<p class="dauthors">' + esc(p.authors.join(' · ')) + '</p>' +
+      (p.abstract
+        ? '<p class="dabs' + (state.absOpen ? ' open' : '') + '" id="dabs">' + esc(p.abstract) + '</p>' +
+          (p.abstract.length > 160
+            ? '<button class="dabs-toggle" data-act="toggle-abstract">' + (state.absOpen ? '收起摘要' : '展开摘要') + '</button>'
+            : '')
+        : '<span class="dabs-miss">这一条还没有摘要</span>') +
       '<div class="dorgs">' + p.tags.org.map(o => '<span class="orgpill">' + esc(o) + '</span>').join('') + '</div>' +
       '<div class="dorgs" style="margin-bottom:0">' +
         topics.map(t => chipHTML('topic', t, {removable:false})).join('') +
@@ -1452,7 +1474,6 @@ function renderDetail(){
       metaBar +
     '</div>' +
     '<div class="tabs" role="tablist">' +
-      '<button class="tab' + (state.tab === 'overview' ? ' on' : '') + '" data-act="tab" data-tab="overview" role="tab">概览</button>' +
       '<button class="tab' + (state.tab === 'tags' ? ' on' : '') + '" data-act="tab" data-tab="tags" role="tab">标签 <span class="tabn">' + topics.length + '</span></button>' +
       '<button class="tab' + (state.tab === 'ai' ? ' on' : '') + '" data-act="tab" data-tab="ai" role="tab">AI 阅读' +
         (state.chat.length ? '<span class="tabdot"></span>' : '') +
@@ -1460,9 +1481,8 @@ function renderDetail(){
     '</div>';
 
   let body = '';
-  if(state.tab === 'overview') body = renderOverview(p);
-  else if(state.tab === 'tags') body = renderTags(p);
-  else body = renderAI(n);
+  if(state.tab === 'ai') body = renderAI(n);
+  else body = renderTags(p);
 
   el.innerHTML = head + body;
   el.scrollTop = 0;
@@ -1479,20 +1499,6 @@ function renderDetail(){
     else msgs.scrollTop = prevMsgs;
   }
   state.pendingScroll = null;
-}
-
-function renderOverview(p){
-  return '<div class="dbody">' +
-    '<div class="section">' +
-      '<div class="slabel">摘要</div>' +
-      '<p class="abstract">' + esc(p.abstract) + '</p>' +
-    '</div>' +
-    '<div class="section">' +
-      '<div class="slabel">我的笔记 <span class="hint">自动保存</span></div>' +
-      '<textarea class="note" data-note rows="7" placeholder="摘录、疑问、可以借鉴的地方…">' + esc(p.note) + '</textarea>' +
-      '<div class="autosave">' + (apiOnline ? '仅存本地 · 自动保存' : '未连接 · 不保存') + '</div>' +
-    '</div>' +
-  '</div>';
 }
 
 function renderTags(p){
@@ -1527,6 +1533,11 @@ function renderTags(p){
         '</button>' +
         '<span class="hintline" style="margin:0">标签只在阅读器的右侧栏加：那里能边看原文边决定，也能顺手复用同组标签。</span>' +
       '</div>' +
+    '</div>' +
+    '<div class="section">' +
+      '<div class="slabel">我的笔记 <span class="hint">自动保存</span></div>' +
+      '<textarea class="note" data-note rows="7" placeholder="摘录、疑问、可以借鉴的地方…">' + esc(p.note) + '</textarea>' +
+      '<div class="autosave">' + (apiOnline ? '仅存本地 · 自动保存' : '未连接 · 不保存') + '</div>' +
     '</div>' +
   '</div>';
 }
@@ -2888,7 +2899,8 @@ function resetAll(){
 
 function selectPaper(id){
   state.paperId = id;
-  state.tab = 'overview';
+  state.tab = 'tags';
+  state.absOpen = false;
   state.pendingScroll = 'top';
   renderAll();
   if(window.matchMedia('(max-width:880px)').matches){
@@ -3324,6 +3336,13 @@ document.addEventListener('click', function(e){
     state.tab = el.dataset.tab;
     state.pendingScroll = state.tab === 'ai' ? 'bottom' : 'top';
     renderDetail();
+  }
+  else if(act === 'toggle-abstract'){
+    // 摘要只在标题下露出一截：展开/收起不重排整页，就地换 class
+    state.absOpen = !state.absOpen;
+    const body = $('#dabs');
+    if(body) body.classList.toggle('open', state.absOpen);
+    el.textContent = state.absOpen ? '收起摘要' : '展开摘要';
   }
   else if(act === 'to-ai'){
     state.tab = 'ai';
@@ -4160,7 +4179,8 @@ async function attachPdfTo(itemId, file){
     if(data.status === 'duplicate' && data.item_id && data.item_id !== itemId){
       toast('这个文件已经在库里的另一条上，已跳过去');
       state.paperId = data.item_id;
-      state.tab = 'overview';
+      state.tab = 'tags';
+      state.absOpen = false;
       renderAll();
       openReader();
       return;
