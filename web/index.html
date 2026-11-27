@@ -317,6 +317,7 @@
   .sel:focus{border-color:var(--accent)}
   .papers{flex:1;min-height:0;overflow-y:auto;padding:7px 12px 30px;display:flex;flex-direction:column;gap:0}
   .paper{
+    display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;
     position:relative;flex:none;min-height:54px;padding:6px 8px;border:0;border-bottom:1px solid var(--line);
     border-radius:0;background:transparent;cursor:pointer;transition:background .12s;
   }
@@ -325,6 +326,8 @@
     box-shadow:inset 2px 0 0 var(--accent);
     background:var(--accent-soft);
   }
+  .paper-actions{display:grid;gap:4px}
+  .paper-actions .btn{height:23px;justify-content:center;font-size:11px;white-space:nowrap}
   .paper-meta,.ptags{display:flex;align-items:center;flex-wrap:wrap;gap:4px;min-width:0}
   .paper-meta{margin-bottom:4px}
   .paper-meta .tag,.ptags .tag{height:auto;min-height:19px;max-width:100%;padding:2px 5px;font-size:10.5px;line-height:1.25;white-space:normal;overflow-wrap:anywhere;text-align:left}
@@ -355,7 +358,6 @@
     color:color-mix(in srgb,var(--c) 88%,var(--ink));
   }
   .taglabel{padding:2px 0;color:inherit}
-  button.taglabel:hover{text-decoration:underline}
   .tagx{color:inherit;opacity:.5;font-size:12px;line-height:1;padding:0 1px}
   .tagx:hover{opacity:1}
   .tag b{font-weight:600;font-size:10px;margin-left:3px;opacity:.7}
@@ -375,30 +377,10 @@
   .dtopbar{display:flex;align-items:center;gap:8px;flex:none;padding:10px 20px;border-bottom:1px solid var(--line);background:var(--panel);font-size:11px;color:var(--muted)}
   .dtopbar .dback{display:inline-flex}
   .dtopbar-title{flex:1;min-width:0;font-size:12px;color:var(--ink);font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .dtop{display:flex;align-items:center;gap:8px;font-size:10.5px;color:var(--muted-2)}
   .dback{display:none;width:24px;height:22px;align-items:center;justify-content:center;border-radius:5px;color:var(--muted);margin-right:2px}
   .dback:hover{background:var(--hover);color:var(--ink)}
-  .pill{
-    display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;
-    border-radius:99px;border:1px solid var(--line);font-size:10.5px;color:var(--muted);
-    background:var(--panel-2);
-  }
-  .dvenue{margin-left:auto}
-  .dtitle{
-    font-family:var(--serif);font-size:19px;line-height:1.34;font-weight:600;
-    margin:9px 0 5px;letter-spacing:-.012em;
-  }
-  .dauthors{font-size:11.5px;color:var(--muted);margin:0 0 8px;line-height:1.5}
-  .dorgs{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:9px}
-  .orgpill{
-    font-size:10.5px;color:var(--muted);border:1px solid var(--line);
-    border-radius:5px;padding:2px 6px;background:var(--panel-2);
-  }
-  .dhead .tag{margin-right:3px}
-  .dacts{display:flex;gap:6px;margin-top:11px}
-  .dnote{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
-  .dnote .slabel{margin-bottom:8px}
-  .dnote .note{min-height:120px}
+  .dabstract-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .dabstract-head h2{margin:0;font-size:14px;font-weight:600}
   .dbody{flex:1;overflow-y:auto;padding:15px 20px 30px;min-height:0}
   .slabel{
     font-size:11px;letter-spacing:.1em;color:var(--muted);font-weight:600;
@@ -406,28 +388,26 @@
   }
   .slabel .hint{font-size:10.5px;letter-spacing:0;text-transform:none;color:var(--muted-2);font-weight:400}
   .dabs{
-    font-size:12px;line-height:1.7;color:var(--muted);margin:0 0 8px;
-    max-height:3.4em;overflow:hidden;position:relative;
-    -webkit-mask-image:linear-gradient(180deg,#000 60%,transparent);
-    mask-image:linear-gradient(180deg,#000 60%,transparent);
+    font-size:13px;line-height:1.75;margin:0;white-space:pre-wrap;overflow-wrap:anywhere;
   }
-  .dabs.open{max-height:none;-webkit-mask-image:none;mask-image:none}
-  .dabs-toggle{
-    font-size:10.5px;color:var(--accent);margin:-3px 0 8px;padding:0;
+  .dabs-miss{font-size:12px;color:var(--muted);margin:0}
+  .dmeta,.dnote{margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
+  .dmeta{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap}
+  .dmeta-info{flex:1;min-width:0;overflow-wrap:anywhere}
+  .dmeta-info .slabel{margin-bottom:3px}
+  .dmeta-info p{margin:3px 0 0;font-size:11px;color:var(--muted)}
+  .dmeta-info .dmeta-missing{color:var(--warn)}
+  .dmeta-actions{display:flex;gap:5px;flex-wrap:wrap}
+  .note{
+    width:100%;min-height:120px;border:1px solid var(--line);border-radius:8px;background:var(--panel-2);
+    padding:9px 11px;font:inherit;font-size:12.5px;line-height:1.7;resize:vertical;
   }
-  .dabs-toggle:hover{text-decoration:underline}
-  .dabs-miss{font-size:10.5px;color:var(--muted-2);display:block;margin:0 0 8px}
+  .note:focus{outline:1px solid var(--accent);border-color:var(--accent)}
   .textinput{
     width:100%;height:34px;border:1px solid var(--line);border-radius:8px;
     padding:0 10px;background:var(--panel-2);font-size:12.5px;outline:none;
   }
   .textinput:focus{border-color:var(--accent);background:var(--panel);box-shadow:0 0 0 3px var(--accent-soft)}
-  .note{
-    width:100%;border:1px solid var(--line);border-radius:9px;background:var(--panel-2);
-    padding:9px 11px;font-size:12.5px;line-height:1.7;resize:vertical;outline:none;
-  }
-  .note:focus{border-color:var(--accent);background:var(--panel);box-shadow:0 0 0 3px var(--accent-soft)}
-  .autosave{font-size:10px;color:var(--muted-2);margin-top:5px;text-align:right}
 
   .none{color:var(--muted-2);font-size:11px;padding-top:3px}
   .tagcloud{display:flex;flex-wrap:wrap;gap:4px}
@@ -720,14 +700,6 @@
   }
 
   /* ---------- 元数据 ---------- */
-  .metabar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid var(--line);border-radius:8px;background:var(--panel-2);padding:7px 9px;margin-top:10px}
-  .metabar.warn{border-color:color-mix(in srgb,var(--warn) 32%,var(--line));background:color-mix(in srgb,var(--warn) 7%,var(--panel))}
-  .mbinfo{display:flex;align-items:baseline;gap:8px;min-width:0;flex:1;flex-wrap:wrap}
-  .mbtitle{font-size:11.5px;font-weight:600}
-  .mbmiss{font-size:11px;color:var(--warn)}
-  .mbmono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
-  .mbacts{display:flex;gap:6px;flex:none}
-  .pmeta-miss{font-size:10.5px;color:var(--warn);margin:2px 0 0}
   .meta-card{width:min(560px,92vw)}
   .metaform{display:flex;flex-direction:column;gap:9px;margin-top:12px}
   .mfrow{display:grid;grid-template-columns:76px minmax(0,1fr);align-items:center;gap:10px}
@@ -796,7 +768,7 @@
   .rs-status{display:flex;gap:5px;flex-wrap:wrap}
   .rs-st{font-size:10.5px;padding:3px 8px;border:1px solid var(--line);border-radius:99px;color:var(--muted);background:var(--panel-2)}
   .rs-st.on{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 40%,var(--line));color:var(--accent-2);font-weight:650}
-  .rs-foot{margin-top:auto;display:flex;align-items:center;gap:6px}
+  .rs-foot{margin-top:auto;display:flex;align-items:center;flex-wrap:wrap;gap:6px}
   .rs-foot .save{font-size:10px;color:var(--muted-2);margin-left:auto}
   .rpage{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:66px;text-align:center}
   .rz{min-width:58px;font-variant-numeric:tabular-nums;font-size:12px}
@@ -950,7 +922,7 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>'
 const labelOf = k => k === 'topic' ? '标签' : (METADATA_FACETS.find(f => f.key === k) || {}).label || k;
 const colorOf = k => 'var(--c-' + k + ')';
 const statusLabel = s => s === 'read' ? '已读' : s === 'reading' ? '在读' : '待读';
-const fieldLabel = k => ({title:'标题', authors:'作者', year:'年份', venue:'期刊 / 会议', orgs:'单位'}[k] || k);
+const fieldLabel = k => ({title:'标题', authors:'作者', year:'年份', venue:'期刊 / 会议', orgs:'单位', abstract:'摘要'}[k] || k);
 
 const state = {
   q:'',
@@ -972,8 +944,6 @@ const state = {
   rescue:[],
   paperId:null,
   tab:'info',
-  absOpen:false,
-  absId:null,
   chat:[],
   busy:false,
   sugg:{},
@@ -1174,11 +1144,6 @@ function activeExpressions(){
   if(state.mode === 'review') out.push({id:'@mode',text:'待补全模式'});
   if(state.q) out.push({id:'@query',text:'搜索「' + state.q + '」'});
   return out;
-}
-
-function tagDefinition(name){
-  const hit = findTag(name);
-  return hit && hit.tag && hit.tag.definition ? hit.tag.definition : '';
 }
 
 function checkSVG(){
@@ -1411,12 +1376,19 @@ function renderList(ps){
     const statusPill = p.status === 'read'
       ? ''
       : '<span class="pstatus-pill ' + esc(p.status) + '"><span class="d"></span>' + statusLabel(p.status) + '</span>';
-    return '<article class="paper' + (current ? ' on' : '') + '" data-id="' + esc(p.id) + '">' +
-      '<div class="paper-meta" aria-label="元数据标签">' + renderPaperMetadata(p) + '</div>' +
-      '<div class="paper-title-row">' + statusPill +
-      '<h3 class="ptitle"><button data-act="select" data-id="' + esc(p.id) + '" aria-current="' + current + '">' + esc(p.title) + '</button></h3>' +
-      (p.needsReview ? '<span class="pstatus" style="color:var(--warn);font-size:9px">待补全</span>' : '') + '</div>' +
-      (tags ? '<div class="ptags" aria-label="内容标签">' + tags + '</div>' : '') + '</article>';
+    const id = esc(p.id);
+    return '<article class="paper' + (current ? ' on' : '') + '" data-id="' + id + '">' +
+      '<div class="paper-content">' +
+        '<div class="paper-meta" aria-label="元数据标签">' + renderPaperMetadata(p) + '</div>' +
+        '<div class="paper-title-row">' + statusPill +
+          '<h3 class="ptitle"><button data-act="select" data-id="' + id + '" aria-current="' + current + '">' + esc(p.title) + '</button></h3>' +
+          (p.needsReview ? '<span class="pstatus" style="color:var(--warn);font-size:9px">待补全</span>' : '') + '</div>' +
+        (tags ? '<div class="ptags" aria-label="内容标签">' + tags + '</div>' : '') +
+      '</div>' +
+      '<div class="paper-actions">' +
+        '<button class="btn tiny" data-act="open-pdf" data-id="' + id + '">' + (p.hasFile ? '打开 PDF' : '补 PDF') + '</button>' +
+        '<button class="btn tiny" data-act="copy-cite" data-id="' + id + '">复制引用</button>' +
+      '</div></article>';
   }).join('');
   $$('.paper-meta-more',el).forEach(x => { x.open = expanded.has(x.closest('.paper').dataset.id + ':' + x.dataset.field); });
   el.scrollTop = scroll;
@@ -1425,42 +1397,23 @@ function renderList(ps){
 /* ============================================================
    渲染：详情
    ============================================================ */
-function chipHTML(facet, value, opts){
-  opts = opts || {};
-  const removable = opts.removable !== false;
-  const clickable = opts.clickable !== false;
-  // 话题标签的一句话定义：悬停就能读到这个标签收什么
-  const def = facet === 'topic' ? tagDefinition(value) : '';
-  return '<span class="tag" style="--c:' + colorOf(facet) + '"' +
-    (def ? ' title="' + esc(def) + '"' : '') + '>' +
-    (clickable
-      ? '<button class="taglabel" data-act="filter-tag" data-facet="' + facet + '" data-value="' + esc(value) + '" title="用这个标签筛选">' + esc(value) + '</button>'
-      : '<span class="taglabel">' + esc(value) + '</span>') +
-    (removable
-      ? '<button class="tagx" data-act="del-tag" data-facet="' + facet + '" data-value="' + esc(value) + '" title="从这篇移除">×</button>'
-      : '') +
-  '</span>';
-}
-
 function renderDetail(){
   const el = $('#detail');
   const p = PAPERS.find(x => x.id === state.paperId);
   const prevScroll = $('#dhead') ? $('#dhead').scrollTop : 0;
   const prevMsgs = $('#msgs') ? $('#msgs').scrollTop : 0;
 
-  const n = getFiltered().length;
-
   if(state.tab === 'ai'){
     el.innerHTML =
       '<div class="dtopbar">' +
-        '<button class="dback" data-act="to-info" title="返回文献信息" aria-label="返回文献信息">' +
+        '<button class="dback" data-act="to-info" title="返回文献详情" aria-label="返回文献详情">' +
           '<svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true">' +
             '<path d="M8.5 2.5 4 7l4.5 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>' +
           '</svg>' +
         '</button>' +
         '<span class="dtopbar-title">AI 阅读 · ' + aiScope().length + ' 篇</span>' +
       '</div>' +
-      renderAI(n);
+      renderAI(getFiltered().length);
 
     const msgs = $('#msgs');
     if(msgs){
@@ -1472,67 +1425,47 @@ function renderDetail(){
   }
 
   if(!p){
-    el.innerHTML = '<div class="empty"><div class="em">◇</div><p>从左侧选一篇文献</p>' +
-      '<div style="font-size:11px;color:var(--muted-2);line-height:1.7">选中后可读摘要、写笔记，<br>或在当前筛选范围内问 AI。</div></div>';
+    el.innerHTML = '<div class="empty"><p>请选择一篇文献</p></div>';
     return;
   }
 
-  // 摘要折叠状态跟着条目走：换一篇就回到折叠，不沿用上一篇的展开
-  if(state.absId !== p.id){ state.absId = p.id; state.absOpen = false; }
-
-  const topics = p.tags.topic;
-  const metaBusy = state.metaBusy === p.id;
-  const ident = p.doi ? p.doi : (p.arxivId ? 'arXiv:' + p.arxivId : '');
-  const metaBar =
-    '<div class="metabar' + (p.needsReview ? ' warn' : '') + '">' +
-      '<div class="mbinfo">' +
-        '<span class="mbtitle">' + (p.needsReview ? '元数据待补全' : '元数据') + '</span>' +
-        (p.needsReview && p.missing && p.missing.length
-          ? '<span class="mbmiss">缺 ' + p.missing.map(fieldLabel).join('、') + '</span>'
-          : (ident
-              ? '<span class="mbmono">' + esc(ident) + '</span>'
-              : (p.needsReview ? '<span class="mbmiss">模型补的字段，核对后保存即清除</span>' : ''))) +
-      '</div>' +
-      '<div class="mbacts">' +
-        '<button class="btn tiny" data-act="fetch-meta"' + (metaBusy ? ' disabled' : '') + '>' + (metaBusy ? '抓取中…' : '抓取元数据') + '</button>' +
-        '<button class="btn tiny" data-act="edit-meta">手动补全</button>' +
-      '</div>' +
-    '</div>';
+  const abstract = p.abstract.trim();
+  const missing = (p.missing || []).map(fieldLabel);
+  const identifiers = [p.doi ? 'DOI: ' + p.doi : '', p.arxivId ? 'arXiv: ' + p.arxivId : '',
+    p.cites ? p.cites.toLocaleString() + ' 次引用' : ''].filter(Boolean);
+  const note = document.activeElement;
+  const noteSelection = note && note.matches('[data-note]') && note.dataset.note === p.id
+    ? [note.selectionStart, note.selectionEnd, note.selectionDirection] : null;
 
   el.innerHTML =
     '<div class="dhead" id="dhead">' +
-      '<div class="dtop">' +
+      '<div class="dabstract-head">' +
         '<button class="dback" data-act="close-detail" title="返回列表" aria-label="返回列表">' +
           '<svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true">' +
             '<path d="M8.5 2.5 4 7l4.5 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>' +
           '</svg>' +
         '</button>' +
-        (p.needsReview ? '<span class="pill" style="color:var(--warn);border-color:color-mix(in srgb,var(--warn) 30%,var(--line))">待补全</span>' : '') +
-        '<span class="dvenue">' + esc(p.venue) + ' · ' + (p.tags.year[0] || '—') + ' · ' + p.cites.toLocaleString() + ' 引用</span>' +
+        '<h2>摘要</h2>' +
       '</div>' +
-      '<h2 class="dtitle">' + esc(p.title) + '</h2>' +
-      '<p class="dauthors">' + esc(p.authors.join(' · ')) + '</p>' +
-      (p.abstract
-        ? '<p class="dabs' + (state.absOpen ? ' open' : '') + '" id="dabs">' + esc(p.abstract) + '</p>' +
-          (p.abstract.length > 160
-            ? '<button class="dabs-toggle" data-act="toggle-abstract">' + (state.absOpen ? '收起摘要' : '展开摘要') + '</button>'
-            : '')
-        : '<span class="dabs-miss">这一条还没有摘要</span>') +
-      '<div class="dorgs">' + p.tags.org.map(o => '<span class="orgpill">' + esc(o) + '</span>').join('') + '</div>' +
-      '<div class="dorgs" style="margin-bottom:0">' +
-        topics.map(t => chipHTML('topic', t, {removable:false})).join('') +
-      '</div>' +
-      '<div class="dacts">' +
-        '<button class="btn tiny" data-act="open-pdf">' + (p.hasFile ? '打开 PDF' : '补 PDF') + '</button>' +
-        '<button class="btn tiny" data-act="copy-cite">复制引用</button>' +
-        '<button class="btn tiny" data-act="to-ai"' + (n ? '' : ' disabled') + '>问 AI · ' + n + ' 篇</button>' +
-      '</div>' +
-      metaBar +
-      '<div class="dnote">' +
-        '<div class="slabel">我的笔记 <span class="hint">自动保存</span></div>' +
-        '<textarea class="note" data-note rows="7" placeholder="摘录、疑问、可以借鉴的地方…">' + esc(p.note) + '</textarea>' +
-        '<div class="autosave">' + (apiOnline ? '仅存本地 · 自动保存' : '未连接 · 不保存') + '</div>' +
-      '</div>' +
+      (abstract ? '<p class="dabs">' + esc(abstract) + '</p>' :
+        '<p class="dabs-miss">暂无摘要</p>') +
+      '<section class="dmeta" aria-label="元数据">' +
+        '<div class="dmeta-info">' +
+          '<div class="slabel">元数据' + (p.needsReview ? ' <span class="hint">待补全</span>' : '') + '</div>' +
+          (missing.length ? '<p class="dmeta-missing">缺 ' + esc(missing.join('、')) + '</p>' :
+            p.needsReview ? '<p class="dmeta-missing">待核对</p>' : '') +
+          identifiers.map(value => '<p>' + esc(value) + '</p>').join('') +
+        '</div>' +
+        '<div class="dmeta-actions">' +
+          '<button class="btn tiny" data-act="fetch-meta" data-id="' + esc(p.id) + '"' + (state.metaBusy ? ' disabled' : '') + '>' +
+            (state.metaBusy === p.id ? '抓取中…' : '抓取元数据') + '</button>' +
+          '<button class="btn tiny" data-act="edit-meta">手动补全</button>' +
+        '</div>' +
+      '</section>' +
+      '<section class="dnote">' +
+        '<label class="slabel" for="paperNote">我的笔记 <span class="hint">' + (apiOnline ? '自动保存' : '未连接') + '</span></label>' +
+        '<textarea class="note" id="paperNote" data-note="' + esc(p.id) + '" rows="7" placeholder="摘录、疑问、可以借鉴的地方…">\n' + esc(p.note) + '</textarea>' +
+      '</section>' +
     '</div>';
 
   el.scrollTop = 0;
@@ -1541,6 +1474,11 @@ function renderDetail(){
   if(dh){
     if(state.pendingScroll === 'top') dh.scrollTop = 0;
     else dh.scrollTop = prevScroll;
+  }
+  if(noteSelection){
+    const restoredNote = $('#paperNote');
+    restoredNote.focus({preventScroll:true});
+    restoredNote.setSelectionRange(...noteSelection);
   }
   state.pendingScroll = null;
 }
@@ -1841,6 +1779,8 @@ function renderReaderSide(){
       readerSuggestionHTML(p) +
     '</div>' +
     '<div class="rs-foot">' +
+      '<button class="linkbtn" data-act="rt-fetch-meta"' + (state.metaBusy ? ' disabled' : '') + '>' +
+        (state.metaBusy === p.id ? '抓取中…' : '抓取元数据') + '</button>' +
       '<button class="linkbtn" data-act="rt-edit-meta">补元数据</button>' +
       '<span class="save">' + (apiOnline ? '改动即时存库' : '未连接 · 不保存') + '</span>' +
     '</div>';
@@ -2466,7 +2406,7 @@ function renderMetaModal(){
       row('期刊 / 会议', field('mfVenue', p.venue, '例如 NeurIPS、Nature')) +
       row('DOI', field('mfDoi', p.doi, '10.xxxx/...')) +
       row('arXiv', field('mfArxiv', p.arxivId, '例如 1706.03762')) +
-      '<div class="mfrow"><label>摘要</label><textarea id="mfAbstract" placeholder="可留空">' + esc(p.abstract || '') + '</textarea></div>' +
+      '<div class="mfrow"><label for="mfAbstract">摘要</label><textarea id="mfAbstract" placeholder="粘贴原文摘要">' + esc(p.abstract || '') + '</textarea></div>' +
     '</div>' +
     '<div class="metafoot">' +
       '<span class="mnote-inline">保存后「待补全」标记会按缺失字段自动更新</span>' +
@@ -2496,7 +2436,7 @@ async function saveMetaFields(){
   const year = val('mfYear');
   if(year) payload.year = Number(year);
   Object.keys(payload).forEach(function(key){
-    if(payload[key] === '') delete payload[key];
+    if(payload[key] === '' && key !== 'abstract') delete payload[key];
   });
   if(!payload.authors || !payload.authors.length) delete payload.authors;
 
@@ -2523,11 +2463,13 @@ async function saveMetaFields(){
 
 async function fetchMeta(itemId, opts){
   opts = opts || {};
+  if(state.metaBusy) return;
   if(!apiOnline){ toast('未连接本地服务，无法抓取元数据'); return; }
   // 钉住这一篇：抓完可能已不在队列里，工作台不能因此跳走
   if(opts.keepWorkbench) state.wbId = itemId;
   state.metaBusy = itemId;
   renderAll();
+  if(state.readerOpen) renderReaderSide();
   try{
     const res = await fetch('/api/items/' + encodeURIComponent(itemId) + '/metadata', {
       method: 'POST',
@@ -2549,7 +2491,7 @@ async function fetchMeta(itemId, opts){
   }finally{
     state.metaBusy = null;
     renderAll();
-    if(opts.keepWorkbench && state.readerOpen) renderReaderSide();
+    if(state.readerOpen) renderReaderSide();
   }
 }
 
@@ -2565,7 +2507,7 @@ async function fetchAllMissing(){
   const batch = {done:0, total:papers.length};
   state.batchProgress = batch;
   renderListbar(papers);
-  let ok = 0;
+  let completed = 0;
   let attempted = 0;
   let summary;
   try{
@@ -2577,14 +2519,15 @@ async function fetchAllMissing(){
       });
       if(!res.ok) throw new Error('http ' + res.status);
       const data = await res.json();
-      ok += data.ok;
+      completed += data.completed ?? data.results.filter(result => result.complete).length;
       attempted += data.total;
       batch.done++;
-      $('#batchProgress').textContent = batchProgressText(batch);
+      const progress = $('#batchProgress');
+      if(progress) progress.textContent = batchProgressText(batch);
     }
-    summary = '补全 <b>' + ok + '</b> / ' + attempted + ' 篇' +
+    summary = '已补全 <b>' + completed + '</b> / ' + attempted + ' 篇' +
       (batch.total > attempted ? '，跳过 ' + (batch.total - attempted) + ' 篇' : '') +
-      (attempted > ok ? '，其余可单篇抓取（扫描件会让模型读首页）' : '');
+      (attempted > completed ? '，其余仍待补全' : '');
   }catch(err){
     summary = '批量抓取中断，已处理 ' + batch.done + '/' + batch.total + ' 篇，请稍后再试';
   }finally{
@@ -2956,7 +2899,6 @@ function clearAll(clearQuery = false){
 function selectPaper(id){
   state.paperId = id;
   state.tab = 'info';
-  state.absOpen = false;
   state.pendingScroll = 'top';
   renderAll();
   if(window.matchMedia('(max-width:880px)').matches){
@@ -2981,6 +2923,8 @@ function scheduleSave(itemId, patch){
       method:'PATCH',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify(body)
+    }).then(function(res){
+      if(!res.ok) throw new Error('http ' + res.status);
     }).catch(function(){ toast('保存失败，改动只在本页'); });
   }, 600);
 }
@@ -3189,28 +3133,6 @@ async function commitNewGroup(){
   }, 0);
 }
 
-async function removeTag(facet, value){
-  const p = PAPERS.find(x => x.id === state.paperId);
-  if(!p) return;
-  if(facet === 'year') p.year = null;
-  if(facet === 'author') p.authors = p.authors.filter(x => x !== value);
-  if(facet === 'topic') p.topicIds = (p.topicIds || []).filter((id,i) => p.tags.topic[i] !== value);
-  p.tags[facet] = p.tags[facet].filter(x => x !== value);
-  renderAll();
-  toast('已移除「' + esc(value) + '」');
-
-  if(!apiOnline) return;
-  try{
-    const url = '/api/items/' + encodeURIComponent(p.id) + '/tags?facet=' +
-      encodeURIComponent(facet) + '&name=' + encodeURIComponent(value);
-    const res = await fetch(url, {method:'DELETE'});
-    if(!res.ok) throw new Error('save');
-    await refreshPapers();
-  }catch(err){
-    toast('保存失败，改动只在本页');
-  }
-}
-
 async function mergeTags(facet, from, to){
   if(facet === 'topic'){
     const oldTag = findTag(from);
@@ -3396,13 +3318,6 @@ document.addEventListener('click', function(e){
   else if(act === 'year-remove'){ removeSingleYear(Number(el.dataset.year)); }
   else if(act === 'close-detail'){ $('#app').classList.remove('show-detail'); }
   else if(act === 'select'){ selectPaper(el.dataset.id); }
-  else if(act === 'toggle-abstract'){
-    // 摘要只在标题下露出一截：展开/收起不重排整页，就地换 class
-    state.absOpen = !state.absOpen;
-    const body = $('#dabs');
-    if(body) body.classList.toggle('open', state.absOpen);
-    el.textContent = state.absOpen ? '收起摘要' : '展开摘要';
-  }
   else if(act === 'to-ai'){
     state.tab = 'ai';
     state.pendingScroll = 'bottom';
@@ -3414,7 +3329,7 @@ document.addEventListener('click', function(e){
     state.pendingScroll = 'top';
     renderDetail();
   }
-  else if(act === 'open-pdf'){ openReader(); }
+  else if(act === 'open-pdf'){ openReader(el.dataset.id); }
   else if(act === 'reader-close'){ closeReader(); }
   else if(act === 'reader-prev'){ goToPage(pdfView.current - 1, true); }
   else if(act === 'reader-next'){ goToPage(pdfView.current + 1, true); }
@@ -3424,7 +3339,7 @@ document.addEventListener('click', function(e){
   else if(act === 'reader-rotate'){ rotatePage(); }
   else if(act === 'reader-attach'){ $('#attachInput').click(); }
   else if(act === 'copy-cite'){
-    const p = PAPERS.find(x => x.id === state.paperId);
+    const p = PAPERS.find(x => x.id === el.dataset.id);
     if(!p) return;
     const year = (p.tags.year && p.tags.year[0]) || 'n.d.';
     const authors = (p.authors && p.authors.length) ? p.authors.join(', ') : '佚名';
@@ -3433,18 +3348,6 @@ document.addEventListener('click', function(e){
     if(navigator.clipboard && navigator.clipboard.writeText){
       navigator.clipboard.writeText(text).then(function(){ toast('引用已复制'); }, function(){ toast('复制失败，可手动选择'); });
     } else { toast('当前浏览器不支持自动复制'); }
-  }
-  else if(act === 'filter-tag'){
-    const {facet,value} = el.dataset;
-    if(facet === 'year') toggleYear(Number(value));
-    else if(facet !== 'topic') toggleTerm('@' + facet,value);
-    else {
-      const hit = findTag(value);
-      if(hit) toggleTagQuery(hit.tag.id, false);
-    }
-  }
-  else if(act === 'del-tag'){
-    removeTag(el.dataset.facet, el.dataset.value);
   }
   else if(act === 'accept-sug'){
     const p = readerPaper() || PAPERS.find(x => x.id === state.paperId);
@@ -3609,6 +3512,10 @@ document.addEventListener('click', function(e){
     renderModal();
     return;
   }
+  else if(act === 'rt-fetch-meta'){
+    const p = readerPaper();
+    if(p) fetchMeta(p.id, {keepWorkbench: state.workbench});
+  }
   else if(act === 'rt-open-lib'){
     closeReader();
     state.modalMode = 'tags';
@@ -3655,9 +3562,9 @@ document.addEventListener('click', function(e){
   else if(act === 'open-lib'){ state.modalMode = 'tags'; state.modalOpen = true; renderModal(); }
   else if(act === 'close-lib'){ state.modalOpen = false; renderModal(); }
   else if(act === 'edit-meta'){ state.modalMode = 'meta'; state.modalOpen = true; renderModal(); }
+  else if(act === 'fetch-meta'){ fetchMeta(el.dataset.id); }
   else if(act === 'close-meta'){ state.modalOpen = false; renderModal(); }
   else if(act === 'save-meta'){ saveMetaFields(); }
-  else if(act === 'fetch-meta'){ fetchMeta(state.paperId); }
   else if(act === 'fetch-all'){ fetchAllMissing(); }
   else if(act === 'merge'){ mergeTags(el.dataset.facet, el.dataset.from, el.dataset.to); }
   else if(act === 'del-group'){
@@ -3798,6 +3705,14 @@ document.addEventListener('change', function(e){
 });
 
 document.addEventListener('input', function(e){
+  if(e.target.matches('[data-note]')){
+    const p = PAPERS.find(p => p.id === e.target.dataset.note);
+    if(p){
+      p.note = e.target.value;
+      scheduleSave(p.id, {note_md:p.note});
+    }
+    return;
+  }
   if(e.target.dataset.metadataSearch){
     state.metadataDraft[e.target.dataset.metadataSearch] = e.target.value;
     return;
@@ -3814,10 +3729,6 @@ document.addEventListener('input', function(e){
     state.pendingScroll = 'top';
     renderAll();
     return;
-  }
-  if(e.target.matches('[data-note]')){
-    const p = PAPERS.find(x => x.id === state.paperId);
-    if(p){ p.note = e.target.value; scheduleSave(p.id, {note_md: p.note}); }
   }
 });
 
@@ -3939,10 +3850,6 @@ const pdfView = {
   pages:[], io:null, current:1, seq:0
 };
 
-function currentPaper(){
-  return PAPERS.find(x => x.id === state.paperId) || null;
-}
-
 function setReaderLoading(on, text){
   const el = $('#readerLoading');
   if(!el) return;
@@ -4003,8 +3910,8 @@ function readerMissing(item){
   setReaderLoading(false);
 }
 
-function openReader(){
-  const p = currentPaper();
+function openReader(itemId = state.paperId){
+  const p = PAPERS.find(x => x.id === itemId);
   if(!p) return;
   state.readerOpen = true;
   state.readerGroupNew = false;
@@ -4280,7 +4187,7 @@ async function attachPdfTo(itemId, file){
   if(!apiOnline){ toast('未连接本地服务，无法上传 PDF'); return; }
   if(!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf'){ toast('只接受 PDF 文件'); return; }
   const fd = new FormData();
-  fd.append('files', file, file.name);
+  fd.append('file', file, file.name);
   setReaderLoading(true, '正在上传…');
   try{
     const res = await fetch('/api/items/' + encodeURIComponent(itemId) + '/file', { method:'POST', body: fd });
@@ -4291,7 +4198,6 @@ async function attachPdfTo(itemId, file){
       toast('这个文件已经在库里的另一条上，已跳过去');
       state.paperId = data.item_id;
       state.tab = 'info';
-      state.absOpen = false;
       renderAll();
       openReader();
       return;
@@ -4329,7 +4235,15 @@ async function fetchPapers(){
 async function refreshPapers(){
   if(!apiOnline) return;
   try{
-    PAPERS = await fetchPapers();
+    const pendingNotes = new Set(Object.keys(pendingPatch).filter(id => 'note_md' in pendingPatch[id]));
+    const fresh = await fetchPapers();
+    for(const paper of fresh){
+      if(pendingNotes.has(paper.id) || pendingPatch[paper.id]?.note_md !== undefined){
+        const local = PAPERS.find(p => p.id === paper.id);
+        if(local) paper.note = local.note;
+      }
+    }
+    PAPERS = fresh;
     state.eval = null;
     await refreshGroups();
     renderAll();

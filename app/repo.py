@@ -6,6 +6,7 @@ import sqlite3
 from pathlib import Path
 
 from .db import LIBRARY, new_id, now
+from .metadata import extract_abstract, missing_fields, pdf_text
 
 TAG_COLORS = ["#1c7566", "#a2672c", "#7757a6", "#5b6f83", "#8a5a22", "#2f7d4f"]
 
@@ -107,17 +108,7 @@ def _dict_to_item(
     file_name: str | None,
 ) -> dict:
     item_id = row["id"]
-    missing = []
-    if not row["title"]:
-        missing.append("title")
-    if not authors:
-        missing.append("authors")
-    if not row["year"]:
-        missing.append("year")
-    if not (row["venue"] or row["doi"] or row["arxiv_id"]):
-        missing.append("venue")
-    if not orgs:
-        missing.append("orgs")
+    missing = missing_fields({**dict(row), "authors": authors, "orgs": orgs})
     return {
         "id": item_id,
         "title": row["title"],
@@ -167,7 +158,7 @@ def import_queue(conn: sqlite3.Connection) -> list[dict]:
 def metadata_state(conn: sqlite3.Connection, item_id: str) -> dict | None:
     """当前元数据快照，给「只填空、不覆盖」的判断用。"""
     row = conn.execute(
-        "SELECT title, year, venue, doi, arxiv_id, needs_review FROM item "
+        "SELECT title, abstract, year, venue, doi, arxiv_id, needs_review FROM item "
         "WHERE id = ? AND deleted_at IS NULL",
         (item_id,),
     ).fetchone()
@@ -193,6 +184,7 @@ def metadata_state(conn: sqlite3.Connection, item_id: str) -> dict | None:
     ]
     return {
         "title": row["title"] or "",
+        "abstract": row["abstract"],
         "year": row["year"],
         "venue": row["venue"] or "",
         "doi": row["doi"] or "",
@@ -489,26 +481,10 @@ def patch_item(conn: sqlite3.Connection, item_id: str, fields: dict) -> dict | N
 
 
 def _recompute_review(conn: sqlite3.Connection, item_id: str) -> list[str]:
-    row = conn.execute("SELECT * FROM item WHERE id = ?", (item_id,)).fetchone()
-    if row is None:
+    state = metadata_state(conn, item_id)
+    if state is None:
         return []
-    has_author = conn.execute(
-        "SELECT 1 FROM item_author WHERE item_id = ? LIMIT 1", (item_id,)
-    ).fetchone()
-    missing = []
-    if not row["title"]:
-        missing.append("title")
-    if not has_author:
-        missing.append("authors")
-    has_org = conn.execute(
-        "SELECT 1 FROM item_org WHERE item_id = ? LIMIT 1", (item_id,)
-    ).fetchone()
-    if not has_org:
-        missing.append("orgs")
-    if not row["year"]:
-        missing.append("year")
-    if not (row["venue"] or row["doi"] or row["arxiv_id"]):
-        missing.append("venue")
+    missing = missing_fields(state)
     conn.execute(
         "UPDATE item SET needs_review = ? WHERE id = ?",
         (1 if missing else 0, item_id),
@@ -554,7 +530,7 @@ def apply_metadata(
     meta: dict,
     keep_review: bool = False,
 ) -> dict | None:
-    """把抓到的元数据写回；作者 / 单位是替换，其余字段只在有新值时覆盖。
+    """把抓到的元数据写回；摘要只填空，其余字段只在有新值时覆盖。
 
     keep_review=True 用于模型推断的结果：即使字段齐全也保留「待补全」，
     等用户核对或手动保存后再清掉。
@@ -590,11 +566,13 @@ def apply_metadata(
             meta["conflict"] = owner["id"]
 
     conn.execute(
-        "UPDATE item SET title = ?, abstract = ?, year = ?, venue = ?, doi = ?, "
+        "UPDATE item SET title = ?, abstract = CASE "
+        "WHEN abstract = ? THEN ? ELSE abstract END, year = ?, venue = ?, doi = ?, "
         "arxiv_id = ?, url = ?, updated_at = ? WHERE id = ?",
         (
             pick("title", row["title"]),
-            pick("abstract", row["abstract"]),
+            row["abstract"],
+            row["abstract"] if row["abstract"].strip() else pick("abstract", ""),
             meta.get("year") or row["year"],
             pick("venue", row["venue"]),
             doi or row["doi"],
@@ -666,11 +644,13 @@ def patch_fields(conn: sqlite3.Connection, item_id: str, fields: dict) -> dict |
 
 
 def mark_items_missing_metadata_for_review(conn: sqlite3.Connection) -> int:
-    """把历史上被误标为完整、但缺少单位的条目重新放回补全队列。"""
+    """把仍缺单位或摘要的旧条目放回补全队列。"""
     cursor = conn.execute(
         "UPDATE item SET needs_review = 1 "
-        "WHERE deleted_at IS NULL AND needs_review = 0 AND NOT EXISTS ("
-        "  SELECT 1 FROM item_org io WHERE io.item_id = item.id"
+        "WHERE deleted_at IS NULL AND needs_review = 0 AND ("
+        "  trim(abstract, char(9, 10, 11, 12, 13, 32, 160, 12288)) = '' OR NOT EXISTS ("
+        "    SELECT 1 FROM item_org io WHERE io.item_id = item.id"
+        "  )"
         ")"
     )
     conn.commit()
@@ -896,6 +876,7 @@ def _store_pdf(
             "original_name, added_at) VALUES (?, ?, ?, ?, ?, 'application/pdf', ?, ?)",
             (new_id("fil"), item_id, rel_path, digest, len(data), filename or "", ts),
         )
+        _fill_pdf_abstract(conn, item_id, dest)
         conn.execute("UPDATE item SET updated_at = ? WHERE id = ?", (ts, item_id))
         conn.commit()
     except Exception:
@@ -926,6 +907,22 @@ def get_item_file(conn: sqlite3.Connection, item_id: str) -> dict | None:
         "name": row["original_name"] or path.name,
         "mime": row["mime"] or "application/pdf",
     }
+
+
+def _fill_pdf_abstract(conn: sqlite3.Connection, item_id: str, path: Path) -> None:
+    row = conn.execute("SELECT abstract FROM item WHERE id = ?", (item_id,)).fetchone()
+    if row is None or row["abstract"].strip():
+        return
+    abstract = extract_abstract(pdf_text(path))
+    if abstract:
+        cursor = conn.execute(
+            "UPDATE item SET abstract = ?, updated_at = ? WHERE id = ? "
+            "AND deleted_at IS NULL AND abstract = ?",
+            (abstract, now(), item_id, row["abstract"]),
+        )
+        if cursor.rowcount:
+            conn.execute("DELETE FROM passage WHERE item_id = ? AND kind = 'abstract'", (item_id,))
+            _recompute_review(conn, item_id)
 
 
 def attach_pdf(conn: sqlite3.Connection, item_id: str, filename: str, data: bytes) -> dict:

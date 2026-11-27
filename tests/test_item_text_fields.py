@@ -59,6 +59,30 @@ class ItemTextFieldsTests(unittest.TestCase):
         item = self.repo.patch_item(self.conn, self.item_id, {"note_md": "长笔记"})
         self.assertEqual(item["note"], "长笔记")
 
+    def test_missing_abstract_keeps_otherwise_complete_item_in_queue(self):
+        self.repo.patch_fields(self.conn, self.item_id, {
+            "title": "A complete citation", "year": 2024, "venue": "Journal",
+            "authors": ["Alice Smith"], "orgs": ["Example University"],
+        })
+        # 旧库曾将没有摘要的条目视为完整。
+        self.conn.execute("UPDATE item SET needs_review=0 WHERE id=?", (self.item_id,))
+        self.conn.commit()
+        self.assertEqual(self.repo.mark_items_missing_metadata_for_review(self.conn), 1)
+        item, = self.repo.import_queue(self.conn)
+        self.assertEqual(item["missing"], ["abstract"])
+
+        item = self.repo.apply_metadata(self.conn, self.item_id, {"abstract": "PDF abstract."})
+        self.assertFalse(item["needsReview"])
+        self.assertEqual(item["missing"], [])
+        self.assertEqual(self.repo.import_queue(self.conn), [])
+
+    def test_automatic_metadata_preserves_existing_abstract_and_note(self):
+        self.repo.patch_item(self.conn, self.item_id, {"note_md": "My notes"})
+        self.repo.patch_fields(self.conn, self.item_id, {"abstract": "Manual abstract."})
+        item = self.repo.apply_metadata(self.conn, self.item_id, {"abstract": "PDF abstract."})
+        self.assertEqual(item["abstract"], "Manual abstract.")
+        self.assertEqual(item["note"], "My notes")
+
     def test_tag_definition_is_saved_and_normalized(self):
         self.repo.add_tag(self.conn, self.item_id, "topic", "功放")
         self.conn.commit()

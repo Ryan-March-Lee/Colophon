@@ -367,14 +367,8 @@ def fetch_item_metadata(item_id: str) -> dict:
         )
         if report.get("status") != "ok":
             return {"ok": False, "report": report}
-        was_complete = bool(
-            state["year"]
-            and state["authors"]
-            and state["orgs"]
-            and (state["venue"] or state["doi"] or state["arxiv_id"])
-        )
         keep_review = bool(report.get("needsCheck")) or (
-            was_complete and state["needs_review"]
+            state["needs_review"] and not metadata_src.missing_fields(state)
         )
         item = repo.apply_metadata(
             conn,
@@ -402,8 +396,10 @@ def fetch_queue_metadata(payload: FetchQueueIn) -> dict:
             params,
         ).fetchall()
         for row in rows:
-            found = repo.get_item_file(conn, row["id"])
             state = repo.metadata_state(conn, row["id"])
+            if state is None or not state["needs_review"]:
+                continue
+            found = repo.get_item_file(conn, row["id"])
             try:
                 report = metadata_src.resolve(
                     filename=found["name"] if found else "",
@@ -417,16 +413,10 @@ def fetch_queue_metadata(payload: FetchQueueIn) -> dict:
                 )
             except Exception as exc:  # 单条失败不阻塞整批
                 report = {"status": "error", "message": str(exc)}
+            item = None
             if report.get("status") == "ok":
-                keep_review = bool(
-                    state
-                    and state["year"]
-                    and state["authors"]
-                    and state["orgs"]
-                    and (state["venue"] or state["doi"] or state["arxiv_id"])
-                    and state["needs_review"]
-                )
-                repo.apply_metadata(
+                keep_review = state["needs_review"] and not metadata_src.missing_fields(state)
+                item = repo.apply_metadata(
                     conn, row["id"], report["meta"], keep_review=keep_review
                 )
                 if report["meta"].get("conflict"):
@@ -436,6 +426,7 @@ def fetch_queue_metadata(payload: FetchQueueIn) -> dict:
                     "id": row["id"],
                     "title": row["title"],
                     "status": report.get("status"),
+                    "complete": bool(item and not item["needsReview"]),
                     "message": report.get("message", ""),
                 }
             )
@@ -445,6 +436,7 @@ def fetch_queue_metadata(payload: FetchQueueIn) -> dict:
     return {
         "total": len(results),
         "ok": sum(1 for r in results if r["status"] == "ok"),
+        "completed": sum(1 for r in results if r["complete"]),
         "results": results,
     }
 

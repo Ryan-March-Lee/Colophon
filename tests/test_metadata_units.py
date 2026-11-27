@@ -6,6 +6,37 @@ from unittest.mock import patch
 from app import metadata
 
 
+class PdfAbstractTests(unittest.TestCase):
+    def test_ieee_abstract_excludes_publication_notes_and_index_terms(self):
+        text = (
+            "Title and authors\nAbstract—This study measured the effect of\n"
+            "different layouts on signal loss.\n"
+            "Received 15 May 2026; revised 4 August 2026.\n"
+            "Index Terms—layout, measurement\nI. INTRODUCTION\nBody text."
+        )
+        self.assertEqual(
+            metadata.extract_abstract(text),
+            "This study measured the effect of different layouts on signal loss.",
+        )
+
+    def test_chinese_abstract_excludes_keywords(self):
+        self.assertEqual(
+            metadata.extract_abstract("摘 要：本文分析了不同条件下测量结果的变化。\n关键词：测量；分析"),
+            "本文分析了不同条件下测量结果的变化。",
+        )
+
+    def test_standalone_heading_stops_at_numbered_section(self):
+        self.assertEqual(
+            metadata.extract_abstract("A B S T R A C T\nThis study reports new measurements.\n1. Introduction\nBody text."),
+            "This study reports new measurements.",
+        )
+
+    def test_missing_or_incomplete_abstract_is_empty(self):
+        for text in ("", "Abstract methods were used to analyze the data.", "Abstract\nThis fragment is incomplete"):
+            with self.subTest(text=text):
+                self.assertEqual(metadata.extract_abstract(text), "")
+
+
 class MetadataUnitTests(unittest.TestCase):
     def test_crossref_affiliations_are_deduplicated(self):
         message = {
@@ -101,6 +132,7 @@ ABSTRACT This is a local abstract.
         self.assertEqual(result["status"], "ok")
         self.assertEqual(result["meta"]["title"], "Local Text Layer Metadata Test")
         self.assertEqual(result["meta"]["authors"], ["Alice Smith", "Bob Jones"])
+        self.assertEqual(result["meta"]["abstract"], "This is a local abstract.")
         self.assertEqual(result["meta"]["orgs"], [
             "Department of Electrical Engineering, Example University",
         ])

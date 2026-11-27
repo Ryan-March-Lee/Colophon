@@ -27,6 +27,28 @@ MAX_IMAGE_WIDTH = 1600     # 首页渲染后的像素宽度上限，控制识图
 VISION_DPI = 150
 TITLE_MATCH = 0.9          # 标题反查 Crossref 的最低相似度，低于这个宁可不要
 MIN_YEAR, MAX_YEAR = 1800, date.today().year + 1
+MAX_ABSTRACT_CHARS = 6000
+FIELD_LABELS = {
+    "title": "标题", "authors": "作者", "year": "年份", "venue": "期刊 / 会议",
+    "orgs": "单位", "abstract": "摘要",
+}
+
+ABSTRACT_HEADING_RE = re.compile(
+    r"^[ \t]*(?:[（(]57[）)][ \t]*)?(?:a[ \t]*b[ \t]*s[ \t]*t[ \t]*r[ \t]*a[ \t]*c[ \t]*t|摘[ \t]*要)"
+    r"(?:[ \t]*[:：—–-][ \t]*|[ \t]*\.[ \t]+|(?=[ \t]*$)|[ \t]+(?=(?-i:[A-Z\u4e00-\u9fff])))",
+    re.MULTILINE | re.IGNORECASE,
+)
+ABSTRACT_END_RE = re.compile(
+    r"^[ \t]*(?:"
+    r"(?:index[ \t]+terms|key[ \t]*words|关键词|关键字)[ \t]*(?=[:：—–-]|$)"
+    r"|(?:(?:\d+(?:\.\d+)*[.、]?|[IVX]+\.|[一二三四五六七八九十]+、)[ \t]*)?"
+    r"(?:introduction|overview|nomenclature|article[ \t]+info(?:rmation)?|"
+    r"references|绪论|引言|前言|技术领域|背景技术|权利要求书)[ \t]*(?=[.:：、]|$)"
+    r"|received[ \t]+\d{1,2}[ \t]+[a-z]{3,}[ \t]+\d{4}\b"
+    r"|manuscript[ \t]+received\b"
+    r")",
+    re.MULTILINE | re.IGNORECASE,
+)
 
 JUNK_VENUE_RE = re.compile(
     r"^(?:pdf|patent\s*pdf|unknown|untitled|none|n/?a|microsoft(\s+word)?|"
@@ -197,6 +219,27 @@ def pdf_text(path: Path, max_pages: int = 2) -> str:
         return "\n".join((page.extract_text() or "") for page in reader.pages[:max_pages])
     except Exception:
         return ""
+
+
+def extract_abstract(text: str) -> str:
+    """提取文本层中明确标记的摘要，避免包含关键词或正文。"""
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    for heading in ABSTRACT_HEADING_RE.finditer(text):
+        start = heading.end()
+        boundary = ABSTRACT_END_RE.search(text, start)
+        if boundary:
+            body = text[start : boundary.start()]
+        else:
+            # 没有后续标题时只接受第一个完整段落。
+            body = re.split(r"\n[ \t]*\n", text[start:].lstrip(), maxsplit=1)[0]
+        # PDF 的文本层有时把不可见软连字符留在换行处。
+        body = re.sub(r"\u00ad[ \t]*\n[ \t]*", "", body).replace("\u00ad", "")
+        abstract = _clean(body)
+        if len(abstract) > MAX_ABSTRACT_CHARS or sum(ch.isalpha() for ch in abstract) < 12:
+            continue
+        if boundary or abstract.endswith((".", "!", "?", "。", "！", "？")):
+            return abstract
+    return ""
 
 
 def render_page(path: Path, page_index: int = 0, dpi: int = VISION_DPI) -> bytes:
@@ -973,6 +1016,8 @@ def missing_fields(meta: dict) -> list[str]:
         missing.append("venue")
     if not meta.get("orgs"):
         missing.append("orgs")
+    if not _clean(meta.get("abstract") or ""):
+        missing.append("abstract")
     return missing
 
 
@@ -1090,8 +1135,7 @@ def _needs_ai(
     title = (current or {}).get("title") or ""
     if is_placeholder_title(title, filename) and not meta.get("title"):
         return True
-    # 单位不是待补全状态的硬性条件，但本地文本层和在线源都没有读到
-    # 单位时，单篇抓取仍应给模型一次读取首页的机会。没有 PDF 则不触发。
+    # 单篇抓取时，可让模型读取本地和在线源都没有提供的单位。
     if not meta.get("orgs") and path is not None and path.exists():
         return True
     return False
@@ -1157,6 +1201,13 @@ def resolve(
     if local_meta:
         meta.update(local_meta)
         meta["source"] = local_meta.get("source") or "PDF 文本层"
+    if _clean(current.get("abstract") or ""):
+        meta["abstract"] = current["abstract"]
+    else:
+        abstract = extract_abstract(text)
+        if abstract:
+            meta["abstract"] = abstract
+            meta["source"] = _join_source(meta["source"], "PDF 文本层")
 
     # 已确认的数据库字段优先于本次自动识别；导入时的文件名占位标题不
     # 在 _protected 中，因此仍允许本地文本或在线源替换它。
@@ -1192,7 +1243,7 @@ def resolve(
 
     # 本地字段不足时才访问在线源；有 DOI / arXiv 时按标识查询，否则按
     # 本地标题（或文件名）反查 Crossref。在线结果只补空字段。
-    needs_online = bool(missing_fields(meta) or not meta.get("orgs"))
+    needs_online = any(field != "abstract" for field in missing_fields(meta))
     if needs_online:
         online_meta: dict | None = None
         if doi or arxiv or patent:
@@ -1298,11 +1349,12 @@ def resolve(
             _enrich_online(meta, current, filename, errors)
 
     missing = missing_fields(meta)
+    missing_labels = "、".join(FIELD_LABELS[field] for field in missing)
     needs_check = ai_used and bool(
         meta.get("source") and "模型读首页" in meta.get("source", "")
     )
 
-    if not meta.get("title") and not meta.get("authors") and not meta.get("year"):
+    if not any(meta.get(key) for key in ("title", "authors", "year", "abstract")):
         status = "no-id"
         if not (doi or arxiv or patent):
             if path is None or not path.exists():
@@ -1323,6 +1375,7 @@ def resolve(
                 "arxiv_id": arxiv,
                 "patent": patent,
                 "message": message,
+                "missing": missing,
                 "ai": {"used": ai_used, "error": ai_error},
             }
         status = "not-found"
@@ -1332,13 +1385,13 @@ def resolve(
         label = "模型读了首页图片" if ai_mode == "image" else "模型读了首页文本"
         if ai_used:
             if missing:
-                message = f"{label}，仍缺：" + "、".join(missing)
+                message = f"{label}，仍缺：{missing_labels}"
             else:
                 message = f"{label}，已补全，请核对"
             if verified:
                 message = message.replace("，请核对", "，编号已回源核对，请核对其余字段")
         elif missing:
-            message = "抓到部分字段，仍缺：" + "、".join(missing)
+            message = f"抓到部分字段，仍缺：{missing_labels}"
         else:
             message = "已补全"
         if ai_error and not ai_used:
