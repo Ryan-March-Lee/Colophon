@@ -323,11 +323,17 @@
   .paper-meta .missing-meta{border-style:dashed;color:var(--muted)}
   .paper-meta-more{max-width:100%;font-size:10.5px;color:var(--muted);cursor:pointer}
   .paper-meta-more .tag{margin:3px 4px 0 0}
-  .paper-title-row{display:flex;align-items:baseline;gap:6px;min-width:0}
-  .pstatus{display:inline-flex;align-items:center;gap:4px;flex:none}
-  .pstatus .d{width:5px;height:5px;border-radius:99px;background:var(--muted-2)}
-  .pstatus.read .d{background:var(--ok)}
-  .pstatus.reading .d{background:var(--warn)}
+  .paper-title-row{display:flex;align-items:flex-start;gap:6px;min-width:0}
+  .pstatus{display:inline-flex;align-items:center;gap:4px;flex:none;margin-top:1px}
+  .pstatus-pill{
+    display:inline-flex;align-items:center;gap:4px;flex:none;
+    height:18px;margin-top:1px;padding:0 7px;border-radius:99px;
+    border:1px solid var(--line);background:var(--panel-2);
+    font-size:10px;line-height:1;color:var(--muted);white-space:nowrap;
+  }
+  .pstatus-pill .d{width:5px;height:5px;border-radius:99px;background:var(--muted-2)}
+  .pstatus-pill.reading{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 30%,var(--line))}
+  .pstatus-pill.reading .d{background:var(--warn)}
   .ptitle{flex:1;min-width:0;font-family:var(--serif);font-size:15px;line-height:1.4;font-weight:600;margin:0;overflow-wrap:anywhere}
   .ptitle button{display:block;width:100%;text-align:left}
   .ptags{margin-top:5px}
@@ -368,11 +374,6 @@
     border-radius:99px;border:1px solid var(--line);font-size:10.5px;color:var(--muted);
     background:var(--panel-2);
   }
-  .pill .d{width:5px;height:5px;border-radius:99px;background:var(--muted-2)}
-  .pill.read{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 30%,var(--line))}
-  .pill.read .d{background:var(--ok)}
-  .pill.reading{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 30%,var(--line))}
-  .pill.reading .d{background:var(--warn)}
   .dvenue{margin-left:auto}
   .dtitle{
     font-family:var(--serif);font-size:19px;line-height:1.34;font-weight:600;
@@ -1345,9 +1346,13 @@ function renderList(ps){
         '" aria-pressed="' + getGroupFilter(hit.group).terms.includes(id) + '">' + esc(name) + '</button>';
     }).join('');
     const current = p.id === state.paperId;
+    // 阅读状态气泡：只把状态显示在标题前；已读就不渲染
+    const statusPill = p.status === 'read'
+      ? ''
+      : '<span class="pstatus-pill ' + esc(p.status) + '"><span class="d"></span>' + statusLabel(p.status) + '</span>';
     return '<article class="paper' + (current ? ' on' : '') + '" data-id="' + esc(p.id) + '">' +
       '<div class="paper-meta" aria-label="元数据标签">' + renderPaperMetadata(p) + '</div>' +
-      '<div class="paper-title-row"><span class="pstatus ' + esc(p.status) + '" title="' + statusLabel(p.status) + '"><span class="d"></span></span>' +
+      '<div class="paper-title-row">' + statusPill +
       '<h3 class="ptitle"><button data-act="select" data-id="' + esc(p.id) + '" aria-current="' + current + '">' + esc(p.title) + '</button></h3>' +
       (p.needsReview ? '<span class="pstatus" style="color:var(--warn);font-size:9px">待补全</span>' : '') + '</div>' +
       (tags ? '<div class="ptags" aria-label="内容标签">' + tags + '</div>' : '') + '</article>';
@@ -1440,9 +1445,6 @@ function renderDetail(){
           '<svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true">' +
             '<path d="M8.5 2.5 4 7l4.5 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>' +
           '</svg>' +
-        '</button>' +
-        '<button class="pill ' + p.status + '" data-act="status" title="点击切换阅读状态">' +
-          '<span class="d"></span>' + statusLabel(p.status) +
         '</button>' +
         (p.needsReview ? '<span class="pill" style="color:var(--warn);border-color:color-mix(in srgb,var(--warn) 30%,var(--line))">待补全</span>' : '') +
         '<span class="dvenue">' + esc(p.venue) + ' · ' + (p.tags.year[0] || '—') + ' · ' + p.cites.toLocaleString() + ' 引用</span>' +
@@ -3291,15 +3293,6 @@ document.addEventListener('click', function(e){
     state.tab = 'info';
     state.pendingScroll = 'top';
     renderDetail();
-  }
-  else if(act === 'status'){
-    const p = PAPERS.find(x => x.id === state.paperId);
-    if(!p) return;
-    p.status = p.status === 'read' ? 'todo' : 'read';
-    state.eval = null;
-    toast('已标记为 <b>' + statusLabel(p.status) + '</b>');
-    renderAll();
-    scheduleSave(p.id, {status: p.status});
   }
   else if(act === 'open-pdf'){ openReader(); }
   else if(act === 'reader-close'){ closeReader(); }
