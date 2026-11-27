@@ -34,13 +34,14 @@ FIELD_LABELS = {
 }
 
 ABSTRACT_HEADING_RE = re.compile(
-    r"^[ \t]*(?:[（(]57[）)][ \t]*)?(?:a[ \t]*b[ \t]*s[ \t]*t[ \t]*r[ \t]*a[ \t]*c[ \t]*t|摘[ \t]*要)"
+    r"^[ \t]*(?:[（(]57[）)][ \t]*)?(?:a[ \t]*b[ \t]*s[ \t]*t[ \t]*r[ \t]*a[ \t]*c[ \t]*t"
+    r"|abstmct|abstruct|摘[ \t]*要)"
     r"(?:[ \t]*[:：—–-][ \t]*|[ \t]*\.[ \t]+|(?=[ \t]*$)|[ \t]+(?=(?-i:[A-Z\u4e00-\u9fff])))",
     re.MULTILINE | re.IGNORECASE,
 )
 ABSTRACT_END_RE = re.compile(
     r"^[ \t]*(?:"
-    r"(?:index[ \t]+terms|key[ \t]*words|关键词|关键字)[ \t]*(?=[:：—–-]|$)"
+    r"(?:index[ \t]+terms|key[ \t]*words|kryuiordi|关键词|关键字)[ \t]*(?=[:：—–-]|$)"
     r"|(?:(?:\d+(?:\.\d+)*[.、]?|[IVX]+\.|[一二三四五六七八九十]+、)[ \t]*)?"
     r"(?:introduction|overview|nomenclature|article[ \t]+info(?:rmation)?|"
     r"references|绪论|引言|前言|技术领域|背景技术|权利要求书)[ \t]*(?=[.:：、]|$)"
@@ -979,7 +980,9 @@ def fetch_openalex(doi: str) -> dict | None:
     }
 
 
-def _lookup_online(doi: str, arxiv: str, patent: str) -> tuple[dict | None, list[str]]:
+def _lookup_online(
+    doi: str, arxiv: str, patent: str, queried: set[tuple[str, str]]
+) -> tuple[dict | None, list[str]]:
     meta = None
     errors: list[str] = []
     if arxiv:
@@ -988,11 +991,13 @@ def _lookup_online(doi: str, arxiv: str, patent: str) -> tuple[dict | None, list
         except Exception as exc:
             errors.append(f"arXiv: {exc}")
     if meta is None and doi:
+        queried.add(("Crossref", doi.casefold()))
         try:
             meta = fetch_crossref(doi)
         except Exception as exc:
             errors.append(f"Crossref: {exc}")
     if meta is None and doi:
+        queried.add(("OpenAlex", doi.casefold()))
         try:
             meta = fetch_openalex(doi)
         except Exception as exc:
@@ -1061,6 +1066,11 @@ def _merge_meta(base: dict, extra: dict, protected: dict) -> list[str]:
         if orgs:
             base["orgs"] = orgs
             added.append("orgs")
+    if not _clean(base.get("abstract") or ""):
+        abstract = _clean(extra.get("abstract") or "")
+        if abstract:
+            base["abstract"] = abstract[:MAX_ABSTRACT_CHARS]
+            added.append("abstract")
     return added
 
 
@@ -1075,40 +1085,28 @@ def _enrich_online(
     current: dict,
     filename: str,
     errors: list[str],
+    queried: set[tuple[str, str]],
 ) -> None:
-    """补齐第一数据源通常没有提供的作者单位。
-
-    arXiv 和 Crossref 能命中一条记录，不代表它们提供了 affiliation。
-    OpenAlex 的 authorships.institutions 才是当前流水线的主要单位来源，
-    因此不能在第一次回源成功后直接停止。
-    """
+    """用其他 DOI 数据源补第一来源没有提供的摘要或作者单位。"""
     doi = _clean(meta.get("doi") or "")
     if not doi:
         return
 
-    # Crossref / arXiv 命中后继续查 OpenAlex；OpenAlex 自己命中且没有单位时，
-    # 再反查 Crossref，利用其偶尔会返回的 author.affiliation。
-    if not meta.get("orgs") and not _has_source(meta, "OpenAlex"):
+    protected = _protected(current, filename)
+    for source, fetch in (("OpenAlex", fetch_openalex), ("Crossref", fetch_crossref)):
+        if meta.get("orgs") and _clean(meta.get("abstract") or ""):
+            break
+        key = (source, doi.casefold())
+        if key in queried or _has_source(meta, source):
+            continue
+        queried.add(key)
         try:
-            extra = fetch_openalex(doi)
+            extra = fetch(doi)
         except Exception as exc:
-            errors.append(f"OpenAlex 补单位: {exc}")
-            extra = None
-        if extra:
-            added = _merge_meta(meta, extra, _protected(current, filename))
-            if added:
-                meta["source"] = _join_source(meta.get("source", ""), "OpenAlex")
-
-    if not meta.get("orgs") and not _has_source(meta, "Crossref"):
-        try:
-            extra = fetch_crossref(doi)
-        except Exception as exc:
-            errors.append(f"Crossref 补单位: {exc}")
-            extra = None
-        if extra:
-            added = _merge_meta(meta, extra, _protected(current, filename))
-            if added:
-                meta["source"] = _join_source(meta.get("source", ""), "Crossref")
+            errors.append(f"{source} 补摘要或单位: {exc}")
+            continue
+        if extra and _merge_meta(meta, extra, protected):
+            meta["source"] = _join_source(meta.get("source", ""), source)
 
 
 def _join_source(current: str, extra: str) -> str:
@@ -1129,6 +1127,8 @@ def _needs_ai(
     if not meta.get("year"):
         return True
     if not meta.get("authors") and not (current or {}).get("authors"):
+        return True
+    if not _clean(meta.get("abstract") or "") and path is not None and path.exists():
         return True
     if not meta.get("venue") and not (meta.get("doi") or meta.get("arxiv_id")):
         return True
@@ -1221,18 +1221,22 @@ def resolve(
         [filename or "", title_hint or "", " ".join(info.values()), text]
     )
     doi, arxiv = detect_identifiers(hay)
-    doi = doi or (known_doi or "").strip()
-    arxiv = arxiv or (known_arxiv or "").strip()
+    stored_doi = _clean(current.get("doi") or known_doi)
+    stored_arxiv = _clean(current.get("arxiv_id") or known_arxiv)
+    if stored_doi or stored_arxiv:
+        # 已知编号优先，避免把首页中引用的其他论文当成摘要来源。
+        doi, arxiv = stored_doi, stored_arxiv
     if not doi and arxiv:
         doi = f"10.48550/arXiv.{arxiv}"
     patent = detect_patent(hay)
 
     errors: list[str] = []
+    queried: set[tuple[str, str]] = set()
 
     # 让后续的合并与补源逻辑可以安全地处理所有返回路径（包括没有命中
     # 在线记录、但后来由模型读出 DOI 的路径）。
-    meta.setdefault("doi", doi)
-    meta.setdefault("arxiv_id", arxiv)
+    meta["doi"] = doi
+    meta["arxiv_id"] = arxiv
     meta.setdefault("authors", [])
     meta.setdefault("orgs", [])
 
@@ -1243,11 +1247,11 @@ def resolve(
 
     # 本地字段不足时才访问在线源；有 DOI / arXiv 时按标识查询，否则按
     # 本地标题（或文件名）反查 Crossref。在线结果只补空字段。
-    needs_online = any(field != "abstract" for field in missing_fields(meta))
+    needs_online = bool(missing_fields(meta))
     if needs_online:
         online_meta: dict | None = None
         if doi or arxiv or patent:
-            online_meta, lookup_errors = _lookup_online(doi, arxiv, patent)
+            online_meta, lookup_errors = _lookup_online(doi, arxiv, patent, queried)
             errors.extend(lookup_errors)
         else:
             search_title = title_hint if not is_placeholder_title(title_hint, filename) else ""
@@ -1269,8 +1273,7 @@ def resolve(
             if added:
                 meta["source"] = _join_source(meta.get("source", ""), "在线补全")
 
-        # 在线源经常没有 affiliation；此处再用 OpenAlex / Crossref 补单位。
-        _enrich_online(meta, current, filename, errors)
+        _enrich_online(meta, current, filename, errors, queried)
 
     ai_used = False
     ai_mode = ""
@@ -1312,6 +1315,7 @@ def resolve(
                 except Exception:
                     authoritative = None
             if authoritative is None and model_doi and not doi and not _protected(current, filename)["doi"]:
+                queried.add(("Crossref", model_doi.casefold()))
                 try:
                     authoritative = fetch_crossref(model_doi)
                 except Exception:
@@ -1346,7 +1350,7 @@ def resolve(
 
             # 模型新识别出的 DOI 也要走同一条单位补全链路；否则这类文献
             # 只会得到标题 / 作者 / 年份，单位仍然是空的。
-            _enrich_online(meta, current, filename, errors)
+            _enrich_online(meta, current, filename, errors, queried)
 
     missing = missing_fields(meta)
     missing_labels = "、".join(FIELD_LABELS[field] for field in missing)
