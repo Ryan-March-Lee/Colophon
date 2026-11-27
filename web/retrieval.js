@@ -2,15 +2,15 @@
    Colophon · 检索内核（纯函数：不碰 DOM、不发请求、不改入参）
 
    语义见 docs/retrieval-model.md：
-   - 组间固定 AND；标签组内 任一 / 全部 / 排除；未生效的组不参与。
-   - 排除 = ¬(A∨B)，不是「不要 A」。
+   - 标签展示组不参与检索；全局标签正向 AND / OR 与独立排除条件组合。
+   - 排除集合 = ¬(A∨B)，即结果不能包含任一排除标签。
    - 年份区间与单年取并集，未知年份由 includeUnknown 控制（默认包含）。
    - 文本搜索、模式（未打标 / 待补全）与作者条件在布尔之外 AND。
 
    一次遍历同时算：
    - 结果集；
-   - 组脚（按组区从上到下累计：到这一组为止还剩几篇）；
-   - 项计数：任一 / 排除 = 全库绝对值；全部 = 加上这一项后的剩余（边际值）。
+   - 高级筛选组脚（按展示顺序累计）；
+   - 可选项的全库绝对计数。
    近失（§3）通过单独求值测试每个调整能救回多少篇。
 
    数据契约（/api/items 的条目 + 内核要的两样）：
@@ -18,8 +18,9 @@
        status, starred, needsReview, topicIds: [标签 id], tags: { topic: [标签名] } }
 
    过滤器契约：
-     { q: "", mode: null|"untagged"|"review", authors: [作者名],
-       groups: [ { kind: "tag"|"year"|"attr"|"meta", group_id, op: "any"|"all"|"none",
+      { q: "", mode: null|"untagged"|"review", authors: [作者名],
+        tagQuery: { op: "and"|"or", include: [标签 id], exclude: [标签 id] },
+        groups: [ { kind: "tag"|"year"|"attr"|"meta", group_id, op: "any"|"all"|"none",
                     terms: [已选项], options: [可点的项] } ] }
    元数据组用 @author / @org / @venue 作为 group_id，项是原始名称。
    年份组不用 op，terms 是区间或数字年份，includeUnknown 默认为 true。
@@ -191,7 +192,25 @@
     });
     var mode = MODES[f.mode] ? f.mode : null;
 
-    var groups = planGroups(f);
+    var groups = [];
+    var tagQuery = f.tagQuery && typeof f.tagQuery === "object" ? f.tagQuery : null;
+    if (tagQuery) {
+      var includeTags = Array.isArray(tagQuery.include) ? tagQuery.include.map(String) : [];
+      var excludeTags = Array.isArray(tagQuery.exclude) ? tagQuery.exclude.map(String) : [];
+      var includeOp = tagQuery.op === "or" ? "any" : "all";
+      if (includeTags.length) groups.push({
+        index: groups.length, group_id: "@tags", kind: TAG, op: includeOp,
+        terms: includeTags, includeUnknown: true, active: true, options: includeTags,
+        selected: Object.create(null), metadataOptions: null, marginal: false
+      });
+      if (excludeTags.length) groups.push({
+        index: groups.length, group_id: "@excluded-tags", kind: TAG, op: "none",
+        terms: excludeTags, includeUnknown: true, active: true, options: excludeTags,
+        selected: Object.create(null), metadataOptions: null, marginal: false
+      });
+    }
+    var displayOffset = groups.length;
+    groups = groups.concat(planGroups(f));
     var counts = groups.map(function (g) { return g.options.map(function () { return 0; }); });
     var margins = groups.map(function (g) { return g.options.map(function () { return 0; }); });
     var feet = groups.map(function () { return 0; });
@@ -281,7 +300,8 @@
       total: list.length,
       count: result,
       matched: matched,
-      groups: groups.map(function (g, gix) {
+      groups: groups.slice(displayOffset).map(function (g, relativeIndex) {
+        var gix = relativeIndex + displayOffset;
         return {
           group_id: g.group_id,
           kind: g.kind,
@@ -311,6 +331,11 @@
       q: f.q || "",
       mode: f.mode || null,
       authors: Array.isArray(f.authors) ? f.authors.slice() : [],
+      tagQuery: f.tagQuery ? {
+        op: f.tagQuery.op === "or" ? "or" : "and",
+        include: Array.isArray(f.tagQuery.include) ? f.tagQuery.include.slice() : [],
+        exclude: Array.isArray(f.tagQuery.exclude) ? f.tagQuery.exclude.slice() : []
+      } : null,
       groups: (f.groups || []).map(function (g) {
         g = g || {};
         return {
@@ -354,6 +379,22 @@
       });
     });
 
+    if (f.tagQuery) {
+      ["include", "exclude"].forEach(function (field) {
+        (f.tagQuery[field] || []).forEach(function (term, ti) {
+          var next = cloneFilters(f);
+          next.tagQuery[field].splice(ti, 1);
+          var gain = evaluate(items, next).count - base.count;
+          if (gain <= 0) return;
+          out.push({
+            action: "remove-tag", field: field, group_id: field === "exclude" ? "@excluded-tags" : "@tags",
+            kind: TAG, op: f.tagQuery.op === "or" ? "any" : "all", term: term,
+            key: String(term), rescued: gain
+          });
+        });
+      });
+    }
+
     plans.forEach(function (g, gi) {
       if (g.kind !== YEAR || g.includeUnknown) return;
       var nextYear = cloneFilters(f);
@@ -386,7 +427,7 @@
     YEAR_GROUP: YEAR_GROUP,
     ATTR_GROUP: ATTR_GROUP,
     STAR_GROUP: STAR_GROUP,
-    GROUP_DEFAULTS: GROUP_DEFAULTS,
+      GROUP_DEFAULTS: GROUP_DEFAULTS,
     emptyFilters: emptyFilters,
     metadataValues: metadataValues,
     termKey: termKey,

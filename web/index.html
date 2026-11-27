@@ -117,6 +117,16 @@
 
   /* ---------- retrieval groups ---------- */
   .filterzone{flex:none;background:var(--panel);border-bottom:1px solid var(--line);padding:9px 14px 8px;overflow:hidden}
+  .common-filters{margin-top:5px}
+  .tag-search-bar{display:flex;align-items:center;gap:7px;min-height:27px;margin-bottom:5px}
+  .tag-search-label{font-size:10.5px;color:var(--muted);white-space:nowrap}
+  .tag-join{display:inline-flex;gap:2px;padding:2px;background:var(--hover);border-radius:5px}
+  .tag-join button{height:20px;padding:0 7px;border-radius:3px;font-size:9.5px;color:var(--muted-2)}
+  .tag-join button[aria-pressed="true"]{background:var(--panel);color:var(--ink);font-weight:650;box-shadow:0 1px 2px rgba(20,24,20,.08)}
+  .tag-search-spacer{flex:1}
+  .tag-excluded{font-size:9.5px;color:var(--warn);white-space:nowrap}
+  .tag-exclude-toggle{height:18px;padding:0 4px;margin-left:2px;border-radius:3px;color:var(--muted-2);font-size:9px}
+  .tag-exclude-toggle[aria-pressed="true"]{background:color-mix(in srgb,var(--warn) 12%,var(--panel));color:var(--warn)}
   .attr-row{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;min-width:0;min-height:30px;white-space:nowrap;padding:2px 0 5px}
   .year-controls,.reading-controls{display:flex;align-items:center;gap:7px;min-width:0}
   .year-controls{flex:1 1 450px;flex-wrap:wrap}
@@ -140,6 +150,7 @@
   .filter-option{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 7px;border:1px solid var(--line);border-radius:5px;background:var(--panel);font-size:10.5px;color:var(--muted);white-space:nowrap;flex:none}
   .filter-option:hover{border-color:var(--line-2);background:var(--hover);color:var(--ink)}
   .filter-option[aria-pressed="true"]{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 40%,var(--line));color:var(--accent-2);font-weight:600}
+  .tag-option[data-selection="exclude"]{background:color-mix(in srgb,var(--warn) 10%,var(--panel));border-color:color-mix(in srgb,var(--warn) 45%,var(--line));color:var(--warn)}
   .reading-statuses.has-selection .filter-option[aria-pressed="false"]:not(:hover){background:var(--panel-2);color:var(--muted-2)}
   .filter-option:disabled{opacity:.42;cursor:default}
   .filter-option .fcount,.filter-check .fcount{font-size:9.5px;color:var(--muted-2);font-variant-numeric:tabular-nums}
@@ -955,6 +966,8 @@ const state = {
   groupsExpanded:false,
   expandedGroups:new Set(),
   relaxOpen:false,
+  tagQuery:{op:'and',include:[],exclude:[]},
+  advancedSearch:false,
   eval:null,
   rescue:[],
   paperId:null,
@@ -1041,16 +1054,14 @@ function retrievalGroups(){
   groups.push({kind:Retrieval.ATTR, group_id:Retrieval.STAR_GROUP, terms:star.terms.slice(), options:[{star:true}]});
 
   (state.groups || []).forEach(function(g){
-    const selection = getGroupFilter(g.id, 'any');
-    groups.push({kind:Retrieval.TAG, group_id:g.id, op:selection.op, terms:selection.terms.slice(), options:(g.tags || []).map(t => t.id)});
+    groups.push({kind:Retrieval.TAG, group_id:g.id, op:'any', terms:[], options:(g.tags || []).map(t => t.id)});
   });
-  const unfiled = getGroupFilter(Retrieval.UNFILED, 'any');
-  groups.push({kind:Retrieval.TAG, group_id:Retrieval.UNFILED, op:unfiled.op, terms:unfiled.terms.slice(), options:(state.unfiled || []).map(t => t.id)});
+  groups.push({kind:Retrieval.TAG, group_id:Retrieval.UNFILED, op:'any', terms:[], options:(state.unfiled || []).map(t => t.id)});
   return groups;
 }
 
 function retrievalFilter(){
-  return {q:state.q, mode:state.mode, groups:retrievalGroups()};
+  return {q:state.q, mode:state.mode, tagQuery:state.tagQuery, groups:retrievalGroups()};
 }
 
 function currentEvaluation(){
@@ -1069,9 +1080,31 @@ function getFiltered(){
 }
 
 function selectedCount(){
-  return Object.keys(state.groupFilters).reduce(function(n,id){
+  const advancedCount = Object.keys(state.groupFilters).reduce(function(n,id){
     return n + ((state.groupFilters[id].terms || []).length);
   },getGroupFilter(Retrieval.YEAR_GROUP).includeUnknown ? 0 : 1);
+  return advancedCount + state.tagQuery.include.length + state.tagQuery.exclude.length;
+}
+
+function tagSelection(id){
+  if(state.tagQuery.exclude.includes(id)) return 'exclude';
+  if(state.tagQuery.include.includes(id)) return 'include';
+  return '';
+}
+
+function toggleTagQuery(id, exclude){
+  const query = state.tagQuery;
+  const selected = exclude ? query.exclude : query.include;
+  const other = exclude ? query.include : query.exclude;
+  const i = selected.indexOf(id);
+  if(i >= 0){
+    selected.splice(i,1);
+  }else{
+    const previous = other.indexOf(id);
+    if(previous >= 0) other.splice(previous,1);
+    selected.push(id);
+  }
+  renderFilterChange();
 }
 
 function findGroupDef(id){
@@ -1113,7 +1146,11 @@ function opLabel(op){ return op === 'all' ? '全部' : op === 'none' ? '排除' 
 
 function activeExpressions(){
   const out = [];
+  const tags = state.tagQuery.include;
+  if(tags.length) out.push({id:'@tags',text:'标签 ' + tags.map(t => termLabel(Retrieval.TAG,t)).join(state.tagQuery.op === 'or' ? ' 或 ' : ' 且 ')});
+  if(state.tagQuery.exclude.length) out.push({id:'@excluded-tags',text:'不含 ' + state.tagQuery.exclude.map(t => termLabel(Retrieval.TAG,t)).join('、')});
   currentEvaluation().groups.forEach(function(g){
+    if(g.group_id === '@tags' || g.group_id === '@excluded-tags') return;
     if(!g.active) return;
     const filter = getGroupFilter(g.group_id);
     const def = g.kind === Retrieval.TAG ? findGroupDef(g.group_id) : null;
@@ -1225,7 +1262,6 @@ function renderAttrOptions(){
 function renderTagGroup(groupId,isUnfiled){
   const def = findGroupDef(groupId);
   if(!def || !(def.tags || []).length) return '';
-  const filter = getGroupFilter(groupId,'any');
   const result = groupEval(groupId);
   const tags = def.tags.slice();
   const expanded = state.expandedGroups.has(groupId);
@@ -1233,17 +1269,18 @@ function renderTagGroup(groupId,isUnfiled){
   const color = groupColor(groupId);
   const options = visible.map(function(t){
     const option = result && result.options.find(o => o.key === t.id);
-    const on = filter.terms.includes(t.id);
+    const selection = tagSelection(t.id);
     const definition = t.definition ? ' · ' + t.definition : '';
     return '<button class="filter-option tag-option" style="--tc:' + color + '" data-act="tag-toggle" data-group="' + esc(groupId) + '" data-id="' + esc(t.id) + '"' +
-      ' aria-pressed="' + on + '"' + (option && option.count === 0 && !on ? ' disabled' : '') +
-      ' title="' + esc(t.name + ' · ' + (option ? option.count : 0) + ' 篇' + definition) + '"><span class="tname">' + esc(t.name) + '</span><span class="fcount">' + (option ? option.count : 0) + '</span></button>';
+      ' aria-pressed="' + Boolean(selection) + '" data-selection="' + selection + '"' +
+      ' title="' + esc(t.name + ' · ' + (option ? option.count : 0) + ' 篇' + definition) + '"><span class="tname">' + esc(t.name) + '</span><span class="fcount">' + (option ? option.count : 0) + '</span></button>' +
+      (state.advancedSearch ? '<button class="tag-exclude-toggle" data-act="tag-exclude" data-id="' + esc(t.id) + '" aria-pressed="' + (selection === 'exclude') + '" aria-label="排除标签「' + esc(t.name) + '」" title="排除包含此标签的文献">−</button>' : '');
   }).join('');
   const more = tags.length > 4 ? '<button class="qg-more" data-act="group-expand" data-group="' + esc(groupId) + '">' + (expanded ? '收起' : '+' + (tags.length - 4)) + '</button>' : '';
   const foot = result && result.foot !== null ? result.foot : '';
   return '<section class="query-group' + (isUnfiled ? ' unfiled' : '') + (expanded ? ' expanded' : '') + '" style="--gc:' + color + '">' +
     '<div class="qg-head"><span class="qg-name" title="' + esc(def.name) + '">' + esc(def.name) + '</span>' +
-    (isUnfiled ? '<span class="qg-mark">整理</span>' : '') + opControl(groupId,filter.op) + '<span class="qg-foot">' + foot + '</span></div>' +
+    (isUnfiled ? '<span class="qg-mark">整理</span>' : '') + '<span class="qg-foot">' + foot + '</span></div>' +
     '<div class="qg-options">' + options + more + '</div></section>';
 }
 
@@ -1260,9 +1297,13 @@ function renderGroups(){
   const hasUnfiled = (state.unfiled || []).length > 0;
   const tagGroups = visibleRegular.map(g => renderTagGroup(g.id,false)).join('') + (hasUnfiled ? renderTagGroup(Retrieval.UNFILED,true) : '');
   const noGroups = !regular.length && !hasUnfiled;
-  el.innerHTML = '<div class="attr-row"><div class="year-controls" data-group="@year" role="group" aria-label="年份筛选">' + renderYearOptions() + '</div><div class="reading-controls">' + renderAttrOptions() + '</div></div>' + renderMetadataFilters() +
+  el.innerHTML = '<div class="tag-search-bar"><span class="tag-search-label">标签</span><div class="tag-join" role="group" aria-label="标签组合逻辑">' +
+      '<button data-act="tag-join" data-op="and" aria-pressed="' + (state.tagQuery.op === 'and') + '">AND</button><button data-act="tag-join" data-op="or" aria-pressed="' + (state.tagQuery.op === 'or') + '">OR</button></div>' +
+      '<span class="tag-search-spacer"></span>' + (state.tagQuery.exclude.length ? '<span class="tag-excluded">排除 ' + state.tagQuery.exclude.length + '</span>' : '') +
+       '<button class="btn tiny" data-act="advanced-search" aria-expanded="' + state.advancedSearch + '">' + (state.advancedSearch ? '收起高级检索' : '高级检索') + '</button></div>' +
     (noGroups ? '<div class="group-empty"><span>暂无标签分组</span><button class="btn tiny" data-act="new-group">＋ 新建分组</button></div>' : '<div class="group-grid">' + tagGroups + '</div>') +
-    (hiddenN ? '<div class="group-overflow"><button data-act="groups-expand">更多组 ' + hiddenN + '</button></div>' : (state.groupsExpanded && regular.length > limit ? '<div class="group-overflow"><button data-act="groups-expand">收起分组</button></div>' : ''));
+    (hiddenN ? '<div class="group-overflow"><button data-act="groups-expand">更多组 ' + hiddenN + '</button></div>' : (state.groupsExpanded && regular.length > limit ? '<div class="group-overflow"><button data-act="groups-expand">收起分组</button></div>' : '')) +
+    '<div class="common-filters"><div class="attr-row"><div class="year-controls" data-group="@year" role="group" aria-label="年份筛选">' + renderYearOptions() + '</div><div class="reading-controls">' + renderAttrOptions() + '</div></div>' + renderMetadataFilters() + '</div>';
   if(inputId){
     const input = document.getElementById(inputId);
     if(input){
@@ -1282,7 +1323,8 @@ function renderActionBar(){
 
 function renderRescueButton(fix){
   const label = fix.action === 'include-unknown' ? '勾选「包含未知年份」' : '去掉「' + termLabel(fix.kind,fix.term) + '」';
-  return '<button class="relax-row" data-act="apply-rescue" data-kind="' + fix.action + '" data-group="' + esc(fix.group_id) + '" data-key="' + esc(fix.key) + '"><span>' + esc(label) + '</span><b>能救回 ' + fix.rescued + ' 篇</b></button>';
+  const text = fix.action === 'remove-tag' ? '去掉标签「' + termLabel(fix.kind,fix.term || fix.key) + '」' : label;
+  return '<button class="relax-row" data-act="apply-rescue" data-kind="' + fix.action + '" data-field="' + (fix.field || '') + '" data-group="' + esc(fix.group_id) + '" data-key="' + esc(fix.key) + '"><span>' + esc(text) + '</span><b>能救回 ' + fix.rescued + ' 篇</b></button>';
 }
 
 function renderExpression(){
@@ -1362,7 +1404,7 @@ function renderList(ps){
       const hit = topics.get(id);
       if(!hit) return '<span class="tag" style="--c:var(--c-topic)">' + esc(name) + '</span>';
       return '<button class="tag" style="--c:' + esc(hit.color) + '" data-act="tag-toggle" data-group="' + esc(hit.group) + '" data-id="' + esc(id) +
-        '" aria-pressed="' + getGroupFilter(hit.group).terms.includes(id) + '">' + esc(name) + '</button>';
+        '" aria-pressed="' + Boolean(tagSelection(id)) + '" data-selection="' + tagSelection(id) + '">' + esc(name) + '</button>';
     }).join('');
     const current = p.id === state.paperId;
     // 阅读状态气泡：只把状态显示在标题前；已读就不渲染
@@ -2893,6 +2935,9 @@ function addMetadataSelection(input){
 
 function clearAll(clearQuery = false){
   Object.keys(state.groupFilters).forEach(id => { state.groupFilters[id].terms = []; });
+  state.tagQuery.include = [];
+  state.tagQuery.exclude = [];
+  state.tagQuery.op = 'and';
   getGroupFilter(Retrieval.YEAR_GROUP).includeUnknown = true;
   state.yearDraft = {yearFrom:'', yearTo:'', yearSingle:'', adding:false};
   state.metadataDraft = {};
@@ -3028,6 +3073,9 @@ async function refreshGroups(){
     const data = await fetchTags();
     state.groups = data.groups || [];
     state.unfiled = data.unfiled || [];
+    const validTags = new Set(state.groups.flatMap(g => (g.tags || []).map(t => t.id)).concat(state.unfiled.map(t => t.id)));
+    state.tagQuery.include = state.tagQuery.include.filter(id => validTags.has(id));
+    state.tagQuery.exclude = state.tagQuery.exclude.filter(id => validTags.has(id));
     const valid = new Set([Retrieval.ATTR_GROUP,Retrieval.STAR_GROUP,Retrieval.UNFILED].concat(METADATA_FACETS.map(f => '@' + f.key),state.groups.map(g => g.id)));
     Object.keys(state.groupFilters).forEach(id => { if(!valid.has(id)) delete state.groupFilters[id]; });
     state.eval = null;
@@ -3168,9 +3216,8 @@ async function mergeTags(facet, from, to){
     const oldTag = findTag(from);
     const newTag = findTag(to);
     if(oldTag && newTag){
-      Object.values(state.groupFilters).forEach(function(filter){
-        filter.terms = filter.terms.map(id => id === oldTag.tag.id ? newTag.tag.id : id);
-      });
+      state.tagQuery.include = Array.from(new Set(state.tagQuery.include.map(id => id === oldTag.tag.id ? newTag.tag.id : id)));
+      state.tagQuery.exclude = Array.from(new Set(state.tagQuery.exclude.map(id => id === oldTag.tag.id ? newTag.tag.id : id)));
     }
   }
   state.eval = null;
@@ -3272,7 +3319,18 @@ document.addEventListener('click', function(e){
     renderAll();
   }
   else if(act === 'tag-toggle'){
-    toggleTerm(el.dataset.group,el.dataset.id);
+    toggleTagQuery(el.dataset.id, false);
+  }
+  else if(act === 'tag-exclude'){
+    toggleTagQuery(el.dataset.id, true);
+  }
+  else if(act === 'tag-join'){
+    state.tagQuery.op = el.dataset.op === 'or' ? 'or' : 'and';
+    renderFilterChange();
+  }
+  else if(act === 'advanced-search'){
+    state.advancedSearch = !state.advancedSearch;
+    renderGroups();
   }
   else if(act === 'reading-filter'){
     const status = el.dataset.status;
@@ -3289,11 +3347,14 @@ document.addEventListener('click', function(e){
   }
   else if(act === 'apply-rescue'){
     const groupId = el.dataset.group;
-    const filter = getGroupFilter(groupId,'any');
-    const kind = groupKind(groupId);
+    const kind = el.dataset.kind === 'remove-tag' ? Retrieval.TAG : groupKind(groupId);
     if(el.dataset.kind === 'include-unknown'){
-      filter.includeUnknown = true;
+      getGroupFilter(groupId,'any').includeUnknown = true;
+    }else if(el.dataset.kind === 'remove-tag'){
+      const field = el.dataset.field === 'exclude' ? 'exclude' : 'include';
+      state.tagQuery[field] = state.tagQuery[field].filter(id => id !== el.dataset.key);
     }else{
+      const filter = getGroupFilter(groupId,'any');
       const removedRange = kind === Retrieval.YEAR && filter.terms.some(t => t.range && Retrieval.termKey(kind,t) === el.dataset.key);
       filter.terms = filter.terms.filter(t => Retrieval.termKey(kind,t) !== el.dataset.key);
       if(removedRange){
@@ -3323,7 +3384,7 @@ document.addEventListener('click', function(e){
   else if(act === 'reset-all'){ clearAll(true); }
   else if(act === 'jump-group'){
     const id = el.dataset.group;
-    const target = id === '@query' ? $('#search') : id === '@mode' ? $('#actionbar') : $('#filterzone [data-group="' + CSS.escape(id) + '"]');
+    const target = id === '@query' ? $('#search') : id === '@mode' ? $('#actionbar') : id === '@tags' || id === '@excluded-tags' ? $('#filterzone .tag-search-bar') : $('#filterzone [data-group="' + CSS.escape(id) + '"]');
     if(target){ target.scrollIntoView({behavior:'smooth',block:'nearest'}); if(id === '@query') target.focus(); }
   }
   else if(act === 'year-single-add'){
@@ -3379,7 +3440,7 @@ document.addEventListener('click', function(e){
     else if(facet !== 'topic') toggleTerm('@' + facet,value);
     else {
       const hit = findTag(value);
-      if(hit) toggleTerm(hit.group ? hit.group.id : Retrieval.UNFILED,hit.tag.id);
+      if(hit) toggleTagQuery(hit.tag.id, false);
     }
   }
   else if(act === 'del-tag'){

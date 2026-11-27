@@ -9,6 +9,8 @@
  * 运行：node tests/retrieval.test.js
  */
 const R = require("../web/retrieval.js");
+const { readFileSync } = require("node:fs");
+const { join } = require("node:path");
 
 const TAG = R.TAG;
 
@@ -181,6 +183,57 @@ const lib = [
   eq("排除：¬(A∨B)，命中 C D E", none.matched.map((p) => p.id), ["C", "D", "E"]);
   eq("排除：组脚 = 结果", none.groups[0].foot, 3);
   eq("排除：项计数仍是全库绝对值", none.groups[0].options[0].count, 2);
+}
+
+/* 首页点击回归：按钮必须更新检索内核读取的当前状态。 */
+{
+  const html = readFileSync(join(__dirname, "../web/index.html"), "utf8");
+  const source = html.match(/\nfunction toggleTagQuery\(id, exclude\)\{[\s\S]*?\n\}/);
+  if (!source) throw new Error("找不到首页标签点击处理函数");
+  const state = { tagQuery: { op: "and", include: [], exclude: [] } };
+  let matched;
+  const renderFilterChange = () => { matched = R.evaluate(lib, state).matched.map(p => p.id); };
+  const toggle = new Function("state", "renderFilterChange", `${source[0]}\nreturn toggleTagQuery;`)(state, renderFilterChange);
+
+  toggle("t_x", false);
+  eq("首次点击标签立即更新筛选结果", matched, ["A", "B"]);
+  toggle("t_x", true);
+  eq("同一标签可从包含切换到排除", matched, ["C", "D", "E"]);
+  toggle("t_x", false);
+  eq("同一标签可从排除切换到包含", matched, ["A", "B"]);
+  toggle("t_x", false);
+  eq("再次点击取消包含", matched, ["A", "B", "C", "D", "E"]);
+  toggle("t_x", true);
+  toggle("t_x", true);
+  eq("再次点击取消排除", matched, ["A", "B", "C", "D", "E"]);
+}
+
+/* 标签分组只展示，正向条件全局 AND/OR，排除标签独立取反 */
+{
+  const papers = [
+    item("both", { tagIds: ["t_x", "t_y"], tags: ["x", "y"] }),
+    item("x", { tagIds: ["t_x"], tags: ["x"] }),
+    item("y", { tagIds: ["t_y"], tags: ["y"] }),
+    item("z", { tagIds: ["t_z"], tags: ["z"] }),
+  ];
+  const groups = [tagGroup("group-a", "none", [], ["t_x"]), tagGroup("group-b", "all", [], ["t_y", "t_z"])];
+  const ids = (tagQuery) => R.evaluate(papers, { groups, tagQuery }).matched.map(p => p.id);
+  eq("标签 AND 跨展示分组取交集", ids({ op: "and", include: ["t_x", "t_y"], exclude: [] }), ["both"]);
+  eq("标签 OR 跨展示分组取并集", ids({ op: "or", include: ["t_x", "t_y"], exclude: [] }), ["both", "x", "y"]);
+  eq("排除标签与正向 AND 独立组合", ids({ op: "and", include: ["t_x"], exclude: ["t_y", "t_z"] }), ["x"]);
+  eq("多个排除项按不能含任一项", ids({ op: "or", include: [], exclude: ["t_x", "t_y"] }), ["z"]);
+  const counted = R.evaluate(papers, {
+    tagQuery: { op: "and", include: ["t_x"], exclude: ["t_y"] },
+    groups: [
+      { kind: R.YEAR, group_id: R.YEAR_GROUP, terms: [], includeUnknown: true, options: [] },
+      { kind: R.ATTR, group_id: R.ATTR_GROUP, terms: [{ status: "todo" }], options: [{ status: "todo" }] },
+      tagGroup("display-only", "any", [], ["t_x", "t_y", "t_z"]),
+    ],
+  });
+  eq("启用标签条件后分面计数仍使用正确索引", counted.groups.map(g => g.options.map(o => o.count)), [[], [4], [2, 2, 1]]);
+  eq("启用标签条件后组脚与结果计数一致", [counted.groups[1].foot, counted.count], [1, 1]);
+  const fixes = R.rescue(papers, { tagQuery: { op: "and", include: ["t_x", "t_z"], exclude: [] } });
+  eq("快速标签条件支持近失移除", fixes.map(f => [f.action, f.key, f.rescued]), [["remove-tag", "t_z", 2], ["remove-tag", "t_x", 1]]);
 }
 
 /* 3. 「全部」的项计数是边际值：加上这一项后还剩几篇 */
