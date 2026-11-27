@@ -124,10 +124,8 @@
   .tag-exclude-toggle{width:22px;height:22px;flex:none;border-radius:4px;color:var(--muted-2);font-size:11px}
   .tag-exclude-toggle:hover{background:var(--hover);color:var(--ink)}
   .tag-exclude-toggle[aria-pressed="true"]{background:color-mix(in srgb,var(--warn) 12%,var(--panel));color:var(--warn)}
-  .year-controls,.reading-controls{display:flex;align-items:center;gap:7px;min-width:0}
+  .year-controls,.star-controls{display:flex;align-items:center;gap:7px;min-width:0}
   .year-controls{flex-wrap:wrap}
-  .reading-controls{flex-wrap:wrap}
-  .reading-statuses{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
   .attr-label{font-size:10.5px;color:var(--muted);flex:none}
   .metadata-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:start;gap:4px 8px;margin:0 0 5px}
   .metadata-filter{display:grid;gap:4px;min-width:0}
@@ -147,7 +145,6 @@
   .filter-option:hover{border-color:var(--line-2);background:var(--hover);color:var(--ink)}
   .filter-option[aria-pressed="true"]{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 40%,var(--line));color:var(--accent-2);font-weight:600}
   .tag-option[data-selection="exclude"]{background:color-mix(in srgb,var(--warn) 10%,var(--panel));border-color:color-mix(in srgb,var(--warn) 45%,var(--line));color:var(--warn);font-weight:600}
-  .reading-statuses.has-selection .filter-option[aria-pressed="false"]:not(:hover){background:var(--panel-2);color:var(--muted-2)}
   .filter-option:disabled{opacity:.42;cursor:default}
   .filter-option .fcount,.filter-check .fcount{font-size:9.5px;color:var(--muted-2);font-variant-numeric:tabular-nums}
   .group-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:5px}
@@ -542,6 +539,9 @@
   .libhead span:last-child{letter-spacing:0}
   .libvals{display:flex;flex-wrap:wrap;gap:4px}
   .libvals .tag{height:21px;font-size:11px}
+  .libvals .tagx[data-act="del-tag"]{min-width:16px;height:100%;opacity:.75}
+  .libvals .tagx[data-act="del-tag"]:is(:hover,:focus-visible){color:var(--warn);opacity:1}
+  #libDeleteTitle{overflow-wrap:anywhere}
   .libacts{display:flex;gap:9px;margin-top:5px}
   .libhead .hint{letter-spacing:0;text-transform:none;font-weight:400;color:var(--muted-2)}
   .pickgrouplist{display:flex;flex-direction:column;gap:5px;margin-top:4px}
@@ -698,7 +698,6 @@
   .rs-sug-act{display:flex;gap:5px;margin-top:6px}
   .rs-sugempty{font-size:10.5px;color:var(--muted-2);line-height:1.6;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
   .rs-sugempty.warn{color:var(--warn)}
-  .rs-status{display:flex;gap:5px;flex-wrap:wrap}
   .rs-st{font-size:10.5px;padding:3px 8px;border:1px solid var(--line);border-radius:99px;color:var(--muted);background:var(--panel-2)}
   .rs-st.on{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 40%,var(--line));color:var(--accent-2);font-weight:650}
   .rs-foot{margin-top:auto;display:flex;align-items:center;flex-wrap:wrap;gap:6px}
@@ -852,7 +851,6 @@ const METADATA_FACETS = [
   {key:'org', label:'单位'},
   {key:'venue', label:'期刊'}
 ];
-const READING_STATUSES = ['todo','reading','read'];
 let apiOnline = false;
 let PAPERS = [];
 
@@ -865,7 +863,7 @@ const $$ = (s, el=document) => Array.from(el.querySelectorAll(s));
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const labelOf = k => k === 'topic' ? '标签' : (METADATA_FACETS.find(f => f.key === k) || {}).label || k;
 const colorOf = k => 'var(--c-' + k + ')';
-const statusLabel = s => s === 'read' ? '已读' : s === 'reading' ? '在读' : '待读';
+const LABEL_STATE_LABELS = {review:'待补全', untagged:'未打标', tagged:'已打标'};
 const fieldLabel = k => ({title:'标题', authors:'作者', year:'年份', venue:'期刊 / 会议', orgs:'单位', abstract:'摘要'}[k] || k);
 
 const state = {
@@ -874,7 +872,6 @@ const state = {
   mode:null,
   groupFilters:{
     '@year':{terms:[], includeUnknown:true},
-    '@attr':{terms:[]},
     '@star':{terms:[]}
   },
   yearDraft:{yearFrom:'', yearTo:'', yearSingle:'', adding:false},
@@ -916,7 +913,11 @@ const state = {
   readerItemId:null   // 阅读器里正在读的条目（loadPdf 完成前也有效）
 };
 
-const MODE_LABELS = {untagged:'未打标', review:'待补全'};
+const MODE_LABELS = LABEL_STATE_LABELS;
+
+function labelState(p){
+  return Retrieval.labelState(p);
+}
 
 let toastTimer = null;
 function toast(msg){
@@ -942,7 +943,7 @@ function metadataValues(p, key){
 
 function groupKind(id){
   if(id === Retrieval.YEAR_GROUP) return Retrieval.YEAR;
-  if(id === Retrieval.ATTR_GROUP || id === Retrieval.STAR_GROUP) return Retrieval.ATTR;
+  if(id === Retrieval.STAR_GROUP) return Retrieval.ATTR;
   if(METADATA_FACETS.some(f => '@' + f.key === id)) return Retrieval.META;
   return Retrieval.TAG;
 }
@@ -963,9 +964,7 @@ function retrievalGroups(){
     groups.push({kind:Retrieval.META, group_id:id, op:'any', terms:filter.terms.slice(), options:Array.from(options.values()).sort((a,b) => a.localeCompare(b,'zh'))});
   });
 
-  const reading = getGroupFilter(Retrieval.ATTR_GROUP);
   const star = getGroupFilter(Retrieval.STAR_GROUP);
-  groups.push({kind:Retrieval.ATTR, group_id:Retrieval.ATTR_GROUP, terms:reading.terms.slice(), options:READING_STATUSES.map(status => ({status}))});
   groups.push({kind:Retrieval.ATTR, group_id:Retrieval.STAR_GROUP, terms:star.terms.slice(), options:[{star:true}]});
 
   (state.groups || []).forEach(function(g){
@@ -1052,8 +1051,7 @@ function termLabel(kind,term){
     if(typeof term === 'number') return String(term);
     return term.range[0] + '–' + term.range[1];
   }
-  if(term && term.star) return '星标';
-  if(term && term.status) return statusLabel(term.status);
+  if(term && 'star' in term) return term.star ? '星标' : '非星标';
   return '';
 }
 
@@ -1076,7 +1074,7 @@ function activeExpressions(){
       return;
     }
     if(g.kind === Retrieval.ATTR){
-      out.push({id:g.group_id,text:g.group_id === Retrieval.STAR_GROUP ? '仅星标' : '阅读状态：' + labels[0]});
+      out.push({id:g.group_id,text:filter.terms[0]?.star === false ? '非星标' : '仅星标'});
       return;
     }
     const name = g.kind === Retrieval.META ? labelOf(g.group_id.slice(1)) : (def ? def.name : '标签组');
@@ -1086,7 +1084,7 @@ function activeExpressions(){
     else text += labels.join(joiner);
     out.push({id:g.group_id,text:text});
   });
-  if(state.mode) out.push({id:'@mode',text:MODE_LABELS[state.mode] + '模式'});
+  if(state.mode) out.push({id:'@mode',text:'整理状态：' + MODE_LABELS[state.mode]});
   if(state.q) out.push({id:'@query',text:'搜索「' + state.q + '」'});
   return out;
 }
@@ -1154,18 +1152,9 @@ function renderMetadataFilters(){
 }
 
 function renderAttrOptions(){
-  const readingId = Retrieval.ATTR_GROUP;
   const starId = Retrieval.STAR_GROUP;
-  const selected = getGroupFilter(readingId).terms[0]?.status;
-  const readingOptions = READING_STATUSES.map(function(status){
-    const result = optionEval(readingId,Retrieval.termKey(Retrieval.ATTR,{status}));
-    return '<button id="readingFilter-' + status + '" class="filter-option" data-act="reading-filter" data-status="' + status + '" aria-pressed="' + (status === selected) + '">' +
-      statusLabel(status) + '<span class="fcount" aria-hidden="true">' + (result ? result.count : 0) + '</span></button>';
-  }).join('');
   const star = optionEval(starId,Retrieval.termKey(Retrieval.ATTR,{star:true}));
-  return '<div class="reading-statuses' + (selected ? ' has-selection' : '') + '" data-group="' + readingId + '" role="group" aria-labelledby="readingFilterLabel">' +
-    '<span class="attr-label" id="readingFilterLabel">阅读状态</span>' + readingOptions + '</div>' +
-    '<label class="filter-check" data-group="' + starId + '"><input id="starFilter" type="checkbox"' + (star?.selected ? ' checked' : '') +
+  return '<label class="filter-check" data-group="' + starId + '"><input id="starFilter" type="checkbox"' + (star?.selected ? ' checked' : '') +
     '>仅星标 <span class="fcount" aria-hidden="true">' + (star ? star.count : 0) + '</span></label>';
 }
 
@@ -1208,7 +1197,7 @@ function renderGroups(){
   const hasUnfiled = (state.unfiled || []).length > 0;
   const tagGroups = visibleRegular.map(g => renderTagGroup(g.id,false)).join('') + (hasUnfiled ? renderTagGroup(Retrieval.UNFILED,true) : '');
   const noGroups = !regular.length && !hasUnfiled;
-  el.innerHTML = '<div class="reading-controls">' + renderAttrOptions() + '</div>' +
+  el.innerHTML = '<div class="star-controls">' + renderAttrOptions() + '</div>' +
     '<details class="advanced-filters" id="advancedFilters"' + (advancedOpen ? ' open' : '') + '><summary>元数据筛选</summary>' +
     '<div class="year-controls" data-group="@year" role="group" aria-label="年份筛选">' + renderYearOptions() + '</div>' + renderMetadataFilters() + '</details>' +
     '<div class="tag-search-bar"><h3>标签筛选</h3><div class="tag-join" role="group" aria-label="标签组合逻辑">' +
@@ -1226,10 +1215,12 @@ function renderGroups(){
 }
 
 function renderActionBar(){
-  const untagged = PAPERS.filter(p => !(p.topicIds || []).length).length;
-  const review = PAPERS.filter(p => p.needsReview).length;
+  const review = PAPERS.filter(p => labelState(p) === 'review').length;
   const view = (mode, label, count) => '<button id="mode-' + mode + '" class="action-entry" data-act="toggle-mode" data-mode="' + mode + '" aria-pressed="' + ((state.mode || 'all') === mode) + '"><span>' + label + '</span><b>' + count + '</b></button>';
-  $('#actionbar').innerHTML = view('all','全部文献',PAPERS.length) + view('untagged','未打标',untagged) + view('review','待补全',review);
+  const untagged = PAPERS.filter(p => labelState(p) === 'untagged').length;
+  const tagged = PAPERS.filter(p => labelState(p) === 'tagged').length;
+  $('#actionbar').innerHTML = view('all','全部文献',PAPERS.length) +
+    Object.entries(LABEL_STATE_LABELS).map(entry => view(entry[0],entry[1],entry[0] === 'review' ? review : entry[0] === 'untagged' ? untagged : tagged)).join('');
 }
 
 function renderRescueButton(fix){
@@ -1310,6 +1301,7 @@ function renderList(ps){
       let message = '没有符合这些条件的文献';
       if(state.mode === 'review') message = '待补全队列为空';
       if(state.mode === 'untagged' && !state.q && !selectedCount()) message = '没有未打标的文献';
+      if(state.mode === 'tagged' && !state.q && !selectedCount()) message = '没有已打标的文献';
       el.innerHTML = '<div class="empty"><div class="em">○</div><p>' + message + '</p>' + suggestions + '<button class="btn tiny" data-act="reset-all">清除搜索与筛选</button></div>';
     }
     el.scrollTop = 0;
@@ -1327,7 +1319,7 @@ function renderList(ps){
         '" aria-pressed="' + Boolean(tagSelection(id)) + '" data-selection="' + tagSelection(id) + '">' + esc(name) + '</button>';
     }).join('');
     const current = state.detailOpen && state.tab === 'info' && p.id === state.paperId;
-    const status = '<span class="paper-status ' + esc(p.status) + '"><span aria-hidden="true"></span>' + statusLabel(p.status) + '</span>';
+    const status = '<span class="paper-status ' + labelState(p) + '"><span aria-hidden="true"></span>' + LABEL_STATE_LABELS[labelState(p)] + '</span>';
     const id = esc(p.id);
     return '<article class="paper' + (current ? ' on' : '') + '" data-id="' + id + '">' +
        '<div class="paper-content">' +
@@ -1338,7 +1330,7 @@ function renderList(ps){
       '<div class="paper-actions">' +
          '<div class="paper-tools"><button class="btn pdf-btn" data-act="open-pdf" data-id="' + id + '">' + (p.hasFile ? '打开 PDF' : '补 PDF') + '</button>' +
          '<details class="paper-menu"><summary title="更多操作" aria-label="更多操作">···</summary><div class="paper-menu-content"><button data-act="copy-cite" data-id="' + id + '">复制引用</button></div></details></div>' +
-         '<div class="paper-state">' + status + (p.needsReview ? '<span class="paper-review">待补全</span>' : '') + '</div>' +
+         '<div class="paper-state">' + status + '</div>' +
       '</div></article>';
   }).join('');
   $$('.paper-meta-more',el).forEach(x => { x.open = expanded.has(x.closest('.paper').dataset.id); });
@@ -1403,6 +1395,7 @@ function renderDetail(){
       '<button class="btn icon detail-close" data-act="close-detail" aria-label="关闭详情" title="关闭详情">×</button>' +
     '</div><div class="dhead" id="dhead">' +
       '<h2 class="detail-title">' + esc(p.title || '未命名') + '</h2>' +
+      '<p class="detail-state">整理状态：<span class="paper-status ' + labelState(p) + '">' + LABEL_STATE_LABELS[labelState(p)] + '</span></p>' +
       (byline ? '<p class="detail-byline">' + byline + '</p>' : '') +
       '<div class="detail-actions"><button class="btn primary" data-act="open-pdf" data-id="' + esc(p.id) + '">' + (p.hasFile ? '打开 PDF' : '补 PDF') + '</button>' +
       '<button class="btn" data-act="copy-cite" data-id="' + esc(p.id) + '">复制引用</button></div>' +
@@ -1411,7 +1404,7 @@ function renderDetail(){
         '<p class="dabs-miss">暂无摘要</p>') + '</section>' +
       '<section class="dmeta" aria-label="元数据">' +
         '<div class="dmeta-info">' +
-           '<h3 class="slabel">元数据' + (p.needsReview ? ' <span class="paper-review">待补全</span>' : '') + '</h3>' +
+          '<h3 class="slabel">元数据</h3>' +
           (missing.length ? '<p class="dmeta-missing">缺 ' + esc(missing.join('、')) + '</p>' :
             p.needsReview ? '<p class="dmeta-missing">待核对</p>' : '') +
           identifiers.map(value => '<p>' + esc(value) + '</p>').join('') +
@@ -1475,11 +1468,12 @@ function renderTagDefDialog(){
   setTimeout(function(){ const i = $('#tagDefInput'); if(i){ i.focus(); i.select(); } }, 0);
 }
 
-function openGroupDialog(kind, tagId, name){
+function openLibraryDialog(kind, id, name, count){
   state.modalMode = 'group-dialog';
   state.modalOpen = true;
-  state.dialog = { kind: kind, tagId: tagId, name: name, groupId: kind === 'delete-group' ? tagId : null };
+  state.dialog = { kind, tagId: id, name, count, groupId: kind === 'delete-group' ? id : null };
   renderModal();
+  if(kind === 'delete-tag') $('[data-act="dialog-cancel"]').focus();
 }
 
 function renderGroupDialog(){
@@ -1503,13 +1497,19 @@ function renderGroupDialog(){
     return;
   }
 
-  if(d.kind === 'delete-group'){
-    modal.innerHTML = '<div class="modal-card" style="width:min(460px,92vw)">' +
-      '<div class="mhead"><div><h3>删除组「' + esc(d.name) + '」？</h3>' +
-        '<p>组里的标签会退回未分组，标签本身不会被删掉。</p></div></div>' +
+  if(d.kind === 'delete-group' || d.kind === 'delete-tag'){
+    const subject = d.kind === 'delete-tag' ? '标签' : '组';
+    const impact = d.kind === 'delete-tag'
+      ? (d.count ? '将从 ' + d.count + ' 篇文献中移除这个标签，文献和 PDF 会保留。' : '当前有 0 篇文献使用这个标签。') + ' 此操作无法撤销。'
+      : '组里的标签会退回未分组，标签本身不会被删掉。';
+    const disabled = d.busy ? ' disabled' : '';
+    modal.innerHTML = '<div class="modal-card" role="alertdialog" aria-modal="true" aria-labelledby="libDeleteTitle" aria-describedby="libDeleteImpact" style="width:min(460px,92vw)">' +
+      '<div class="mhead"><div><h3 id="libDeleteTitle">删除' + subject + '「' + esc(d.name) + '」？</h3>' +
+        '<p id="libDeleteImpact">' + (d.message ? esc(d.message) + ' ' : '') + impact + '</p></div></div>' +
       '<div class="metafoot">' +
-        '<button class="btn" data-act="dialog-cancel">取消</button>' +
-        '<button class="btn primary" data-act="dialog-confirm" style="background:var(--warn);border-color:var(--warn)">删除组</button>' +
+        '<button class="btn" data-act="dialog-cancel"' + disabled + '>取消</button>' +
+        '<button class="btn primary" data-act="dialog-confirm" style="background:var(--warn);border-color:var(--warn)"' + disabled + '>' +
+          (d.busy ? '删除中…' : '删除' + subject) + '</button>' +
       '</div>' +
     '</div>';
     return;
@@ -1695,16 +1695,11 @@ function renderReaderSide(){
       '<div class="rs-kicker">' + kicker + '</div>' +
       '<div class="rs-title">' + esc(p.title) + '</div>' +
     '</div>' +
-    '<div>' +
-      '<div class="rs-lab">阅读状态</div>' +
-      '<div class="rs-status">' +
-        ['todo','reading','read'].map(function(s){
-          return '<button class="rs-st' + (p.status === s ? ' on' : '') + '"' +
-            ' data-act="rt-status" data-status="' + s + '">' + statusLabel(s) + '</button>';
-        }).join('') +
-        '<button class="rs-st' + (p.starred ? ' on' : '') + '" data-act="rt-star">' +
-          (p.starred ? '★ 已标' : '☆ 标星') + '</button>' +
-      '</div>' +
+      '<div>' +
+        '<div class="rs-lab">整理状态 <span class="hint">' + LABEL_STATE_LABELS[labelState(p)] + '</span>' +
+          '<button class="rs-st' + (p.starred ? ' on' : '') + ' sp" data-act="rt-star">' +
+            (p.starred ? '★ 已标' : '☆ 标星') + '</button>' +
+        '</div>' +
     '</div>' +
     '<div>' +
       '<div class="rs-lab">标签 <span class="hint">' + (existing.length ? existing.length + ' 个' : '还没打') + '</span>' +
@@ -2404,7 +2399,8 @@ function renderModal(){
   if(state.modalMode === 'clean'){ renderCleanModal(); return; }
   modal.classList.add('open');
 
-  const summary = '标签 ' + new Set(PAPERS.flatMap(p => p.tags.topic)).size + ' · 作者 ' +
+  const tagCount = (state.groups || []).reduce((n, g) => n + g.tags.length, (state.unfiled || []).length);
+  const summary = '标签 ' + tagCount + ' · 作者 ' +
     new Set(PAPERS.flatMap(p => p.tags.author)).size + ' · 单位 ' + new Set(PAPERS.flatMap(p => p.tags.org)).size;
 
   const mergeSection =
@@ -2427,9 +2423,12 @@ function renderModal(){
   const tagPill = function(t, color, extra){
     const def = (t.definition || '').trim();
     const hint = def || '还没有一句话定义';
+    const deleteLabel = esc('删除标签「' + t.name + '」');
     return '<span class="tag" style="--c:' + color + '" title="' + esc(hint) + '">' +
       '<button class="taglabel defopen" data-act="tag-def" data-id="' + t.id + '" data-name="' + esc(t.name) + '">' + esc(t.name) + '</button>' +
-      '<b>' + t.count + '</b>' + (extra || '') + '</span>';
+      '<b>' + t.count + '</b>' + (extra || '') +
+      '<button class="tagx" data-act="del-tag" data-id="' + t.id + '" data-name="' + esc(t.name) + '" data-count="' + t.count +
+        '" title="' + deleteLabel + '" aria-label="' + deleteLabel + '">×</button></span>';
   };
 
   const groupsHTML = (state.groups || []).map(function(g){
@@ -2910,16 +2909,21 @@ async function addTag(facet, value, itemId, opts){
 }
 
 /* ---------- 组 ---------- */
+const deletedTagIds = new Set();
+
 async function refreshGroups(){
   if(!apiOnline) return;
   try{
     const data = await fetchTags();
-    state.groups = data.groups || [];
-    state.unfiled = data.unfiled || [];
+    state.groups = (data.groups || []).map(g => {
+      const tags = g.tags.filter(t => !deletedTagIds.has(t.id));
+      return {...g, tags, count:tags.length};
+    });
+    state.unfiled = (data.unfiled || []).filter(t => !deletedTagIds.has(t.id));
     const validTags = new Set(state.groups.flatMap(g => (g.tags || []).map(t => t.id)).concat(state.unfiled.map(t => t.id)));
     state.tagQuery.include = state.tagQuery.include.filter(id => validTags.has(id));
     state.tagQuery.exclude = state.tagQuery.exclude.filter(id => validTags.has(id));
-    const valid = new Set([Retrieval.ATTR_GROUP,Retrieval.STAR_GROUP,Retrieval.UNFILED].concat(METADATA_FACETS.map(f => '@' + f.key),state.groups.map(g => g.id)));
+    const valid = new Set([Retrieval.STAR_GROUP,Retrieval.UNFILED].concat(METADATA_FACETS.map(f => '@' + f.key),state.groups.map(g => g.id)));
     Object.keys(state.groupFilters).forEach(id => { if(!valid.has(id)) delete state.groupFilters[id]; });
     state.eval = null;
     // 记住的组被删了：清掉，回落到未分组，不把标签静默塞进别的组
@@ -2972,11 +2976,64 @@ async function assignTagGroup(tagId, groupId){
 }
 
 function closeDialog(){
+  const dialog = state.dialog;
+  if(dialog?.busy) return;
   state.dialog = null;
   if(state.modalMode === 'group-dialog' || state.modalMode === 'tag-def'){
     state.modalMode = 'tags';
   }
   renderModal();
+  if(dialog?.kind === 'delete-tag'){
+    const button = $('[data-act="del-tag"][data-id="' + CSS.escape(dialog.tagId) + '"]');
+    (button || $('[data-act="close-lib"]'))?.focus();
+  }
+}
+
+async function deleteTag(dialog){
+  if(dialog.busy) return;
+  if(!apiOnline){ toast('未连接本地服务'); return; }
+  dialog.busy = true;
+  dialog.message = '';
+  renderModal();
+  try{
+    const res = await fetch('/api/tags/' + encodeURIComponent(dialog.tagId) + '?expected_count=' + dialog.count, {method:'DELETE'});
+    const data = await res.json().catch(() => null);
+    if(res.status === 409 && Number.isInteger(data?.detail?.affectedItems)){
+      dialog.count = data.detail.affectedItems;
+      dialog.message = '关联文献数量已变化，请重新确认。';
+      return;
+    }
+    if(res.status === 404 && data?.detail === 'Not Found'){
+      dialog.message = '当前服务缺少删除标签接口，请重启 Colophon 后重试。';
+      return;
+    }
+    const deleted = res.ok && data?.ok === true;
+    if(!deleted && !(res.status === 404 && data?.detail === 'tag not found')) throw new Error('delete tag');
+
+    const id = dialog.tagId;
+    deletedTagIds.add(id);
+    for(const group of state.groups){
+      group.tags = group.tags.filter(t => t.id !== id);
+      group.count = group.tags.length;
+    }
+    state.unfiled = state.unfiled.filter(t => t.id !== id);
+    state.tagQuery.include = state.tagQuery.include.filter(tagId => tagId !== id);
+    state.tagQuery.exclude = state.tagQuery.exclude.filter(tagId => tagId !== id);
+    removeDeletedTagsFromPapers(PAPERS);
+    renderAll();
+    await refreshPapers();
+    dialog.busy = false;
+    closeDialog();
+    toast(deleted ? '已删除标签 <b>' + esc(dialog.name) + '</b>' : '这个标签已不存在');
+  }catch(err){
+    dialog.message = '删除失败，请重试。';
+  }finally{
+    dialog.busy = false;
+    if(state.dialog === dialog){
+      renderModal();
+      $('[data-act="dialog-cancel"]')?.focus();
+    }
+  }
 }
 
 async function deleteGroup(id, name){
@@ -3118,6 +3175,7 @@ document.addEventListener('click', function(e){
   }
   if(e.target.id === 'modal'){
     if(state.modalMode === 'import') closeImportBrowser();
+    else if(state.dialog?.kind === 'delete-tag') closeDialog();
     else { state.modalOpen = false; renderModal(); }
     return;
   }
@@ -3152,13 +3210,6 @@ document.addEventListener('click', function(e){
   }
   else if(act === 'tag-join'){
     state.tagQuery.op = el.dataset.op === 'or' ? 'or' : 'and';
-    renderFilterChange(el.id);
-  }
-  else if(act === 'reading-filter'){
-    const status = el.dataset.status;
-    if(!READING_STATUSES.includes(status)) return;
-    const filter = getGroupFilter(Retrieval.ATTR_GROUP);
-    filter.terms = filter.terms[0]?.status === status ? [] : [{status}];
     renderFilterChange(el.id);
   }
   else if(act === 'year-toggle'){
@@ -3307,7 +3358,7 @@ document.addEventListener('click', function(e){
     commitNewGroup();
   }
   else if(act === 'new-group'){
-    openGroupDialog('create-group', null, '');
+    openLibraryDialog('create-group', null, '');
   }
   else if(act === 'cancel-new-group'){
     setNewGroupMode(false);
@@ -3336,17 +3387,6 @@ document.addEventListener('click', function(e){
   }
   else if(act === 'rt-del-tag'){
     readerRemoveTag(el.dataset.name);
-    return;
-  }
-  else if(act === 'rt-status'){
-    const p = readerPaper();
-    if(!p) return;
-    p.status = el.dataset.status;
-    state.eval = null;
-    renderReaderSide();
-    renderAll();
-    scheduleSave(p.id, {status: p.status});
-    toast('已标记为 <b>' + statusLabel(p.status) + '</b>');
     return;
   }
   else if(act === 'rt-star'){
@@ -3424,10 +3464,13 @@ document.addEventListener('click', function(e){
   else if(act === 'fetch-all'){ fetchAllMissing(); }
   else if(act === 'merge'){ mergeTags(el.dataset.facet, el.dataset.from, el.dataset.to); }
   else if(act === 'del-group'){
-    openGroupDialog('delete-group', el.dataset.id, el.dataset.name || '');
+    openLibraryDialog('delete-group', el.dataset.id, el.dataset.name || '');
+  }
+  else if(act === 'del-tag'){
+    openLibraryDialog('delete-tag', el.dataset.id, el.dataset.name, Number(el.dataset.count));
   }
   else if(act === 'file-tag'){
-    openGroupDialog('assign-tag', el.dataset.id, el.dataset.name || '');
+    openLibraryDialog('assign-tag', el.dataset.id, el.dataset.name || '');
   }
   else if(act === 'tag-def'){
     openTagDefDialog(el.dataset.id, el.dataset.name || '');
@@ -3443,6 +3486,10 @@ document.addEventListener('click', function(e){
     closeDialog();
   }
   else if(act === 'dialog-confirm'){
+    if(state.dialog?.kind === 'delete-tag'){
+      deleteTag(state.dialog);
+      return;
+    }
     if(state.dialog && state.dialog.kind === 'tag-def'){
       const input = $('#tagDefInput');
       const def = input ? input.value.trim() : '';
@@ -3636,6 +3683,7 @@ document.addEventListener('keydown', function(e){
   if(e.key === 'Escape' && state.modalOpen){
     if(e.isComposing || e.keyCode === 229) return;
     if(state.modalMode === 'import'){ closeImportBrowser(); return; }
+    if(state.dialog?.kind === 'delete-tag'){ closeDialog(); return; }
     state.modalOpen = false;
     renderModal();
     if(state.readerOpen) $('[data-act="rt-edit-meta"]')?.focus({preventScroll:true});
@@ -3660,14 +3708,14 @@ document.addEventListener('keydown', function(e){
       return;
     }
   }
-  if(state.modalOpen && state.modalMode === 'import'){
+  if(state.modalOpen && (state.modalMode === 'import' || state.dialog?.kind === 'delete-tag')){
     if(e.key === 'Tab'){
       const controls = $$('#modal button:not(:disabled), #modal input:not(:disabled)');
       const first = controls[0], last = controls[controls.length - 1];
-      if(controls.length && (!$('#modal').contains(document.activeElement) ||
-          document.activeElement === (e.shiftKey ? first : last))){
+      if(!controls.length || !$('#modal').contains(document.activeElement) ||
+          document.activeElement === (e.shiftKey ? first : last)){
         e.preventDefault();
-        (e.shiftKey ? last : first).focus();
+        (e.shiftKey ? last : first)?.focus();
       }
     }
     return;
@@ -3792,12 +3840,6 @@ function openReader(itemId = state.paperId){
   if(!p.hasFile){ readerMissing(p); return; }
   if(pdfView.itemId !== p.id) loadPdf(p);
 
-  if(p.status === 'todo'){
-    p.status = 'reading';
-    state.eval = null;
-    scheduleSave(p.id, { status:'reading' });
-    renderAll();
-  }
   if(state.readerTags !== false){
     setTimeout(function(){ const i = $('#rtValue'); if(i) i.focus(); }, 0);
   }
@@ -4086,11 +4128,22 @@ window.addEventListener('resize', function(){
 /* ============================================================
    与后端同步
    ============================================================ */
+function removeDeletedTagsFromPapers(papers){
+  if(!deletedTagIds.size) return;
+  for(const paper of papers){
+    const ids = paper.topicIds;
+    if(!ids?.some(id => deletedTagIds.has(id))) continue;
+    paper.tags.topic = paper.tags.topic.filter((_, index) => !deletedTagIds.has(ids[index]));
+    paper.topicIds = ids.filter(id => !deletedTagIds.has(id));
+  }
+}
+
 async function fetchPapers(){
   const res = await fetch('/api/items', {cache:'no-store'});
   if(!res.ok) throw new Error('http ' + res.status);
   const data = await res.json();
   if(!Array.isArray(data.items)) throw new Error('bad payload');
+  removeDeletedTagsFromPapers(data.items);
   return data.items;
 }
 

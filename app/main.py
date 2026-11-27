@@ -8,11 +8,12 @@ from pathlib import Path
 from typing import Literal
 from uuid import UUID
 
-from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
+from fastapi import Depends, FastAPI, File, HTTPException, Query, Request, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from . import API_REVISION
 from . import ai as ai_src
 from . import clean
 from . import metadata as metadata_src
@@ -59,7 +60,6 @@ def favicon() -> FileResponse:
 # ---------------------------------------------------------------- 模型
 
 class ItemPatch(BaseModel):
-    status: Literal["todo", "reading", "read"] | None = None
     starred: bool | None = None
     note_md: str | None = None
 
@@ -137,7 +137,7 @@ class SuggestIn(BaseModel):
 
 @app.get("/api/health")
 def health() -> dict:
-    return {"ok": True, "app": "Colophon", "version": "0.1.0"}
+    return {"ok": True, "app": "Colophon", "version": "0.1.0", "apiRevision": API_REVISION}
 
 
 @app.get("/api/items")
@@ -278,6 +278,21 @@ def patch_tag_definition(tag_id: str, payload: TagEditIn) -> dict:
     if not result:
         raise HTTPException(status_code=404, detail="tag not found")
     return result
+
+
+@app.delete("/api/tags/{tag_id}")
+def delete_tag(tag_id: str, expected_count: int = Query(ge=0)) -> dict:
+    conn = connect()
+    try:
+        result = repo.delete_tag(conn, tag_id, expected_count)
+    finally:
+        conn.close()
+    if result is None:
+        raise HTTPException(status_code=404, detail="tag not found")
+    affected, deleted = result
+    if not deleted:
+        raise HTTPException(status_code=409, detail={"affectedItems": affected})
+    return {"ok": True, "affectedItems": affected}
 
 
 # ---------------------------------------------------------------- 写

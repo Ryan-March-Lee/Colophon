@@ -38,9 +38,12 @@ class ItemTagIdTests(unittest.TestCase):
         return self.repo.get_item(self.conn, item_id or self.item_id)
 
     def test_item_carries_both_names_and_ids(self):
+        columns = {row["name"] for row in self.conn.execute("PRAGMA table_info(item)")}
+        self.assertNotIn("status", columns)
         self.repo.add_tag(self.conn, self.item_id, "topic", "Doherty")
         self.conn.commit()
         item = self._item()
+        self.assertNotIn("status", item)
         self.assertEqual(item["tags"]["topic"], ["Doherty"])
         self.assertEqual(len(item["topicIds"]), 1)
         tag_id = item["topicIds"][0]

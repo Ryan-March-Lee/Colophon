@@ -12,7 +12,6 @@ CREATE TABLE IF NOT EXISTS item (
   arxiv_id      TEXT,
   url           TEXT,
   language      TEXT NOT NULL DEFAULT 'en',
-  status        TEXT NOT NULL DEFAULT 'todo' CHECK (status IN ('todo', 'reading', 'read')),
   starred       INTEGER NOT NULL DEFAULT 0,
   note_md       TEXT NOT NULL DEFAULT '',
   cites         INTEGER NOT NULL DEFAULT 0,
@@ -23,7 +22,6 @@ CREATE TABLE IF NOT EXISTS item (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_item_doi   ON item(doi)      WHERE doi      IS NOT NULL AND doi      <> '';
 CREATE UNIQUE INDEX IF NOT EXISTS ux_item_arxiv ON item(arxiv_id) WHERE arxiv_id IS NOT NULL AND arxiv_id <> '';
-CREATE INDEX IF NOT EXISTS ix_item_status ON item(status);
 CREATE INDEX IF NOT EXISTS ix_item_year   ON item(year);
 CREATE INDEX IF NOT EXISTS ix_item_added  ON item(added_at);
 

@@ -115,6 +115,40 @@ class TagGroupTests(unittest.TestCase):
         # 再删一次：已不存在
         self.assertIsNone(self.repo.delete_tag_group(self.conn, group_id))
 
+    def test_delete_tag_clears_links_and_aliases_across_documents(self):
+        second_item = self.repo.import_pdf(
+            self.conn, "second.pdf", b"%PDF-1.4 second"
+        )["item_id"]
+        group_id = self.repo.ensure_tag_group(self.conn, "功放组")
+        self.repo.add_tag(self.conn, self.item_id, "topic", "旧写法", group_id=group_id)
+        self.repo.merge(self.conn, "topic", "旧写法", "DPD")
+        self.repo.add_tag(self.conn, second_item, "topic", "旧写法")
+        self.repo.add_tag(self.conn, second_item, "topic", "保留标签")
+        tag_id = self.repo._find_tag(self.conn, "DPD")
+
+        self.assertEqual(self.repo.delete_tag(self.conn, tag_id, 1), (2, False))
+        self.assertEqual(self._snapshot(), ({"功放组": ["DPD"]}, ["保留标签"]))
+        self.assertEqual(self.repo.delete_tag(self.conn, tag_id, 2), (2, True))
+        self.assertIsNone(self.repo.delete_tag(self.conn, tag_id, 2))
+        self.assertIsNone(self.repo._find_tag(self.conn, "旧写法"))
+        self.assertEqual(self._snapshot(), ({"功放组": []}, ["保留标签"]))
+        first = self.repo.get_item(self.conn, self.item_id)
+        second = self.repo.get_item(self.conn, second_item)
+        self.assertEqual(first["topicIds"], [])
+        self.assertEqual(second["tags"]["topic"], ["保留标签"])
+        self.assertTrue(first["hasFile"])
+        self.assertTrue(second["hasFile"])
+
+    def test_delete_unused_tag_can_be_recreated_with_a_new_id(self):
+        self.repo.add_tag(self.conn, self.item_id, "topic", "临时标签")
+        tag_id = self.repo._find_tag(self.conn, "临时标签")
+        self.repo.remove_tag(self.conn, self.item_id, "topic", "临时标签")
+
+        self.assertEqual(self.repo.delete_tag(self.conn, tag_id, 0), (0, True))
+        self.assertEqual(self._snapshot(), ({}, []))
+        self.repo.add_tag(self.conn, self.item_id, "topic", "临时标签")
+        self.assertNotEqual(self.repo._find_tag(self.conn, "临时标签"), tag_id)
+
     def test_group_name_is_reused_case_insensitively(self):
         first = self.repo.ensure_tag_group(self.conn, "功放组")
         self.conn.commit()

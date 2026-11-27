@@ -98,7 +98,7 @@ class ItemTextFieldsTests(unittest.TestCase):
 
 
 class LegacyLibraryMigrationTests(unittest.TestCase):
-    """老库里的 memory / ai_brief 两列必须靠 init_db 显式删掉，schema.sql 帮不上。"""
+    """移除旧摘要列、阅读状态列和索引，保留文献及关联数据。"""
 
     def setUp(self):
         self._tmp = TemporaryDirectory()
@@ -125,7 +125,7 @@ class LegacyLibraryMigrationTests(unittest.TestCase):
               arxiv_id TEXT,
               url TEXT,
               language TEXT NOT NULL DEFAULT 'en',
-              status TEXT NOT NULL DEFAULT 'todo',
+              status TEXT NOT NULL DEFAULT 'todo' CHECK (status IN ('todo', 'reading', 'read')),
               starred INTEGER NOT NULL DEFAULT 0,
               memory TEXT NOT NULL DEFAULT '',
               note_md TEXT NOT NULL DEFAULT '',
@@ -136,8 +136,17 @@ class LegacyLibraryMigrationTests(unittest.TestCase):
               updated_at TEXT NOT NULL,
               deleted_at TEXT
             );
-            INSERT INTO item (id, title, memory, ai_brief, added_at, updated_at)
-              VALUES ('itm_old', '旧文献', '一句话概括', 'AI 摘要', '2026-01-01', '2026-01-01');
+            INSERT INTO item (id, title, status, starred, memory, note_md, ai_brief, added_at, updated_at)
+              VALUES ('itm_old', '旧文献', 'read', 1, '一句话概括', '读书笔记', 'AI 摘要', '2026-01-01', '2026-01-01');
+            CREATE INDEX ix_item_status ON item(status);
+            """
+        )
+        conn.executescript(self.db.SCHEMA_PATH.read_text(encoding="utf-8"))
+        conn.executescript(
+            """
+            INSERT INTO tag (id, name, created_at) VALUES ('tag_old', '功放', '2026-01-01');
+            INSERT INTO item_tag (item_id, tag_id, created_at)
+              VALUES ('itm_old', 'tag_old', '2026-01-01');
             """
         )
         conn.commit()
@@ -147,7 +156,7 @@ class LegacyLibraryMigrationTests(unittest.TestCase):
         os.environ.pop("COLOPHON_LIBRARY", None)
         self._tmp.cleanup()
 
-    def test_init_db_drops_legacy_summary_columns(self):
+    def test_init_db_drops_legacy_columns_and_preserves_related_data(self):
         self.db.init_db()
         self.db.init_db()  # 第二次也要幂等
         conn = self.db.connect()
@@ -155,9 +164,13 @@ class LegacyLibraryMigrationTests(unittest.TestCase):
             columns = {row["name"] for row in conn.execute("PRAGMA table_info(item)")}
             self.assertNotIn("memory", columns)
             self.assertNotIn("ai_brief", columns)
-            row = conn.execute("SELECT id, note_md FROM item").fetchone()
-            self.assertEqual(row["id"], "itm_old")
-            self.assertEqual(row["note_md"], "")
+            self.assertNotIn("status", columns)
+            self.assertIsNone(conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'ix_item_status'").fetchone())
+            row = conn.execute("SELECT id, title, starred, note_md FROM item").fetchone()
+            self.assertEqual(tuple(row), ("itm_old", "旧文献", 1, "读书笔记"))
+            link = conn.execute("SELECT item_id, tag_id FROM item_tag").fetchone()
+            self.assertEqual(tuple(link), ("itm_old", "tag_old"))
+            self.assertEqual(conn.execute("PRAGMA foreign_key_check").fetchall(), [])
         finally:
             conn.close()
 

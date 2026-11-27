@@ -24,7 +24,6 @@ function item(id, opts) {
     authors: opts.authors || [],
     note: opts.note || "",
     year: typeof opts.year === "number" ? opts.year : null,
-    status: opts.status || "todo",
     starred: !!opts.starred,
     needsReview: opts.needsReview || false,
     topicIds: opts.tagIds || [],
@@ -57,7 +56,6 @@ function naiveTerm(it, kind, term) {
     return it.year !== null && it.year >= a && it.year <= b;
   }
   if (term && "star" in term) return it.starred === (term.star !== false);
-  if (term && term.status) return it.status === term.status;
   return false;
 }
 
@@ -78,8 +76,8 @@ const naiveActive = (g) => g.terms.length > 0 || (g.kind === R.YEAR && g.include
 
 function naiveBase(it, f) {
   const q = (f.q || "").trim().toLowerCase();
-  if (f.mode === "untagged" && it.topicIds.length !== 0) return false;
-  if (f.mode === "review" && !it.needsReview) return false;
+  const labelState = it.needsReview ? "review" : it.topicIds.length ? "tagged" : "untagged";
+  if (f.mode && f.mode !== labelState) return false;
   const hay = [
     it.title, it.abstract, it.venue, it.authors.join(" "), it.tags.org.join(" "), it.note,
     it.tags.topic.join(" "),
@@ -154,9 +152,9 @@ function eq(name, actual, expected) {
 /* ---------- 固定小书库 ---------- */
 // 5 篇：A 有标签 x+y，B 有 x，C 有 y，D 无标签、年份未知，E 有 z、待补全
 const lib = [
-  item("A", { year: 2020, tagIds: ["t_x", "t_y"], tags: ["x", "y"], status: "read", starred: true }),
-  item("B", { year: 2021, tagIds: ["t_x"], tags: ["x"], status: "reading" }),
-  item("C", { year: 2022, tagIds: ["t_y"], tags: ["y"], status: "todo" }),
+  item("A", { year: 2020, tagIds: ["t_x", "t_y"], tags: ["x", "y"], starred: true }),
+  item("B", { year: 2021, tagIds: ["t_x"], tags: ["x"] }),
+  item("C", { year: 2022, tagIds: ["t_y"], tags: ["y"] }),
   item("D", { year: null, tagIds: [], tags: [] }),
   item("E", { year: 2019, tagIds: ["t_z"], tags: ["z"], needsReview: true }),
 ];
@@ -226,7 +224,7 @@ const lib = [
     tagQuery: { op: "and", include: ["t_x"], exclude: ["t_y"] },
     groups: [
       { kind: R.YEAR, group_id: R.YEAR_GROUP, terms: [], includeUnknown: true, options: [] },
-      { kind: R.ATTR, group_id: R.ATTR_GROUP, terms: [{ status: "todo" }], options: [{ status: "todo" }] },
+      { kind: R.ATTR, group_id: R.STAR_GROUP, terms: [{ star: false }], options: [{ star: false }] },
       tagGroup("display-only", "any", [], ["t_x", "t_y", "t_z"]),
     ],
   });
@@ -330,40 +328,31 @@ const lib = [
   const r = R.evaluate(lib, {
     groups: [
       tagGroup("@unfiled", "any", ["t_x", "t_y"]),
-      { kind: R.ATTR, op: "any", terms: [{ status: "todo" }], options: [] },
+      { kind: R.ATTR, op: "any", terms: [{ star: false }], options: [] },
     ],
   });
   const last = r.groups.filter((g) => g.active).pop();
   eq("组脚与计数行对得上", last.foot, r.count);
-  eq("计数器一致：x∪y 且 todo = C", r.matched.map((p) => p.id), ["C"]);
+  eq("标签 x/y 且未星标 = B C", r.matched.map((p) => p.id), ["B", "C"]);
   eq("属性组没有「全部」可用", r.groups[1].op, "any");
 }
 
-/* 阅读状态和星标独立，合用时只保留交集 */
+/* 星标过滤 */
 {
   const papers = lib.map(p => p.id === 'B' ? { ...p, starred: true } : p);
-  const status = { kind: R.ATTR, group_id: R.ATTR_GROUP, terms: [{ status: "reading" }] };
   const star = { kind: R.ATTR, group_id: R.STAR_GROUP, terms: [{ star: true }] };
   const ids = (groups) => R.evaluate(papers, { groups }).matched.map(p => p.id);
-  eq("仅在读", ids([status]), ["B"]);
-  eq("仅星标：包含不同阅读状态", ids([star]), ["A", "B"]);
-  eq("在读且有星标", ids([status, star]), ["B"]);
-  eq("待读且有星标：无交集", ids([{ ...status, terms: [{ status: "todo" }] }, star]), []);
-  const fixes = R.rescue(papers, { groups: [{ ...status, terms: [{ status: "todo" }] }, star] });
-  eq("放宽建议可以分别移除阅读状态或星标", fixes.map(f => f.group_id).sort(), [R.ATTR_GROUP, R.STAR_GROUP]);
+  eq("仅星标", ids([star]), ["A", "B"]);
+  eq("取消星标条件显示全库", ids([{ ...star, terms: [] }]), ["A", "B", "C", "D", "E"]);
 }
 
 /* 9. 旧的属性组选「全部」被折回「任一」，不悄悄清空书库 */
 {
   const r = R.evaluate(lib, {
-    groups: [{ kind: R.ATTR, op: "all", terms: [{ status: "read" }, { star: true }], options: [] }],
+    groups: [{ kind: R.ATTR, op: "all", terms: [{ star: true }, { star: false }], options: [] }],
   });
-  eq("属性组 all → any（A 同时满足两者）", r.matched.map((p) => p.id), ["A"]);
-  const r2 = R.evaluate(lib, {
-    groups: [{ kind: R.ATTR, op: "all", terms: [{ status: "read" }, { status: "todo" }], options: [] }],
-  });
-  eq("属性组 all → any（互斥取值仍有结果，而不是空）", r2.matched.map((p) => p.id), ["A", "C", "D", "E"]);
-  eq("属性组 all 被记录为 any", r2.groups[0].op, "any");
+  eq("属性组 all → any", r.matched.map((p) => p.id), ["A", "B", "C", "D", "E"]);
+  eq("属性组 all 被记录为 any", r.groups[0].op, "any");
 }
 
 /* 10. 未打标是模式：不进布尔、不与组取反 */
@@ -379,9 +368,17 @@ const lib = [
   eq("未打标 + 搜索", r3.matched.map((p) => p.id), ["D"]);
 }
 
-/* 11. 待补全模式 */
+/* 11. 三种整理状态互斥，待补全优先于是否已打标 */
 {
+  eq("无标签且无待补元数据 = 未打标", R.labelState(item("untagged")), "untagged");
+  eq("有标签且无待补元数据 = 已打标", R.labelState(item("tagged", { tagIds: ["t_x"] })), "tagged");
+  eq("待补全覆盖标签状态", R.labelState(item("review", { needsReview: true, tagIds: ["t_x"] })), "review");
   eq("待补全：只命中 E", R.evaluate(lib, { mode: "review" }).matched.map((p) => p.id), ["E"]);
+  eq("已打标：待补全条目暂不计入", R.evaluate(lib, { mode: "tagged" }).matched.map((p) => p.id), ["A", "B", "C"]);
+  eq("待补全仍可已有标签", lib.find((p) => p.id === "E").topicIds.length > 0, true);
+  const missingAndUntagged = [item("F", { needsReview: true })];
+  eq("待补全优先于未打标", R.evaluate(missingAndUntagged, { mode: "review" }).count, 1);
+  eq("待补全不重复计入未打标", R.evaluate(missingAndUntagged, { mode: "untagged" }).count, 0);
 }
 
 /* 12. 文本搜索覆盖 note_md / 作者 / 标签名 */
@@ -480,7 +477,6 @@ function applyFix(f, x) {
   const pick = (n) => Math.floor(rnd() * n);
 
   const tags = ["t_a", "t_b", "t_c", "t_d"];
-  const statuses = ["todo", "reading", "read"];
   const big = [];
   for (let i = 0; i < 60; i++) {
     const tagCount = pick(3);
@@ -499,7 +495,6 @@ function applyFix(f, x) {
         year: year,
         tagIds: ids,
         tags: names,
-        status: statuses[pick(3)],
         starred: rnd() < 0.3,
         needsReview: rnd() < 0.2,
         authors: rnd() < 0.4 ? ["Bo Liu", "Jing Xia"] : ["Jing Xia"],
@@ -518,12 +513,12 @@ function applyFix(f, x) {
     [],
   ];
   const attrTerms = [
-    [{ status: "read" }],
-    [{ status: "read" }, { status: "todo" }],
+    [{ star: true }],
+    [{ star: true }, { star: false }],
     [{ star: true }],
   ];
   const qs = ["", "doherty", "noise"];
-  const modes = [null, "untagged", "review"];
+  const modes = [null, "untagged", "review", "tagged"];
   const auths = [[], ["Bo Liu"]];
 
   for (let a = 0; a < 3; a++) {
@@ -632,7 +627,7 @@ function applyFix(f, x) {
 
 /* 18. 老条目没有 topicIds 时，退回标签名判断未打标 */
 {
-  const legacy = [{ id: "L", title: "t", abstract: "", venue: "", authors: [], note: "", year: 2020, status: "todo", starred: false, needsReview: false, tags: { topic: [], year: ["2020"], author: [], org: [] } }];
+  const legacy = [{ id: "L", title: "t", abstract: "", venue: "", authors: [], note: "", year: 2020, starred: false, needsReview: false, tags: { topic: [], year: ["2020"], author: [], org: [] } }];
   eq("没有 topicIds：空标签 = 未打标", R.evaluate(legacy, { mode: "untagged" }).count, 1);
 }
 

@@ -5,7 +5,7 @@
    - 标签展示组不参与检索；全局标签正向 AND / OR 与独立排除条件组合。
    - 排除集合 = ¬(A∨B)，即结果不能包含任一排除标签。
    - 年份区间与单年取并集，未知年份由 includeUnknown 控制（默认包含）。
-   - 文本搜索、模式（未打标 / 待补全）与作者条件在布尔之外 AND。
+   - 文本搜索、整理状态与作者条件在布尔之外 AND。
 
    一次遍历同时算：
    - 结果集；
@@ -15,16 +15,16 @@
 
    数据契约（/api/items 的条目 + 内核要的两样）：
      { id, title, abstract, venue, authors: [名字], note, year: number|null,
-       status, starred, needsReview, topicIds: [标签 id], tags: { topic: [标签名] } }
+       starred, needsReview, topicIds: [标签 id], tags: { topic: [标签名] } }
 
    过滤器契约：
-      { q: "", mode: null|"untagged"|"review", authors: [作者名],
+      { q: "", mode: null|"review"|"untagged"|"tagged", authors: [作者名],
         tagQuery: { op: "and"|"or", include: [标签 id], exclude: [标签 id] },
         groups: [ { kind: "tag"|"year"|"attr"|"meta", group_id, op: "any"|"all"|"none",
                     terms: [已选项], options: [可点的项] } ] }
    元数据组用 @author / @org / @venue 作为 group_id，项是原始名称。
    年份组不用 op，terms 是区间或数字年份，includeUnknown 默认为 true。
-   阅读状态（@attr）与星标（@star）各传一个独立的属性组，每组最多一个已选项。
+   星标（@star）作为独立的属性组，最多一个已选项。
 
    terms 是已选，options 是界面上能点的全集（省略时 = terms）。
    saved_view.filter_json 存已选条件，不存 options——options 由标签库 / 数据现算。
@@ -39,10 +39,9 @@
 
   var UNFILED = "@unfiled";
   var YEAR_GROUP = "@year";
-  var ATTR_GROUP = "@attr";
   var STAR_GROUP = "@star";
-  var GROUP_DEFAULTS = { tag: UNFILED, year: YEAR_GROUP, attr: ATTR_GROUP };
-  var MODES = { untagged: true, review: true };
+  var GROUP_DEFAULTS = { tag: UNFILED, year: YEAR_GROUP, attr: STAR_GROUP };
+  var MODES = { untagged: true, review: true, tagged: true };
 
   function metadataValues(item, field) {
     if (field === "author") return item.authors || [];
@@ -53,6 +52,13 @@
 
   function metadataKey(value) {
     return String(value).toLowerCase();
+  }
+
+  function labelState(item) {
+    var ids = Array.isArray(item.topicIds) ? item.topicIds : [];
+    var topics = item.tags && Array.isArray(item.tags.topic) ? item.tags.topic : [];
+    if (item.needsReview) return "review";
+    return ids.length || topics.length ? "tagged" : "untagged";
   }
 
   function emptyFilters() {
@@ -91,7 +97,6 @@
     }
     if (kind === ATTR && term && typeof term === "object") {
       if ("star" in term) return "star:" + (term.star === false ? "false" : "true");
-      if (typeof term.status === "string") return "status:" + term.status;
     }
     return "@invalid";
   }
@@ -105,7 +110,6 @@
     }
     if (kind === ATTR && term && typeof term === "object") {
       if ("star" in term) return item.starred === (term.star !== false);
-      if (typeof term.status === "string") return item.status === term.status;
     }
     return false;
   }
@@ -129,9 +133,8 @@
     ].join(" ").toLowerCase();
     return {
       tagSet: new Set(topicIds.map(String)),
-      untagged: hasIds ? topicIds.length === 0 : topicNames.length === 0,
+      labelState: labelState(p),
       year: typeof p.year === "number" && isFinite(p.year) ? p.year : null,
-      status: p.status || "todo",
       starred: !!p.starred,
       needsReview: !!p.needsReview,
       hay: hay,
@@ -144,8 +147,7 @@
   }
 
   function basePass(item, q, authors, mode) {
-    if (mode === "untagged" && !item.untagged) return false;
-    if (mode === "review" && !item.needsReview) return false;
+    if (mode && item.labelState !== mode) return false;
     if (q && item.hay.indexOf(q) === -1) return false;
     for (var i = 0; i < authors.length; i++) {
       if (!item.metadata["@author"].has(authors[i])) return false;
@@ -425,11 +427,11 @@
     META: META,
     UNFILED: UNFILED,
     YEAR_GROUP: YEAR_GROUP,
-    ATTR_GROUP: ATTR_GROUP,
     STAR_GROUP: STAR_GROUP,
-      GROUP_DEFAULTS: GROUP_DEFAULTS,
+    GROUP_DEFAULTS: GROUP_DEFAULTS,
     emptyFilters: emptyFilters,
     metadataValues: metadataValues,
+    labelState: labelState,
     termKey: termKey,
     evaluate: evaluate,
     rescue: rescue

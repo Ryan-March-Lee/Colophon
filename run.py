@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import socket
 import sys
@@ -17,6 +18,8 @@ import urllib.request
 import webbrowser
 from datetime import datetime
 from pathlib import Path
+
+from app import API_REVISION
 
 HOST = "127.0.0.1"
 TITLE = "Colophon"
@@ -65,8 +68,13 @@ def _free_port(preferred: int, tries: int = 20) -> int:
 def _health(port: int, timeout: float = 0.5) -> bool:
     try:
         with urllib.request.urlopen(f"http://{HOST}:{port}/api/health", timeout=timeout) as resp:
-            return b"Colophon" in resp.read(256)
-    except OSError:
+            data = json.loads(resp.read(1024))
+            return isinstance(data, dict) and (
+                data.get("ok") is True
+                and data.get("app") == TITLE
+                and data.get("apiRevision") == API_REVISION
+            )
+    except (OSError, ValueError):
         return False
 
 
@@ -206,11 +214,11 @@ def run_window(preferred_port: int) -> None:
     webview.settings["OPEN_EXTERNAL_LINKS_IN_BROWSER"] = True
     webview.settings["SHOW_DEFAULT_MENUS"] = False
 
-    if _focus_existing():
+    running = _find_running(preferred_port)
+    if running is not None and _focus_existing():
         # 另一个 Colophon 窗口已经开着：把它带上来，本进程直接退出
         return
 
-    running = _find_running(preferred_port)
     if running is not None:
         port, server = running, None
     else:

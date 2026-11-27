@@ -166,13 +166,12 @@
 .group-overflow button { min-height:30px; padding-inline:8px; color:var(--accent-2); font-size:12px; }
 .group-empty { flex-wrap:wrap; margin:6px 2px; padding:10px; font-size:12px; }
 
-.reading-controls, .advanced-filters {
+.star-controls, .advanced-filters {
   padding:10px 6px 0;
   border-top:1px solid var(--line-2);
 }
 .advanced-filters { margin-top:8px; }
-.reading-controls, .reading-statuses { gap:6px; }
-.reading-statuses .attr-label { width:100%; }
+.star-controls { flex-wrap:wrap; gap:6px; }
 .attr-label, .advanced-filters summary { font-size:12px; color:var(--ink); font-weight:650; }
 .filter-check, .filter-option:not(.tag-option) { min-height:27px; font-size:11.5px; }
 .advanced-filters summary { cursor:pointer; padding-block:3px; }
@@ -275,12 +274,13 @@ button.expr-seg:hover { background:color-mix(in srgb, var(--accent) 20%, var(--p
 }
 .paper-menu-content button { padding:7px 10px; border-radius:4px; font-size:12px; }
 .paper-menu-content button:hover, .paper-menu-content button:focus-visible { background:var(--hover); }
-.paper-status, .paper-review { font-size:11px; white-space:nowrap; }
+.paper-status { font-size:11px; white-space:nowrap; }
 .paper-status { display:inline-flex; align-items:center; gap:5px; color:var(--muted); }
 .paper-status > span { width:5px; height:5px; border-radius:50%; background:var(--muted-2); }
-.paper-status.reading > span { background:var(--warn); }
-.paper-status.read > span { background:var(--ok); }
-.paper-review { color:var(--warn); }
+.paper-status.review { color:var(--warn); }
+.paper-status.review > span { background:var(--warn); }
+.paper-status.tagged { color:var(--ok); }
+.paper-status.tagged > span { background:var(--ok); }
 .papers .empty { max-width:440px; }
 .papers .empty .em { color:var(--accent); margin-bottom:12px; }
 .papers .empty p { color:var(--ink); font-size:18px; font-weight:650; }
@@ -305,6 +305,7 @@ button.expr-seg:hover { background:color-mix(in srgb, var(--accent) 20%, var(--p
   line-height:1.22;
   overflow-wrap:anywhere;
 }
+.detail-state { margin:7px 0 0; color:var(--muted); font-size:12px; }
 .detail-byline { margin:7px 0 0; color:var(--muted); font-size:12px; line-height:1.55; overflow-wrap:anywhere; }
 .detail-actions { display:flex; gap:7px; flex-wrap:wrap; margin-top:14px; }
 .detail-abstract, .dmeta, .dnote { margin-top:18px; padding-top:14px; border-top:1px solid var(--line); }

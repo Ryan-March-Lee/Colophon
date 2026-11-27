@@ -118,7 +118,6 @@ def _dict_to_item(
         "arxivId": row["arxiv_id"] or "",
         "url": row["url"] or "",
         "cites": row["cites"],
-        "status": row["status"],
         "abstract": row["abstract"],
         "note": row["note_md"],
         "year": row["year"],
@@ -338,6 +337,29 @@ def set_tag_definition(
     return {"tag_id": tag_id, "definition": definition}
 
 
+def delete_tag(
+    conn: sqlite3.Connection, tag_id: str, expected_count: int
+) -> tuple[int, bool] | None:
+    """返回当前的文献数和是否已删除，标签不存在时返回 None。"""
+    with conn:
+        conn.execute("BEGIN IMMEDIATE")
+        row = conn.execute(
+            "SELECT COUNT(i.id) AS count FROM tag t "
+            "LEFT JOIN item_tag it ON it.tag_id = t.id "
+            "LEFT JOIN item i ON i.id = it.item_id AND i.deleted_at IS NULL "
+            "WHERE t.id = ? AND t.deleted_at IS NULL GROUP BY t.id",
+            (tag_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        affected = row["count"]
+        if affected != expected_count:
+            return affected, False
+        # 外键级联移除文献关联、别名和分组成员行。
+        conn.execute("DELETE FROM tag WHERE id = ?", (tag_id,))
+        return affected, True
+
+
 def delete_tag_group(conn: sqlite3.Connection, group_id: str) -> int | None:
     """软删组并清掉成员行：标签退回未分组，不级联删标签。返回受影响的标签数。
 
@@ -461,7 +483,7 @@ def ensure_org(conn: sqlite3.Connection, name: str) -> str:
 # ---------------------------------------------------------------- 写入
 
 def patch_item(conn: sqlite3.Connection, item_id: str, fields: dict) -> dict | None:
-    allowed = {"status", "starred", "note_md"}
+    allowed = {"starred", "note_md"}
     sets: list[str] = []
     values: list = []
     for key, value in fields.items():
@@ -969,9 +991,9 @@ def import_pdf(conn: sqlite3.Connection, filename: str, data: bytes) -> dict:
     ts = now()
     try:
         conn.execute(
-            "INSERT INTO item (id, type, title, abstract, status, language, "
+            "INSERT INTO item (id, type, title, abstract, language, "
             "needs_review, added_at, updated_at) "
-            "VALUES (?, 'article', ?, '', 'todo', 'en', 1, ?, ?)",
+            "VALUES (?, 'article', ?, '', 'en', 1, ?, ?)",
             (item_id, stem, ts, ts),
         )
         _store_pdf(conn, item_id, filename, data)
