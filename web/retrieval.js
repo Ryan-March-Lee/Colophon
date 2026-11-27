@@ -2,17 +2,16 @@
    Colophon · 检索内核（纯函数：不碰 DOM、不发请求、不改入参）
 
    语义见 docs/retrieval-model.md：
-   - 组间固定 AND；组内 任一 / 全部 / 排除；空组不参与，不产生恒真或恒假。
+   - 组间固定 AND；标签组内 任一 / 全部 / 排除；未生效的组不参与。
    - 排除 = ¬(A∨B)，不是「不要 A」。
-   - 年份项是区间或「未知」；年份未知的条目只在显式选中「未知」时命中。
+   - 年份区间与单年取并集，未知年份由 includeUnknown 控制（默认包含）。
    - 文本搜索、模式（未打标 / 待补全）与作者条件在布尔之外 AND。
 
    一次遍历同时算：
    - 结果集；
    - 组脚（按组区从上到下累计：到这一组为止还剩几篇）；
-   - 项计数：任一 / 排除 = 全库绝对值；全部 = 加上这一项后的剩余（边际值）；
-   - 「年份未知」三角的篇数（= 把它加进年份组能救回的篇数）；
-   - 近失（§3）：单点移除当前选中的项后能救回多少篇。
+   - 项计数：任一 / 排除 = 全库绝对值；全部 = 加上这一项后的剩余（边际值）。
+   近失（§3）通过单独求值测试每个调整能救回多少篇。
 
    数据契约（/api/items 的条目 + 内核要的两样）：
      { id, title, abstract, venue, authors: [名字], note, year: number|null,
@@ -23,9 +22,11 @@
        groups: [ { kind: "tag"|"year"|"attr"|"meta", group_id, op: "any"|"all"|"none",
                     terms: [已选项], options: [可点的项] } ] }
    元数据组用 @author / @org / @venue 作为 group_id，项是原始名称。
+   年份组不用 op，terms 是区间或数字年份，includeUnknown 默认为 true。
+   阅读状态（@attr）与星标（@star）各传一个独立的属性组，每组最多一个已选项。
 
    terms 是已选，options 是界面上能点的全集（省略时 = terms）。
-   saved_view.filter_json 只存 terms，不存 options——options 由标签库 / 数据现算。
+   saved_view.filter_json 存已选条件，不存 options——options 由标签库 / 数据现算。
    ============================================================ */
 (function (root) {
   "use strict";
@@ -38,6 +39,7 @@
   var UNFILED = "@unfiled";
   var YEAR_GROUP = "@year";
   var ATTR_GROUP = "@attr";
+  var STAR_GROUP = "@star";
   var GROUP_DEFAULTS = { tag: UNFILED, year: YEAR_GROUP, attr: ATTR_GROUP };
   var MODES = { untagged: true, review: true };
 
@@ -56,9 +58,9 @@
     return { q: "", mode: null, authors: [], groups: [] };
   }
 
-  /* 属性组（年份 / 阅读状态 / 星标）没有「全部」：取值互斥，选「全部」等于空条件。
-     这里把它折回「任一」，宁可退化成旧行为，也不让一个坏过滤器悄悄清空书库。 */
+  /* 只有标签组支持「全部」；年份组固定匹配，不使用操作符。 */
   function normalizeOp(kind, op) {
+    if (kind === YEAR) return "any";
     if (op === "none") return "none";
     if (op === "all") return kind === TAG ? "all" : "any";
     return "any";
@@ -81,7 +83,8 @@
     if (kind === TAG) return String(term);
     if (kind === META) return metadataKey(term);
     if (kind === YEAR) {
-      if (term && typeof term === "object" && term.unknown) return "@unknown";
+      // 即使区间端点相等，区间与独立单年也可以分别移除。
+      if (typeof term === "number" && isFinite(term)) return "year:" + term;
       var range = yearRange(term);
       return range ? range[0] + "-" + range[1] : "@invalid";
     }
@@ -96,7 +99,6 @@
     if (kind === TAG) return item.tagSet.has(String(term));
     if (kind === META) return !!item.metadata[groupId] && item.metadata[groupId].has(metadataKey(term));
     if (kind === YEAR) {
-      if (term && typeof term === "object" && term.unknown) return item.year === null;
       var range = yearRange(term);
       return !!range && item.year !== null && item.year >= range[0] && item.year <= range[1];
     }
@@ -156,8 +158,10 @@
       g = g || {};
       var kind = g.kind === YEAR || g.kind === ATTR || g.kind === META ? g.kind : TAG;
       var terms = Array.isArray(g.terms) ? g.terms : [];
+      if (kind === YEAR) terms = terms.filter(function (t) { return yearRange(t) !== null; });
       var options = Array.isArray(g.options) && g.options.length ? g.options : terms;
       var op = normalizeOp(kind, g.op);
+      var includeUnknown = g.includeUnknown !== false;
       var selected = Object.create(null);
       terms.forEach(function (t) { selected[termKey(kind, t)] = true; });
       var metadataOptions = kind === META ? new Map(options.map(function (t, i) { return [metadataKey(t), i]; })) : null;
@@ -167,6 +171,8 @@
         kind: kind,
         op: op,
         terms: terms,
+        includeUnknown: includeUnknown,
+        active: terms.length > 0 || (kind === YEAR && !includeUnknown),
         options: options,
         selected: selected,
         metadataOptions: metadataOptions,
@@ -174,17 +180,6 @@
         marginal: kind === TAG && op === "all"
       };
     });
-  }
-
-  /* 年份组的纠正入口：生效、操作符是「任一」、且没有显式选中「未知」时才找。 */
-  function findYearWatch(groups) {
-    for (var i = 0; i < groups.length; i++) {
-      var g = groups[i];
-      if (g.kind !== YEAR || !g.terms.length || g.op !== "any") continue;
-      var hasUnknown = g.terms.some(function (t) { return termKey(YEAR, t) === "@unknown"; });
-      if (!hasUnknown) return { group: i };
-    }
-    return { group: -1 };
   }
 
   function evaluate(items, filters) {
@@ -200,11 +195,8 @@
     var counts = groups.map(function (g) { return g.options.map(function () { return 0; }); });
     var margins = groups.map(function (g) { return g.options.map(function () { return 0; }); });
     var feet = groups.map(function () { return 0; });
-    var watch = findYearWatch(groups);
-
     var matched = [];
     var result = 0;
-    var unknownYear = 0;
 
     for (var i = 0; i < list.length; i++) {
       var item = prepItem(list[i]);
@@ -236,8 +228,12 @@
         return gg.terms.map(function (term) { return termPass(item, gg.kind, term, gg.group_id); });
       });
       var pass = groups.map(function (gg, gix) {
-        if (!gg.terms.length) return true;
         var vals = selPass[gix];
+        if (gg.kind === YEAR) {
+          if (item.year === null) return gg.includeUnknown;
+          return !vals.length || vals.some(function (v) { return v; });
+        }
+        if (!gg.terms.length) return true;
         if (gg.op === "all") return vals.every(function (v) { return v; });
         var some = vals.some(function (v) { return v; });
         return gg.op === "none" ? !some : some;
@@ -247,7 +243,7 @@
       var failCount = 0;
       var failIdx = -1;
       for (var k = 0; k < groups.length; k++) {
-        if (!groups[k].terms.length) continue;
+        if (!groups[k].active) continue;
         activeIdx.push(k);
         if (!pass[k]) {
           failCount += 1;
@@ -279,12 +275,6 @@
           if (optPass[mi][mo]) margins[mi][mo] += 1;
         }
       }
-
-      /* ⑥ 年份未知：其它条件都过了、只被年份组挡住的篇数 */
-      if (watch.group >= 0 && item.year === null) {
-        var othersOKForYear = failCount === 0 || (failCount === 1 && failIdx === watch.group);
-        if (othersOKForYear) unknownYear += 1;
-      }
     }
 
     return {
@@ -296,8 +286,8 @@
           group_id: g.group_id,
           kind: g.kind,
           op: g.op,
-          active: g.terms.length > 0,
-          foot: g.terms.length ? feet[gix] : null,
+          active: g.active,
+          foot: g.active ? feet[gix] : null,
           options: g.options.map(function (term, oi) {
             var key = termKey(g.kind, term);
             var isSelected = !!g.selected[key];
@@ -312,12 +302,7 @@
             };
           })
         };
-      }),
-      yearUnknown: {
-        group_id: watch.group >= 0 ? groups[watch.group].group_id : null,
-        count: unknownYear,
-        show: watch.group >= 0 && unknownYear > 0
-      }
+      })
     };
   }
 
@@ -332,6 +317,7 @@
           kind: g.kind,
           group_id: g.group_id,
           op: g.op,
+          includeUnknown: g.includeUnknown,
           terms: Array.isArray(g.terms) ? g.terms.slice() : [],
           options: Array.isArray(g.options) ? g.options.slice() : []
         };
@@ -340,7 +326,7 @@
   }
 
   /* §3 近失：只对当前选中的项做单点移除测试，不组合、不猜测、不改写条件。
-     另加一条「把年份未知加进去」。只在零结果时调用也能用，但不是非零不可。 */
+     若未勾选「包含未知年份」，也测试勾选。 */
   function rescue(items, filters, limit) {
     var f = filters || emptyFilters();
     var max = typeof limit === "number" && limit > 0 ? limit : 5;
@@ -368,23 +354,21 @@
       });
     });
 
-    var watch = findYearWatch(plans);
-    if (watch.group >= 0) {
+    plans.forEach(function (g, gi) {
+      if (g.kind !== YEAR || g.includeUnknown) return;
       var nextYear = cloneFilters(f);
-      nextYear.groups[watch.group].terms.push({ unknown: true });
+      nextYear.groups[gi].includeUnknown = true;
       var gainYear = evaluate(items, nextYear).count - base.count;
       if (gainYear > 0) {
         out.push({
-          action: "add",
-          group_id: plans[watch.group].group_id,
+          action: "include-unknown",
+          group_id: g.group_id,
           kind: YEAR,
-          op: "any",
-          term: { unknown: true },
           key: "@unknown",
           rescued: gainYear
         });
       }
-    }
+    });
 
     out.sort(function (a, b) {
       if (b.rescued !== a.rescued) return b.rescued - a.rescued;
@@ -401,6 +385,7 @@
     UNFILED: UNFILED,
     YEAR_GROUP: YEAR_GROUP,
     ATTR_GROUP: ATTR_GROUP,
+    STAR_GROUP: STAR_GROUP,
     GROUP_DEFAULTS: GROUP_DEFAULTS,
     emptyFilters: emptyFilters,
     metadataValues: metadataValues,

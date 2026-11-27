@@ -80,7 +80,6 @@
   :root[data-theme="dark"] .mark{color:#0f1714}
   .brand-text{line-height:1.1}
   .brand h1{font-size:15px;margin:0;font-weight:650;letter-spacing:.04em}
-  .brand .sub{font-size:10px;color:var(--muted);letter-spacing:.09em;margin-top:2px}
   .search{flex:1;min-width:0;max-width:620px;position:relative;margin-left:8px}
   .search svg{position:absolute;left:11px;top:9px;color:var(--muted);pointer-events:none}
   .search input{
@@ -118,31 +117,32 @@
 
   /* ---------- retrieval groups ---------- */
   .filterzone{flex:none;background:var(--panel);border-bottom:1px solid var(--line);padding:9px 14px 8px;overflow:hidden}
-  .group-tools{display:flex;align-items:center;gap:8px;min-height:26px;margin-bottom:7px}
-  .group-kicker{font-size:10px;font-weight:650;color:var(--muted);letter-spacing:.08em;flex:none}
-  .group-hint{font-size:10.5px;color:var(--muted-2);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .group-clear{margin-left:auto;flex:none}
   .attr-row{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;min-width:0;min-height:30px;white-space:nowrap;padding:2px 0 5px}
   .year-controls,.reading-controls{display:flex;align-items:center;gap:7px;min-width:0}
-  .year-controls{flex:1 1 330px;flex-wrap:wrap}
+  .year-controls{flex:1 1 450px;flex-wrap:wrap}
   .reading-controls{flex-wrap:wrap}
+  .reading-statuses{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
   .attr-label{font-size:10.5px;color:var(--muted);flex:none}
-  .year-options{display:flex;align-items:center;gap:4px;min-width:100px;flex:1;overflow-x:auto;padding:2px}
-  .metadata-filters{display:flex;flex-wrap:wrap;gap:4px 10px;margin:0 0 5px}
-  .metadata-filter{display:flex;flex-wrap:wrap;align-items:center;gap:4px;min-width:0;max-width:100%}
-  .metadata-filter select{max-width:min(100%,15rem)}
+  .metadata-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:start;gap:4px 8px;margin:0 0 5px}
+  .metadata-filter{display:grid;gap:4px;min-width:0}
+  .metadata-filter input{width:100%;min-width:0;height:26px;border:1px solid var(--line);border-radius:5px;background:var(--panel-2);padding:0 7px;font-size:11px;outline:none}
+  .metadata-filter input:focus{border-color:var(--accent)}
+  .metadata-chips{display:flex;flex-wrap:wrap;gap:4px;min-width:0}
   .metadata-filter .filter-option{white-space:normal;height:auto;min-height:24px;max-width:100%;overflow-wrap:anywhere;text-align:left}
   .year-form{display:inline-flex;align-items:center;gap:3px;flex:none}
   .year-form input{width:54px;height:24px;border:1px solid var(--line);border-radius:5px;background:var(--panel-2);padding:0 5px;font-size:10.5px;outline:none}
   .year-form input:focus{border-color:var(--accent)}
   .year-dash{color:var(--muted-2);font-size:10px}
+  .year-singles{display:flex;align-items:center;gap:4px;flex-wrap:wrap;min-width:0;max-width:100%}
+  .year-chips{display:flex;align-items:center;gap:4px;max-width:100%;overflow:auto;padding:2px}
+  .filter-check{display:inline-flex;align-items:center;gap:4px;color:var(--muted);font-size:10.5px;cursor:pointer}
+  .filter-check input{margin:0;accent-color:var(--accent)}
   .filter-option{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 7px;border:1px solid var(--line);border-radius:5px;background:var(--panel);font-size:10.5px;color:var(--muted);white-space:nowrap;flex:none}
   .filter-option:hover{border-color:var(--line-2);background:var(--hover);color:var(--ink)}
   .filter-option[aria-pressed="true"]{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 40%,var(--line));color:var(--accent-2);font-weight:600}
+  .reading-statuses.has-selection .filter-option[aria-pressed="false"]:not(:hover){background:var(--panel-2);color:var(--muted-2)}
   .filter-option:disabled{opacity:.42;cursor:default}
-  .filter-option .fcount{font-size:9.5px;color:var(--muted-2);font-variant-numeric:tabular-nums}
-  .year-unknown{border-style:dashed;color:var(--warn)}
-  .year-unknown[aria-pressed="true"]{background:color-mix(in srgb,var(--warn) 10%,transparent);border-color:color-mix(in srgb,var(--warn) 40%,var(--line));color:var(--warn)}
+  .filter-option .fcount,.filter-check .fcount{font-size:9.5px;color:var(--muted-2);font-variant-numeric:tabular-nums}
   .group-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:5px}
   .query-group{--gc:var(--c-topic);min-width:0;border:1px solid var(--line);border-top:2px solid var(--gc);border-radius:6px;background:var(--panel-2);padding:5px 6px 6px}
   .query-group.unfiled{--gc:var(--warn)}
@@ -174,7 +174,7 @@
   .action-entry b{font-variant-numeric:tabular-nums}
   .action-spacer{flex:1}
   .exprbar{display:flex;align-items:center;gap:7px;min-height:34px;padding:4px 14px;border-bottom:1px solid var(--line);background:var(--panel)}
-  .expr-label{font-size:9.5px;color:var(--muted-2);flex:none}
+  .exprbar[hidden]{display:none}
   .expr-text{display:flex;align-items:center;gap:4px;flex:1;min-width:0;overflow-x:auto;white-space:nowrap;font-size:10.5px;color:var(--muted)}
   .expr-seg{color:var(--ink);padding:2px 4px;border-radius:4px}
   button.expr-seg:hover{background:var(--hover);color:var(--accent)}
@@ -185,17 +185,15 @@
   .relax-box{display:none;position:absolute;right:14px;top:calc(100% + 3px);z-index:20;width:min(390px,calc(100vw - 28px));background:var(--panel);border:1px solid var(--line);border-radius:7px;box-shadow:var(--shadow);padding:7px}
   .exprbar{position:relative}
   .exprbar.relax-open .relax-box{display:block}
-  .relax-head{font-size:10px;color:var(--muted);padding:2px 5px 6px}
   .relax-row{display:flex;width:100%;align-items:center;justify-content:space-between;gap:8px;padding:6px 5px;border-radius:4px;text-align:left;font-size:10.5px}
   .relax-row:hover{background:var(--hover)}
+  #papers .relax-row{max-width:440px;margin:0 auto}
   .relax-row b{font-variant-numeric:tabular-nums;color:var(--accent);white-space:nowrap}
   .relax-none{font-size:10px;color:var(--muted-2);padding:7px 5px}
   .op-select{height:22px;border:1px solid var(--line);border-radius:5px;background:var(--panel);font-size:9.5px;padding:0 3px;color:var(--muted);outline:none;flex:none}
   .op-select:focus{border-color:var(--accent)}
   .qg-head .op-select{margin-left:auto}
   .group-wrap{position:relative}
-  .year-gap{height:22px;padding:0 6px;border:1px dashed color-mix(in srgb,var(--warn) 45%,var(--line));border-radius:5px;color:var(--warn);font-size:9.5px;white-space:nowrap;flex:none}
-  .year-gap:hover,.year-gap:focus-visible{background:color-mix(in srgb,var(--warn) 8%,transparent)}
   .filterzone.compact .group-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 
   .fhead{display:flex;align-items:center;justify-content:space-between;padding:0 4px 10px}
@@ -479,7 +477,6 @@
   .qtag b{font-weight:600;font-size:9.5px;opacity:.6}
   .qtag.has{opacity:.42;cursor:default}
   .wb-tags{margin-top:15px;border-top:1px solid var(--line);padding-top:13px}
-  .wbspot{font-size:11px;color:var(--muted-2);line-height:1.65;margin:0}
   .wb-foot{display:flex;align-items:center;gap:8px;margin-top:16px}
   .wb-foot .skip{margin-left:auto}
   .wb-empty{margin:auto;text-align:center;color:var(--muted);padding:40px 20px}
@@ -699,7 +696,6 @@
     .brand{gap:6px}
     .mark{width:26px;height:26px;border-radius:7px}
     .brand h1{font-size:13px}
-    .brand .sub{display:none}
     .search{margin-left:0}
     .topacts{gap:3px}
     .topacts .btn{height:30px;padding:0 5px;font-size:0;gap:0}
@@ -710,7 +706,6 @@
     .filterzone.more-groups .query-group:nth-child(n+3):not(.unfiled){display:block}
     .query-group.unfiled{display:block}
     .qg-options{max-height:24px}
-    .expr-label{display:none}
   }
 
   /* ---------- 元数据 ---------- */
@@ -841,7 +836,6 @@
     </span>
     <div class="brand-text">
       <h1>Colophon</h1>
-      <div class="sub">文献工作台 · 标签优先</div>
     </div>
   </div>
 
@@ -850,7 +844,7 @@
       <circle cx="7" cy="7" r="4.6" stroke="currentColor" stroke-width="1.4"/>
       <path d="M10.6 10.6 14 14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
     </svg>
-    <input id="search" type="search" placeholder="搜标题、作者、摘要或标签…  按 / 聚焦" autocomplete="off">
+    <input id="search" type="search" placeholder="搜索文献" aria-label="搜索文献" aria-keyshortcuts="/" autocomplete="off">
   </div>
 
   <div class="topacts">
@@ -876,7 +870,7 @@
   <section class="desk">
     <div class="filterzone" id="filterzone"></div>
     <div class="actionbar" id="actionbar"></div>
-    <div class="exprbar" id="exprbar"></div>
+    <div class="exprbar" id="exprbar" role="group" aria-label="当前筛选" hidden></div>
     <div class="listcol">
       <div class="listbar" id="listbar"></div>
       <div class="papers" id="papers"></div>
@@ -931,6 +925,7 @@ const METADATA_FACETS = [
   {key:'org', label:'单位'},
   {key:'venue', label:'期刊'}
 ];
+const READING_STATUSES = ['todo','reading','read'];
 let apiOnline = false;
 let PAPERS = [];
 
@@ -951,9 +946,12 @@ const state = {
   sort:'year',
   mode:null,
   groupFilters:{
-    '@year':{op:'any', terms:[]},
-    '@attr':{op:'any', terms:[]}
+    '@year':{terms:[], includeUnknown:true},
+    '@attr':{terms:[]},
+    '@star':{terms:[]}
   },
+  yearDraft:{yearFrom:'', yearTo:'', yearSingle:'', adding:false},
+  metadataDraft:{},
   groupsExpanded:false,
   expandedGroups:new Set(),
   relaxOpen:false,
@@ -1016,18 +1014,15 @@ function metadataValues(p, key){
 
 function groupKind(id){
   if(id === Retrieval.YEAR_GROUP) return Retrieval.YEAR;
-  if(id === Retrieval.ATTR_GROUP) return Retrieval.ATTR;
+  if(id === Retrieval.ATTR_GROUP || id === Retrieval.STAR_GROUP) return Retrieval.ATTR;
   if(METADATA_FACETS.some(f => '@' + f.key === id)) return Retrieval.META;
   return Retrieval.TAG;
 }
 
 function retrievalGroups(){
   const groups = [];
-  const year = getGroupFilter(Retrieval.YEAR_GROUP, 'any');
-  const yearTerms = year.terms.slice();
-  const years = Array.from(new Set(PAPERS.map(p => p.year).filter(Number.isFinite))).map(y => ({range:[y,y]}));
-  years.push({unknown:true});
-  groups.push({kind:Retrieval.YEAR, group_id:Retrieval.YEAR_GROUP, op:year.op, terms:yearTerms, options:years});
+  const year = getGroupFilter(Retrieval.YEAR_GROUP);
+  groups.push({kind:Retrieval.YEAR, group_id:Retrieval.YEAR_GROUP, terms:year.terms.slice(), includeUnknown:year.includeUnknown});
 
   METADATA_FACETS.slice(1).forEach(function(f){
     const id = '@' + f.key;
@@ -1040,9 +1035,10 @@ function retrievalGroups(){
     groups.push({kind:Retrieval.META, group_id:id, op:'any', terms:filter.terms.slice(), options:Array.from(options.values()).sort((a,b) => a.localeCompare(b,'zh'))});
   });
 
-  const attr = getGroupFilter(Retrieval.ATTR_GROUP, 'any');
-  const attrOptions = [{status:'todo'}, {status:'reading'}, {status:'read'}, {star:true}];
-  groups.push({kind:Retrieval.ATTR, group_id:Retrieval.ATTR_GROUP, op:attr.op, terms:attr.terms.slice(), options:attrOptions});
+  const reading = getGroupFilter(Retrieval.ATTR_GROUP);
+  const star = getGroupFilter(Retrieval.STAR_GROUP);
+  groups.push({kind:Retrieval.ATTR, group_id:Retrieval.ATTR_GROUP, terms:reading.terms.slice(), options:READING_STATUSES.map(status => ({status}))});
+  groups.push({kind:Retrieval.ATTR, group_id:Retrieval.STAR_GROUP, terms:star.terms.slice(), options:[{star:true}]});
 
   (state.groups || []).forEach(function(g){
     const selection = getGroupFilter(g.id, 'any');
@@ -1075,7 +1071,7 @@ function getFiltered(){
 function selectedCount(){
   return Object.keys(state.groupFilters).reduce(function(n,id){
     return n + ((state.groupFilters[id].terms || []).length);
-  },0);
+  },getGroupFilter(Retrieval.YEAR_GROUP).includeUnknown ? 0 : 1);
 }
 
 function findGroupDef(id){
@@ -1105,9 +1101,8 @@ function termLabel(kind,term){
     return hit ? hit.tag.name : '已失效的标签';
   }
   if(kind === Retrieval.YEAR){
-    if(term && term.unknown) return '年份未知';
-    const r = term && term.range || [];
-    return r.length === 2 ? (r[0] === r[1] ? String(r[0]) : r[0] + '–' + r[1]) : '年份';
+    if(typeof term === 'number') return String(term);
+    return term.range[0] + '–' + term.range[1];
   }
   if(term && term.star) return '星标';
   if(term && term.status) return statusLabel(term.status);
@@ -1122,8 +1117,17 @@ function activeExpressions(){
     if(!g.active) return;
     const filter = getGroupFilter(g.group_id);
     const def = g.kind === Retrieval.TAG ? findGroupDef(g.group_id) : null;
-    const name = g.kind === Retrieval.YEAR ? '年份' : g.kind === Retrieval.ATTR ? '阅读状态 / 星标' : g.kind === Retrieval.META ? labelOf(g.group_id.slice(1)) : (def ? def.name : '标签组');
     const labels = filter.terms.map(t => termLabel(g.kind,t));
+    if(g.kind === Retrieval.YEAR){
+      if(filter.includeUnknown) labels.push('年份未知');
+      out.push({id:g.group_id,text:'年份：' + (labels.join(' 或 ') || '仅已知年份')});
+      return;
+    }
+    if(g.kind === Retrieval.ATTR){
+      out.push({id:g.group_id,text:g.group_id === Retrieval.STAR_GROUP ? '仅星标' : '阅读状态：' + labels[0]});
+      return;
+    }
+    const name = g.kind === Retrieval.META ? labelOf(g.group_id.slice(1)) : (def ? def.name : '标签组');
     const joiner = g.op === 'all' ? ' 且 ' : ' 或 ';
     let text = name + '：';
     if(g.op === 'none') text += '不含（' + labels.join(joiner) + '）';
@@ -1154,68 +1158,68 @@ function groupColor(id){
   return id === Retrieval.UNFILED ? 'var(--warn)' : ((def && def.color) || 'var(--c-topic)');
 }
 
-function opControl(groupId,kind,current){
-  const ops = kind === Retrieval.TAG ? [['any','任一'],['all','全部'],['none','排除']] : [['any','任一'],['none','排除']];
-  const def = kind === Retrieval.TAG ? findGroupDef(groupId) : null;
-  const name = kind === Retrieval.YEAR ? '年份' : kind === Retrieval.ATTR ? '阅读状态与星标' : ((def && def.name) || '标签组');
-  return '<select class="op-select" data-change="group-op" data-group="' + esc(groupId) + '" aria-label="' + name + '操作符">' +
+function opControl(groupId,current){
+  const ops = [['any','任一'],['all','全部'],['none','排除']];
+  const def = findGroupDef(groupId);
+  const name = (def && def.name) || '标签组';
+  return '<select class="op-select" data-change="group-op" data-group="' + esc(groupId) + '" aria-label="' + esc(name) + '操作符">' +
     ops.map(([value,label]) => '<option value="' + value + '"' + (value === current ? ' selected' : '') + '>' + label + '</option>').join('') + '</select>';
 }
 
 function renderYearOptions(){
-  const years = Array.from(new Set(PAPERS.map(p => p.year).filter(Number.isFinite))).sort((a,b) => b-a);
-  const filter = getGroupFilter(Retrieval.YEAR_GROUP,'any');
-  const evalGroup = groupEval(Retrieval.YEAR_GROUP);
-  const selected = filter.terms;
-  const chips = years.map(function(y){
-    const key = Retrieval.termKey(Retrieval.YEAR,{range:[y,y]});
-    const option = evalGroup && evalGroup.options.find(o => o.key === key);
-    const on = selected.some(t => t && t.range && y >= t.range[0] && y <= t.range[1]);
-    return '<button class="filter-option" data-act="year-toggle" data-group="@year" data-year="' + y + '" aria-pressed="' + on + '"' +
-      (option && option.count === 0 && !on ? ' disabled' : '') + ' title="' + y + ' · ' + (option ? option.count : 0) + ' 篇">' + y + '<span class="fcount">' + (option ? option.count : 0) + '</span></button>';
-  }).join('');
-  const unknown = evalGroup && evalGroup.options.find(o => o.key === '@unknown');
-  const unknownOn = selected.some(t => t && t.unknown);
-  const unknownChip = '<button class="filter-option year-unknown" data-act="year-unknown" aria-pressed="' + unknownOn + '"' +
-    (unknown && unknown.count === 0 && !unknownOn ? ' disabled' : '') + '>未知 <span class="fcount">' + (unknown ? unknown.count : 0) + '</span></button>';
-  const hasUnknown = selected.some(t => t && t.unknown);
-  const gapCount = currentEvaluation().yearUnknown.count;
-  const gap = selected.length && filter.op === 'any' && !hasUnknown
-    ? '<button class="year-gap" data-act="year-unknown" aria-label="另有 ' + gapCount + ' 篇年份未知" title="另有 ' + gapCount + ' 篇年份未知">▸ 未知 ' + gapCount + '</button>' : '';
-  const rangeForm = '<span class="year-form"><input id="yearFrom" type="number" min="0" max="9999" placeholder="起年" aria-label="起始年份">' +
-    '<span class="year-dash">–</span><input id="yearTo" type="number" min="0" max="9999" placeholder="止年" aria-label="结束年份">' +
-    '<button class="btn tiny" data-act="year-range-add" title="添加年份区间">＋</button></span>';
-  return '<span class="attr-label">年份</span>' + opControl(Retrieval.YEAR_GROUP,Retrieval.YEAR,filter.op) + rangeForm +
-    '<div class="year-options">' + chips + unknownChip + gap + '</div>';
+  const filter = getGroupFilter(Retrieval.YEAR_GROUP);
+  const draft = state.yearDraft;
+  const chips = filter.terms.filter(Number.isInteger).map(y =>
+    '<button class="filter-option" data-act="year-remove" data-year="' + y + '" aria-label="移除单年 ' + y + '" title="移除单年 ' + y + '">' + y + '<span aria-hidden="true">×</span></button>').join('');
+  const rangeForm = '<span class="year-form" role="group" aria-label="年份区间">' +
+    yearInput('yearFrom','起年','起始年份') + '<span class="year-dash">–</span>' + yearInput('yearTo','止年','结束年份') + '</span>';
+  const singleForm = draft.adding ? '<span class="year-form">' + yearInput('yearSingle','单年','输入单年') +
+    '<button class="btn tiny" data-act="year-single-confirm">确定</button></span>' :
+    '<button id="yearSingleAdd" class="btn tiny" data-act="year-single-add">＋ 添加单年</button>';
+  return '<span class="attr-label">年份</span>' + rangeForm +
+    '<div class="year-singles" role="group" aria-label="单年筛选">' +
+    (chips ? '<div class="year-chips">' + chips + '</div>' : '') + singleForm + '</div>' +
+    '<label class="filter-check"><input id="yearIncludeUnknown" type="checkbox"' + (filter.includeUnknown ? ' checked' : '') + '>包含未知年份</label>';
+}
+
+function yearInput(id,placeholder,label){
+  return '<input id="' + id + '" type="text" inputmode="numeric" autocomplete="off" placeholder="' + placeholder +
+    '" aria-label="' + label + '" value="' + esc(state.yearDraft[id]) + '">';
 }
 
 function renderMetadataFilters(){
-  return '<div class="metadata-filters" aria-label="元数据标签">' + METADATA_FACETS.slice(1).map(function(f){
+  return '<div class="metadata-filters" role="group" aria-label="元数据检索">' + METADATA_FACETS.slice(1).map(function(f){
     const id = '@' + f.key;
+    const inputId = 'metadataSearch-' + f.key;
+    const listId = 'metadataList-' + f.key;
     const group = groupEval(id);
     const filter = getGroupFilter(id);
     const options = group.options.filter(o => !o.selected).map(o =>
       '<option value="' + esc(o.term) + '">' + esc(o.term) + ' · ' + o.count + '</option>').join('');
     const selected = filter.terms.map(value =>
       '<button class="filter-option" data-act="metadata-toggle" data-group="' + id + '" data-value="' + esc(value) + '" aria-pressed="true" title="移除' + f.label + '条件">' + esc(value) + ' ×</button>').join('');
-    return '<div class="metadata-filter"><select class="op-select" data-change="metadata-add" data-group="' + id + '" aria-label="筛选' + f.label + '"' + (options ? '' : ' disabled') + '>' +
-      '<option value="">' + f.label + '</option>' + options + '</select>' + selected + '</div>';
+    return '<div class="metadata-filter" data-group="' + id + '"><input id="' + inputId + '" type="search" list="' + listId +
+      '" data-metadata-search="' + id + '" autocomplete="off" placeholder="检索' + f.label + '" aria-label="检索' + f.label +
+      '" value="' + esc(state.metadataDraft[id] || '') + '">' +
+      '<datalist id="' + listId + '">' + options + '</datalist>' +
+      (selected ? '<div class="metadata-chips">' + selected + '</div>' : '') + '</div>';
   }).join('') + '</div>';
 }
 
 function renderAttrOptions(){
-  const id = Retrieval.ATTR_GROUP;
-  const filter = getGroupFilter(id,'any');
-  const options = [{status:'todo'}, {status:'reading'}, {status:'read'}, {star:true}];
-  return '<span class="attr-label">阅读 / 星标</span>' +
-    opControl(id,Retrieval.ATTR,filter.op) + options.map(function(term){
-      const key = Retrieval.termKey(Retrieval.ATTR,term);
-      const on = filter.terms.some(t => Retrieval.termKey(Retrieval.ATTR,t) === key);
-      const result = optionEval(id,key);
-      const label = term.star ? '星标' : statusLabel(term.status);
-      return '<button class="filter-option" data-act="attr-toggle" data-key="' + esc(key) + '" aria-pressed="' + on + '"' +
-        (result && result.count === 0 && !on ? ' disabled' : '') + '>' + label + '<span class="fcount">' + (result ? result.count : 0) + '</span></button>';
-    }).join('');
+  const readingId = Retrieval.ATTR_GROUP;
+  const starId = Retrieval.STAR_GROUP;
+  const selected = getGroupFilter(readingId).terms[0]?.status;
+  const readingOptions = READING_STATUSES.map(function(status){
+    const result = optionEval(readingId,Retrieval.termKey(Retrieval.ATTR,{status}));
+    return '<button id="readingFilter-' + status + '" class="filter-option" data-act="reading-filter" data-status="' + status + '" aria-pressed="' + (status === selected) + '">' +
+      statusLabel(status) + '<span class="fcount" aria-hidden="true">' + (result ? result.count : 0) + '</span></button>';
+  }).join('');
+  const star = optionEval(starId,Retrieval.termKey(Retrieval.ATTR,{star:true}));
+  return '<div class="reading-statuses' + (selected ? ' has-selection' : '') + '" data-group="' + readingId + '" role="group" aria-labelledby="readingFilterLabel">' +
+    '<span class="attr-label" id="readingFilterLabel">阅读状态</span>' + readingOptions + '</div>' +
+    '<label class="filter-check" data-group="' + starId + '"><input id="starFilter" type="checkbox"' + (star?.selected ? ' checked' : '') +
+    '>仅星标 <span class="fcount" aria-hidden="true">' + (star ? star.count : 0) + '</span></label>';
 }
 
 function renderTagGroup(groupId,isUnfiled){
@@ -1239,12 +1243,15 @@ function renderTagGroup(groupId,isUnfiled){
   const foot = result && result.foot !== null ? result.foot : '';
   return '<section class="query-group' + (isUnfiled ? ' unfiled' : '') + (expanded ? ' expanded' : '') + '" style="--gc:' + color + '">' +
     '<div class="qg-head"><span class="qg-name" title="' + esc(def.name) + '">' + esc(def.name) + '</span>' +
-    (isUnfiled ? '<span class="qg-mark">整理</span>' : '') + opControl(groupId,Retrieval.TAG,filter.op) + '<span class="qg-foot">' + foot + '</span></div>' +
+    (isUnfiled ? '<span class="qg-mark">整理</span>' : '') + opControl(groupId,filter.op) + '<span class="qg-foot">' + foot + '</span></div>' +
     '<div class="qg-options">' + options + more + '</div></section>';
 }
 
 function renderGroups(){
   const el = $('#filterzone');
+  const active = document.activeElement;
+  const inputId = active && (active.dataset.metadataSearch || /^year(From|To|Single|IncludeUnknown)$/.test(active.id)) ? active.id : null;
+  const caret = inputId && active.selectionStart !== null ? [active.selectionStart,active.selectionEnd] : null;
   const regular = (state.groups || []).filter(g => (g.tags || []).length);
   const limit = window.matchMedia('(max-width:620px)').matches ? 2 : window.matchMedia('(max-width:1080px)').matches ? 4 : 6;
   const visibleRegular = state.groupsExpanded ? regular : regular.slice(0,limit);
@@ -1253,12 +1260,16 @@ function renderGroups(){
   const hasUnfiled = (state.unfiled || []).length > 0;
   const tagGroups = visibleRegular.map(g => renderTagGroup(g.id,false)).join('') + (hasUnfiled ? renderTagGroup(Retrieval.UNFILED,true) : '');
   const noGroups = !regular.length && !hasUnfiled;
-  const n = selectedCount();
-  el.innerHTML = '<div class="group-tools"><span class="group-kicker">检索条件</span><span class="group-hint">组间 AND · 标签组可选任一、全部或排除</span>' +
-    (n ? '<button class="linkbtn group-clear" data-act="clear-all">清除条件 ' + n + '</button>' : '<span class="group-clear fsub">空条件浏览全库</span>') + '</div>' +
-    '<div class="attr-row"><div class="year-controls">' + renderYearOptions() + '</div><div class="reading-controls">' + renderAttrOptions() + '</div></div>' + renderMetadataFilters() +
-    (noGroups ? '<div class="group-empty"><span>还没有标签分组。打标时选一个组，它就会出现在这里。</span><button class="btn tiny" data-act="new-group">＋ 新建分组</button></div>' : '<div class="group-grid">' + tagGroups + '</div>') +
+  el.innerHTML = '<div class="attr-row"><div class="year-controls" data-group="@year" role="group" aria-label="年份筛选">' + renderYearOptions() + '</div><div class="reading-controls">' + renderAttrOptions() + '</div></div>' + renderMetadataFilters() +
+    (noGroups ? '<div class="group-empty"><span>暂无标签分组</span><button class="btn tiny" data-act="new-group">＋ 新建分组</button></div>' : '<div class="group-grid">' + tagGroups + '</div>') +
     (hiddenN ? '<div class="group-overflow"><button data-act="groups-expand">更多组 ' + hiddenN + '</button></div>' : (state.groupsExpanded && regular.length > limit ? '<div class="group-overflow"><button data-act="groups-expand">收起分组</button></div>' : ''));
+  if(inputId){
+    const input = document.getElementById(inputId);
+    if(input){
+      input.focus({preventScroll:true});
+      if(caret) input.setSelectionRange(caret[0],caret[1]);
+    }
+  }
 }
 
 function renderActionBar(){
@@ -1269,18 +1280,30 @@ function renderActionBar(){
     '<span class="action-spacer"></span>' + (state.mode === 'review' ? '<button class="linkbtn" data-act="mode-clear">退出待补全</button>' : '');
 }
 
+function renderRescueButton(fix){
+  const label = fix.action === 'include-unknown' ? '勾选「包含未知年份」' : '去掉「' + termLabel(fix.kind,fix.term) + '」';
+  return '<button class="relax-row" data-act="apply-rescue" data-kind="' + fix.action + '" data-group="' + esc(fix.group_id) + '" data-key="' + esc(fix.key) + '"><span>' + esc(label) + '</span><b>能救回 ' + fix.rescued + ' 篇</b></button>';
+}
+
 function renderExpression(){
   const el = $('#exprbar');
   const parts = activeExpressions();
-  const content = parts.length ? parts.map((p,i) => (i ? '<span class="expr-and">且</span>' : '') + '<button class="expr-seg" data-act="jump-group" data-group="' + esc(p.id) + '">' + esc(p.text) + '</button>').join('') : '<span class="expr-seg">浏览全库</span>';
-  const near = currentEvaluation().count === 0 && (state.q || selectedCount() || state.mode);
+  const hasFilters = Boolean(selectedCount() || state.mode);
+  el.hidden = !hasFilters && !state.q;
+  if(el.hidden){
+    el.innerHTML = '';
+    return;
+  }
+  const content = parts.map((p,i) => (i ? '<span class="expr-and">且</span>' : '') + '<button class="expr-seg" data-act="jump-group" data-group="' + esc(p.id) + '">' + esc(p.text) + '</button>').join('');
+  const near = currentEvaluation().count === 0;
   const fixes = near ? Retrieval.rescue(PAPERS,retrievalFilter(),5) : [];
-  const rows = fixes.map(x => '<button class="relax-row" data-act="apply-rescue" data-kind="' + x.action + '" data-group="' + esc(x.group_id) + '" data-key="' + esc(x.key) + '"><span>' + (x.action === 'add' ? '把「年份未知」加入' : '去掉「' + esc(termLabel(x.kind,x.term)) + '」') + '</span><b>能救回 ' + x.rescued + ' 篇</b></button>').join('');
+  const rows = fixes.map(renderRescueButton).join('');
   el.classList.toggle('relax-open',state.relaxOpen);
-  el.innerHTML = '<span class="expr-label">表达式</span><div class="expr-text">' + content + '</div><div class="expr-actions">' +
+  el.innerHTML = '<div class="expr-text">' + content + '</div><div class="expr-actions">' +
     (near ? '<button class="expr-action" data-act="relax-toggle">放宽建议</button>' : '') +
-    (parts.length || state.q || state.mode ? '<button class="expr-action" data-act="reset-all">清除</button>' : '') + '</div>' +
-    (near ? '<div class="relax-box"><div class="relax-head">只测试单项变更，不组合条件</div>' + (rows || '<div class="relax-none">没有单项调整能恢复结果</div>') + '</div>' : '');
+    (state.q && hasFilters ? '<button class="expr-action" data-act="clear-all">清除筛选</button>' : '') +
+    '<button class="expr-action" data-act="reset-all">' + (state.q && hasFilters ? '全部清除' : '清除') + '</button></div>' +
+    (near ? '<div class="relax-box">' + (rows || '<div class="relax-none">没有可用建议</div>') + '</div>' : '');
 }
 
 function renderListbar(ps){
@@ -1292,16 +1315,12 @@ function renderListbar(ps){
     '<button class="btn tiny" data-act="to-ai"' + (ps.length ? '' : ' disabled') + '>问 AI · ' + ps.length + ' 篇</button></div></div>';
 }
 
-function yearIsSelected(year){
-  return getGroupFilter(Retrieval.YEAR_GROUP).terms.some(t => t.range && year >= t.range[0] && year <= t.range[1]);
-}
-
 function metadataChip(key,value){
   const id = '@' + key;
   const filter = getGroupFilter(id);
   const term = Retrieval.termKey(Retrieval.META,value);
   const isYear = key === 'year';
-  const on = isYear ? yearIsSelected(Number(value)) : filter.terms.some(t => Retrieval.termKey(Retrieval.META,t) === term);
+  const on = isYear ? filter.terms.includes(Number(value)) : filter.terms.some(t => Retrieval.termKey(Retrieval.META,t) === term);
   return '<button class="tag" style="--c:' + colorOf(key) + '" data-group="' + id + '" ' +
     (isYear ? 'data-act="year-toggle" data-year="' + esc(value) : 'data-act="metadata-toggle" data-value="' + esc(value)) +
     '" aria-pressed="' + on + '" title="' + esc(labelOf(key) + '：' + value) + '">' + esc(value) + '</button>';
@@ -1328,8 +1347,8 @@ function renderList(ps){
     else if(!PAPERS.length) el.innerHTML = '<div class="empty"><div class="em">◇</div><p>书库还是空的</p><div style="font-size:11px;color:var(--muted-2);line-height:1.7;margin-bottom:12px">导入第一篇 PDF 开始。文件会复制进本地书库，原文件不动。</div><button class="btn primary" data-act="import">导入 PDF 或文件夹</button></div>';
     else {
       const fixes = Retrieval.rescue(PAPERS,retrievalFilter(),5);
-      const suggestions = fixes.map(x => '<button class="relax-row" style="max-width:440px;margin:0 auto" data-act="apply-rescue" data-kind="' + x.action + '" data-group="' + esc(x.group_id) + '" data-key="' + esc(x.key) + '"><span>' + (x.action === 'add' ? '把「年份未知」加入' : '去掉「' + esc(termLabel(x.kind,x.term)) + '」') + '</span><b>能救回 ' + x.rescued + ' 篇</b></button>').join('');
-      el.innerHTML = '<div class="empty"><div class="em">○</div><p>' + (state.mode === 'review' ? '待补全队列为空' : '没有符合这些条件的文献') + '</p><p style="font-size:11px;color:var(--muted-2)">布尔条件不留余量：去掉一个条件才能看到结果。</p>' + suggestions + '<button class="btn tiny" data-act="reset-all">清除搜索与筛选</button></div>';
+      const suggestions = fixes.map(renderRescueButton).join('');
+      el.innerHTML = '<div class="empty"><div class="em">○</div><p>' + (state.mode === 'review' ? '待补全队列为空' : '没有符合这些条件的文献') + '</p>' + suggestions + '<button class="btn tiny" data-act="reset-all">清除搜索与筛选</button></div>';
     }
     el.scrollTop = 0;
     return;
@@ -1531,8 +1550,7 @@ function renderGroupDialog(){
 
   if(d.kind === 'create-group'){
     modal.innerHTML = '<div class="modal-card" style="width:min(460px,92vw)">' +
-      '<div class="mhead"><div><h3>新建组</h3>' +
-        '<p>组是检索时的布尔单位。名字要能概括一类概念，比如「功放组」。</p></div></div>' +
+      '<div class="mhead"><h3>新建组</h3></div>' +
       '<div class="groupbar">' +
         '<input id="libNewGroupName" placeholder="组名，如「功放组」" autocomplete="off" maxlength="120">' +
       '</div>' +
@@ -1558,8 +1576,7 @@ function renderGroupDialog(){
   }
 
   modal.innerHTML = '<div class="modal-card" style="width:min(460px,92vw)">' +
-    '<div class="mhead"><div><h3>把「' + esc(d.name) + '」归入哪个组？</h3>' +
-      '<p>一个标签只属于一个组；选「未分组」就会留在未分组里。</p></div></div>' +
+    '<div class="mhead"><h3>把「' + esc(d.name) + '」归入哪个组？</h3></div>' +
     (groups.length
       ? '<div class="pickgrouplist">' + groups.map(function(g){
           return '<button class="pickgroup' + (g.id === state.groupSel ? ' on' : '') + '"' +
@@ -1768,10 +1785,10 @@ function renderReaderSide(){
       '</div>' +
     '</div>' +
     '<div>' +
-      '<div class="rs-lab">新标签 <span class="hint">回车即加</span></div>' +
+      '<div class="rs-lab">新标签</div>' +
       '<div class="rs-group">' + groupPickerHTML() + '</div>' +
       '<div class="rs-add" style="margin-top:5px">' +
-        '<input id="rtValue" list="rtList" placeholder="打一个标签，回车即加入" autocomplete="off">' +
+        '<input id="rtValue" list="rtList" placeholder="输入标签" aria-label="新标签" autocomplete="off">' +
         '<datalist id="rtList"></datalist>' +
         '<button class="btn primary" data-act="rt-add">加上</button>' +
       '</div>' +
@@ -1896,9 +1913,6 @@ function renderWorkbench(){
           ? existing.map(t => '<span class="tag" style="--c:' + topicColor(t) + '"><span class="taglabel">' + esc(t) + '</span></span>').join('')
           : '<span class="none">还没有标签</span>') +
       '</div>' +
-      (p.hasFile
-        ? '<p class="wbspot">打标签在阅读器的右侧栏里做：一边翻原文，一边从当前组里挑，不用凭标题猜。</p>'
-        : '<p class="wbspot">这一条还没有托管 PDF。没有原文时仍可在侧栏里打标，但那只是凭标题和摘要——补上文件后更准。</p>') +
     '</div>' +
     '<div class="wb-foot">' +
       '<button class="btn" data-act="wb-prev"' + (state.wbHist.length ? '' : ' disabled') + '>← 上一篇</button>' +
@@ -2820,34 +2834,76 @@ function toggleTerm(groupId, term){
 }
 
 function toggleYear(year){
-  const filter = getGroupFilter(Retrieval.YEAR_GROUP);
-  if(!yearIsSelected(year)) return toggleTerm(Retrieval.YEAR_GROUP,{range:[year,year]});
-  filter.terms = filter.terms.flatMap(function(t){
-    if(!t.range || year < t.range[0] || year > t.range[1]) return [t];
-    const pieces = [];
-    if(t.range[0] < year) pieces.push({range:[t.range[0],year-1]});
-    if(year < t.range[1]) pieces.push({range:[year+1,t.range[1]]});
-    return pieces;
-  });
-  state.eval = null;
-  state.pendingScroll = 'top';
-  renderAll();
+  if(Number.isInteger(year)) toggleTerm(Retrieval.YEAR_GROUP,year);
 }
 
-function clearAll(){
-  Object.keys(state.groupFilters).forEach(id => { state.groupFilters[id].terms = []; });
-  state.mode = null;
+function renderFilterChange(focusId){
   state.eval = null;
   state.relaxOpen = false;
   state.pendingScroll = 'top';
   renderAll();
+  if(focusId) document.getElementById(focusId)?.focus({preventScroll:true});
 }
 
-function resetAll(){
-  clearAll();
-  state.q = '';
-  const s = $('#search');
-  if(s) s.value = '';
+function parseFilterYear(value){
+  const text = value.trim();
+  return /^[0-9]{1,4}$/.test(text) ? Number(text) : null;
+}
+
+function updateYearRange(){
+  const draft = state.yearDraft;
+  const from = parseFilterYear(draft.yearFrom), to = parseFilterYear(draft.yearTo);
+  const filter = getGroupFilter(Retrieval.YEAR_GROUP);
+  const current = filter.terms.find(t => t.range);
+  const valid = from !== null && to !== null && from <= to;
+  if(valid ? current && current.range[0] === from && current.range[1] === to : !current) return;
+
+  filter.terms = filter.terms.filter(Number.isInteger);
+  if(valid) filter.terms.unshift({range:[from,to]});
+  renderFilterChange();
+}
+
+function confirmSingleYear(){
+  const draft = state.yearDraft;
+  const year = parseFilterYear(draft.yearSingle);
+  if(year === null){ toast('请输入 0 到 9999 之间的整数年份'); $('#yearSingle').focus(); return; }
+  const filter = getGroupFilter(Retrieval.YEAR_GROUP);
+  if(!filter.terms.includes(year)) filter.terms.push(year);
+  draft.yearSingle = '';
+  renderFilterChange('yearSingle');
+}
+
+function removeSingleYear(year){
+  const filter = getGroupFilter(Retrieval.YEAR_GROUP);
+  filter.terms = filter.terms.filter(t => t !== year);
+  renderFilterChange(state.yearDraft.adding ? 'yearSingle' : 'yearSingleAdd');
+}
+
+function addMetadataSelection(input){
+  const groupId = input.dataset.metadataSearch;
+  const value = input.value.trim();
+  if(!value) return;
+  const key = Retrieval.termKey(Retrieval.META,value);
+  const option = groupEval(groupId).options.find(o => o.key === key && !o.selected);
+  if(!option) return;
+  state.metadataDraft[groupId] = '';
+  getGroupFilter(groupId).terms.push(option.term);
+  renderFilterChange();
+}
+
+function clearAll(clearQuery = false){
+  Object.keys(state.groupFilters).forEach(id => { state.groupFilters[id].terms = []; });
+  getGroupFilter(Retrieval.YEAR_GROUP).includeUnknown = true;
+  state.yearDraft = {yearFrom:'', yearTo:'', yearSingle:'', adding:false};
+  state.metadataDraft = {};
+  if(clearQuery){
+    state.q = '';
+    const search = $('#search');
+    if(search) search.value = '';
+  }
+  state.mode = null;
+  state.eval = null;
+  state.relaxOpen = false;
   state.pendingScroll = 'top';
   renderAll();
 }
@@ -2972,7 +3028,7 @@ async function refreshGroups(){
     const data = await fetchTags();
     state.groups = data.groups || [];
     state.unfiled = data.unfiled || [];
-    const valid = new Set([Retrieval.ATTR_GROUP,Retrieval.UNFILED].concat(METADATA_FACETS.map(f => '@' + f.key),state.groups.map(g => g.id)));
+    const valid = new Set([Retrieval.ATTR_GROUP,Retrieval.STAR_GROUP,Retrieval.UNFILED].concat(METADATA_FACETS.map(f => '@' + f.key),state.groups.map(g => g.id)));
     Object.keys(state.groupFilters).forEach(id => { if(!valid.has(id)) delete state.groupFilters[id]; });
     state.eval = null;
     // 记住的组被删了：清掉，回落到未分组，不把标签静默塞进别的组
@@ -3218,10 +3274,12 @@ document.addEventListener('click', function(e){
   else if(act === 'tag-toggle'){
     toggleTerm(el.dataset.group,el.dataset.id);
   }
-  else if(act === 'attr-toggle'){
-    const terms = [{status:'todo'}, {status:'reading'}, {status:'read'}, {star:true}];
-    const term = terms.find(t => Retrieval.termKey(Retrieval.ATTR,t) === el.dataset.key);
-    if(term) toggleTerm(Retrieval.ATTR_GROUP,term);
+  else if(act === 'reading-filter'){
+    const status = el.dataset.status;
+    if(!READING_STATUSES.includes(status)) return;
+    const filter = getGroupFilter(Retrieval.ATTR_GROUP);
+    filter.terms = filter.terms[0]?.status === status ? [] : [{status}];
+    renderFilterChange(el.id);
   }
   else if(act === 'year-toggle'){
     toggleYear(Number(el.dataset.year));
@@ -3229,17 +3287,19 @@ document.addEventListener('click', function(e){
   else if(act === 'metadata-toggle'){
     toggleTerm(el.dataset.group,el.dataset.value);
   }
-  else if(act === 'year-unknown'){
-    toggleTerm(Retrieval.YEAR_GROUP,{unknown:true});
-  }
   else if(act === 'apply-rescue'){
     const groupId = el.dataset.group;
     const filter = getGroupFilter(groupId,'any');
     const kind = groupKind(groupId);
-    if(el.dataset.kind === 'add'){
-      if(groupId === Retrieval.YEAR_GROUP && !filter.terms.some(t => t && t.unknown)) filter.terms.push({unknown:true});
+    if(el.dataset.kind === 'include-unknown'){
+      filter.includeUnknown = true;
     }else{
+      const removedRange = kind === Retrieval.YEAR && filter.terms.some(t => t.range && Retrieval.termKey(kind,t) === el.dataset.key);
       filter.terms = filter.terms.filter(t => Retrieval.termKey(kind,t) !== el.dataset.key);
+      if(removedRange){
+        state.yearDraft.yearFrom = '';
+        state.yearDraft.yearTo = '';
+      }
     }
     state.eval = null;
     state.relaxOpen = false;
@@ -3260,20 +3320,19 @@ document.addEventListener('click', function(e){
     renderGroups();
   }
   else if(act === 'clear-all'){ clearAll(); }
-  else if(act === 'reset-all'){ resetAll(); }
+  else if(act === 'reset-all'){ clearAll(true); }
   else if(act === 'jump-group'){
     const id = el.dataset.group;
     const target = id === '@query' ? $('#search') : id === '@mode' ? $('#actionbar') : $('#filterzone [data-group="' + CSS.escape(id) + '"]');
     if(target){ target.scrollIntoView({behavior:'smooth',block:'nearest'}); if(id === '@query') target.focus(); }
   }
-  else if(act === 'year-range-add'){
-    const fromText = $('#yearFrom').value.trim(), toText = $('#yearTo').value.trim();
-    const from = Number(fromText), to = Number(toText);
-    if(!fromText || !toText || !Number.isInteger(from) || !Number.isInteger(to) || from < 0 || to < 0 || from > 9999 || to > 9999){ toast('请输入 0 到 9999 之间的整数年份'); return; }
-    const filter = getGroupFilter(Retrieval.YEAR_GROUP,'any');
-    const range = [Math.min(from,to),Math.max(from,to)];
-    if(!filter.terms.some(t => t.range && t.range[0] === range[0] && t.range[1] === range[1])) toggleTerm(Retrieval.YEAR_GROUP,{range});
+  else if(act === 'year-single-add'){
+    state.yearDraft.adding = true;
+    renderGroups();
+    $('#yearSingle').focus();
   }
+  else if(act === 'year-single-confirm'){ confirmSingleYear(); }
+  else if(act === 'year-remove'){ removeSingleYear(Number(el.dataset.year)); }
   else if(act === 'close-detail'){ $('#app').classList.remove('show-detail'); }
   else if(act === 'select'){ selectPaper(el.dataset.id); }
   else if(act === 'toggle-abstract'){
@@ -3621,8 +3680,19 @@ document.addEventListener('submit', function(e){
 });
 
 document.addEventListener('change', function(e){
-  if(e.target.dataset.change === 'metadata-add'){
-    if(e.target.value) toggleTerm(e.target.dataset.group,e.target.value);
+  if(e.target.id === 'yearIncludeUnknown'){
+    getGroupFilter(Retrieval.YEAR_GROUP).includeUnknown = e.target.checked;
+    renderFilterChange('yearIncludeUnknown');
+    return;
+  }
+  if(e.target.id === 'starFilter'){
+    getGroupFilter(Retrieval.STAR_GROUP).terms = e.target.checked ? [{star:true}] : [];
+    renderFilterChange('starFilter');
+    return;
+  }
+  if(e.target.dataset.metadataSearch){
+    // Choosing a suggestion commits while the input is still focused.
+    if(document.activeElement === e.target) addMetadataSelection(e.target);
     return;
   }
   if(e.target.dataset.change === 'group-op'){
@@ -3667,6 +3737,15 @@ document.addEventListener('change', function(e){
 });
 
 document.addEventListener('input', function(e){
+  if(e.target.dataset.metadataSearch){
+    state.metadataDraft[e.target.dataset.metadataSearch] = e.target.value;
+    return;
+  }
+  if(/^year(From|To|Single)$/.test(e.target.id)){
+    state.yearDraft[e.target.id] = e.target.value;
+    if(e.target.id !== 'yearSingle' && !e.isComposing) updateYearRange();
+    return;
+  }
   if(e.target.id === 'search'){
     state.q = e.target.value.trim();
     state.eval = null;
@@ -3681,6 +3760,13 @@ document.addEventListener('input', function(e){
   }
 });
 
+document.addEventListener('compositionend', function(e){
+  if(e.target.id === 'yearFrom' || e.target.id === 'yearTo'){
+    state.yearDraft[e.target.id] = e.target.value;
+    updateYearRange();
+  }
+});
+
 let readerScrollRaf = 0;
 $('#readerBody').addEventListener('scroll', function(){
   if(!state.readerOpen) return;
@@ -3692,6 +3778,33 @@ $('#readerBody').addEventListener('scroll', function(){
 });
 
 document.addEventListener('keydown', function(e){
+  if(e.target.dataset.metadataSearch && e.key === 'Enter'){
+    if(e.isComposing || e.keyCode === 229) return;
+    addMetadataSelection(e.target);
+    return;
+  }
+  if(e.target.id === 'yearSingle'){
+    if(e.isComposing || e.keyCode === 229) return;
+    if(e.key === 'Enter'){
+      e.preventDefault();
+      confirmSingleYear();
+      return;
+    }
+    if(e.key === 'Backspace' && e.target.value === ''){
+      const singles = getGroupFilter(Retrieval.YEAR_GROUP).terms.filter(Number.isInteger);
+      e.preventDefault();
+      if(!e.repeat && singles.length) removeSingleYear(singles[singles.length - 1]);
+      return;
+    }
+    if(e.key === 'Escape'){
+      e.preventDefault();
+      state.yearDraft.adding = false;
+      state.yearDraft.yearSingle = '';
+      renderGroups();
+      $('#yearSingleAdd').focus();
+      return;
+    }
+  }
   if(state.readerOpen){
     // 正在侧栏输入时，Esc 只退出输入框，不关阅读器——否则打了一半的标签会丢
     if(e.key === 'Escape' && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){

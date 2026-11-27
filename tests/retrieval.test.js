@@ -49,8 +49,7 @@ function tagGroup(groupId, op, terms, options) {
 function naiveTerm(it, kind, term) {
   if (kind === TAG) return new Set(it.topicIds).has(String(term));
   if (kind === R.YEAR) {
-    if (term && typeof term === "object" && term.unknown) return it.year === null;
-    const r = term.range || term;
+    const r = typeof term === "number" ? [term, term] : term.range;
     const a = Number(r[0]);
     const b = Number(r[1]);
     return it.year !== null && it.year >= a && it.year <= b;
@@ -61,6 +60,10 @@ function naiveTerm(it, kind, term) {
 }
 
 function naiveGroupPass(it, g) {
+  if (g.kind === R.YEAR) {
+    if (it.year === null) return g.includeUnknown !== false;
+    return !g.terms.length || g.terms.some((t) => naiveTerm(it, g.kind, t));
+  }
   if (!g.terms.length) return true;
   const op = g.kind === TAG ? g.op : (g.op === "none" ? "none" : "any");
   const vals = g.terms.map((t) => naiveTerm(it, g.kind, t));
@@ -68,6 +71,8 @@ function naiveGroupPass(it, g) {
   const some = vals.some((v) => v);
   return op === "none" ? !some : some;
 }
+
+const naiveActive = (g) => g.terms.length > 0 || (g.kind === R.YEAR && g.includeUnknown === false);
 
 function naiveBase(it, f) {
   const q = (f.q || "").trim().toLowerCase();
@@ -91,11 +96,11 @@ function naive(items, f) {
     return groups.every((g) => naiveGroupPass(it, g));
   });
   const feet = groups.map((g, gi) => {
-    if (!g.terms.length) return null;
+    if (!naiveActive(g)) return null;
     return items.filter((it) => {
       if (!naiveBase(it, f)) return false;
       for (let k = 0; k <= gi; k++) {
-        if (groups[k].terms.length && !naiveGroupPass(it, groups[k])) return false;
+        if (naiveActive(groups[k]) && !naiveGroupPass(it, groups[k])) return false;
       }
       return true;
     }).length;
@@ -159,7 +164,6 @@ const lib = [
   const r = R.evaluate(lib, R.emptyFilters());
   eq("空条件：结果 = 全库", r.count, 5);
   eq("空条件：组脚与项计数都不存在", r.groups.length, 0);
-  eq("空条件：没有年份未知提示", r.yearUnknown.show, false);
 }
 
 /* 2. 任一 / 全部 / 排除 */
@@ -212,27 +216,18 @@ const lib = [
   eq("组间 AND：标签 x 且搜索 b", r.matched.map((p) => p.id), ["B"]);
 }
 
-/* 6. 年份区间：不含未知；区间 + 未知才含；只选未知只含未知 */
+/* 6. 年份复选框：默认包含未知，未填写区间或单年也可取消勾选 */
 {
-  const rangeOnly = R.evaluate(lib, {
-    groups: [{ kind: R.YEAR, op: "any", terms: [{ range: [2020, 2022] }], options: [{ range: [2020, 2022] }] }],
-  });
-  eq("年份区间：A B C，D（未知）不命中", rangeOnly.matched.map((p) => p.id), ["A", "B", "C"]);
-  eq("年份区间：组脚", rangeOnly.groups[0].foot, 3);
-  eq("年份区间：未知三角提示=1", rangeOnly.yearUnknown.count, 1);
-  eq("年份区间：三角指向年份组", rangeOnly.yearUnknown.group_id, R.YEAR_GROUP);
-
-  const both = R.evaluate(lib, {
-    groups: [{ kind: R.YEAR, op: "any", terms: [{ range: [2020, 2022] }, { unknown: true }], options: [] }],
-  });
-  eq("区间 + 未知：A B C D", both.matched.map((p) => p.id), ["A", "B", "C", "D"]);
-  eq("区间 + 未知：三角消失", both.yearUnknown.show, false);
-
-  const unknownOnly = R.evaluate(lib, {
-    groups: [{ kind: R.YEAR, op: "any", terms: [{ unknown: true }], options: [] }],
-  });
-  eq("只选未知：只命中 D", unknownOnly.matched.map((p) => p.id), ["D"]);
-  eq("只选未知：不再提示三角", unknownOnly.yearUnknown.show, false);
+  const evaluateYear = (terms, includeUnknown) => R.evaluate(lib, { groups: [{ kind: R.YEAR, terms, includeUnknown }] });
+  const ids = (r) => r.matched.map((p) => p.id);
+  const terms = [{ range: [2020, 2022] }];
+  eq("区间默认包含未知", ids(evaluateYear(terms)), ["A", "B", "C", "D"]);
+  eq("区间取消勾选：不含未知", ids(evaluateYear(terms, false)), ["A", "B", "C"]);
+  eq("无区间或单年且勾选：浏览全库", ids(evaluateYear([], true)), ["A", "B", "C", "D", "E"]);
+  eq("默认状态下年份组不生效", evaluateYear([], true).groups[0].active, false);
+  const knownOnly = evaluateYear([], false);
+  eq("无区间或单年且取消勾选：仅已知年份", ids(knownOnly), ["A", "B", "C", "E"]);
+  eq("仅已知年份：年份组生效且有组脚", [knownOnly.groups[0].active, knownOnly.groups[0].foot], [true, 4]);
 }
 
 /* 年份单选项与连续区间；元数据与内容标签的组合 */
@@ -241,6 +236,10 @@ const lib = [
   const getIds = (terms) => R.evaluate(years, { groups: [{ kind: R.YEAR, terms }] }).matched.map(p => p.id);
   eq("分开选择 2019 和 2025：不含中间年份", getIds([{ range: [2019, 2019] }, { range: [2025, 2025] }]), ["old", "new"]);
   eq("连续区间 2019–2025：包含中间年份", getIds([{ range: [2019, 2025] }]), ["old", "middle", "new"]);
+  const mixed = getIds([{ range: [2019, 2022] }, 2020, 2025]);
+  eq("区间和单年取并集，包含区间首尾", mixed, ["old", "middle", "new"]);
+  eq("重叠区间与单年不重复计入", getIds([{ range: [2019, 2022] }, 2022]), ["old", "middle"]);
+  eq("同一端点的区间和单年可独立增删", R.termKey(R.YEAR, 2022) === R.termKey(R.YEAR, { range: [2022, 2022] }), false);
 }
 
 {
@@ -263,14 +262,14 @@ const lib = [
   eq("元数据可参与零结果放宽建议", R.rescue(papers, { groups: [org, meta("venue", ["Missing"])] }).map(x => x.group_id), ["@venue"]);
 }
 
-/* 7. 排除 + 年份区间：未知的保留（¬(A∨B)） */
+/* 7. 年份不受布尔操作符影响 */
 {
-  const r = R.evaluate(lib, {
-    groups: [{ kind: R.YEAR, op: "none", terms: [{ range: [2020, 2022] }], options: [] }],
-  });
-  eq("年份排除：D E 留下", r.matched.map((p) => p.id), ["D", "E"]);
-  // 操作符是排除时，不提供「加未知」这种纠正——那是「任一」的补丁
-  eq("年份排除：不给未知三角", r.yearUnknown.show, false);
+  for (const op of ["none", "all"]) {
+    const r = R.evaluate(lib, {
+      groups: [{ kind: R.YEAR, op, terms: [{ range: [2020, 2021] }, 2019], includeUnknown: false }],
+    });
+    eq("年份忽略操作符 " + op, r.matched.map((p) => p.id), ["A", "B", "E"]);
+  }
 }
 
 /* 8. 组脚 = 计数行：同一组是最后一个非空组时两者相等 */
@@ -287,7 +286,21 @@ const lib = [
   eq("属性组没有「全部」可用", r.groups[1].op, "any");
 }
 
-/* 9. 属性组选「全部」被折回「任一」，不悄悄清空书库 */
+/* 阅读状态和星标独立，合用时只保留交集 */
+{
+  const papers = lib.map(p => p.id === 'B' ? { ...p, starred: true } : p);
+  const status = { kind: R.ATTR, group_id: R.ATTR_GROUP, terms: [{ status: "reading" }] };
+  const star = { kind: R.ATTR, group_id: R.STAR_GROUP, terms: [{ star: true }] };
+  const ids = (groups) => R.evaluate(papers, { groups }).matched.map(p => p.id);
+  eq("仅在读", ids([status]), ["B"]);
+  eq("仅星标：包含不同阅读状态", ids([star]), ["A", "B"]);
+  eq("在读且有星标", ids([status, star]), ["B"]);
+  eq("待读且有星标：无交集", ids([{ ...status, terms: [{ status: "todo" }] }, star]), []);
+  const fixes = R.rescue(papers, { groups: [{ ...status, terms: [{ status: "todo" }] }, star] });
+  eq("放宽建议可以分别移除阅读状态或星标", fixes.map(f => f.group_id).sort(), [R.ATTR_GROUP, R.STAR_GROUP]);
+}
+
+/* 9. 旧的属性组选「全部」被折回「任一」，不悄悄清空书库 */
 {
   const r = R.evaluate(lib, {
     groups: [{ kind: R.ATTR, op: "all", terms: [{ status: "read" }, { star: true }], options: [] }],
@@ -352,7 +365,7 @@ const lib = [
   const f = {
     groups: [
       tagGroup("grp_1", "any", ["t_x"]),
-      { kind: R.YEAR, op: "any", terms: [{ range: [2022, 2022] }], options: [] },
+      { kind: R.YEAR, terms: [2022], includeUnknown: false },
     ],
   };
   eq("近失的前提：零结果（x 都在 2020/2021，2022 那篇没有 x）", R.evaluate(lib, f).count, 0);
@@ -387,18 +400,20 @@ function applyFix(f, x) {
   if (x.action === "remove") {
     next.groups[gi].terms = next.groups[gi].terms.filter((t) => R.termKey(next.groups[gi].kind, t) !== x.key);
   } else {
-    next.groups[gi].terms.push({ unknown: true });
+    next.groups[gi].includeUnknown = true;
   }
   return next;
 }
 
-/* 16. 近失里的「把年份未知加入」 */
+/* 16. 近失里的「勾选包含未知年份」 */
 {
-  const f = { groups: [{ kind: R.YEAR, op: "any", terms: [{ range: [2030, 2035] }], options: [] }] };
+  const f = { groups: [{ kind: R.YEAR, terms: [{ range: [2030, 2035] }], includeUnknown: false }] };
   eq("只选未来区间 → 零结果", R.evaluate(lib, f).count, 0);
   const fixes = R.rescue(lib, f);
   eq("近失给出两条（去掉区间 / 加未知）", fixes.length, 2);
-  eq("加未知救回 D", fixes.find((x) => x.key === "@unknown").rescued, 1);
+  eq("勾选未知救回 D", fixes.find((x) => x.action === "include-unknown").rescued, 1);
+  const onlyKnown = { q: "paper d", groups: [{ kind: R.YEAR, terms: [], includeUnknown: false }] };
+  eq("仅排除未知也能给出勾选建议", R.rescue(lib, onlyKnown).map((x) => x.action), ["include-unknown"]);
 }
 
 /* ---------- 与朴素实现对拍 ---------- */
@@ -446,8 +461,8 @@ function applyFix(f, x) {
   const yearTerms = [
     [{ range: [2000, 2010] }],
     [{ range: [2010, 2025] }],
-    [{ range: [2000, 2010] }, { unknown: true }],
-    [{ unknown: true }],
+    [{ range: [2000, 2010] }, 2024, 2025],
+    [],
   ];
   const attrTerms = [
     [{ status: "read" }],
@@ -467,7 +482,7 @@ function applyFix(f, x) {
           authors: auths[(a + c) % auths.length],
           groups: [
             tagGroup("grp_1", tagOps[a], [tags[b % 4], tags[(b + 1) % 4]], tags),
-            { kind: R.YEAR, op: b === 3 ? "none" : "any", terms: yearTerms[b], options: [] },
+            { kind: R.YEAR, terms: yearTerms[b], includeUnknown: c % 2 === 0, options: [] },
             { kind: R.ATTR, op: a === 1 ? "all" : "any", terms: attrTerms[(a + b) % attrTerms.length], options: [] },
           ],
         });
