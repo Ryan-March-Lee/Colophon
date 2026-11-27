@@ -1319,7 +1319,8 @@ function renderList(ps){
         '" aria-pressed="' + Boolean(tagSelection(id)) + '" data-selection="' + tagSelection(id) + '">' + esc(name) + '</button>';
     }).join('');
     const current = state.detailOpen && state.tab === 'info' && p.id === state.paperId;
-    const status = '<span class="paper-status ' + labelState(p) + '"><span aria-hidden="true"></span>' + LABEL_STATE_LABELS[labelState(p)] + '</span>';
+    const review = labelState(p) === 'review';
+    const status = review ? '<span class="paper-status review"><span aria-hidden="true"></span>' + LABEL_STATE_LABELS.review + '</span>' : '';
     const id = esc(p.id);
     return '<article class="paper' + (current ? ' on' : '') + '" data-id="' + id + '">' +
        '<div class="paper-content">' +
@@ -1330,7 +1331,7 @@ function renderList(ps){
       '<div class="paper-actions">' +
          '<div class="paper-tools"><button class="btn pdf-btn" data-act="open-pdf" data-id="' + id + '">' + (p.hasFile ? '打开 PDF' : '补 PDF') + '</button>' +
          '<details class="paper-menu"><summary title="更多操作" aria-label="更多操作">···</summary><div class="paper-menu-content"><button data-act="copy-cite" data-id="' + id + '">复制引用</button></div></details></div>' +
-         '<div class="paper-state">' + status + '</div>' +
+         (status ? '<div class="paper-state">' + status + '</div>' : '') +
       '</div></article>';
   }).join('');
   $$('.paper-meta-more',el).forEach(x => { x.open = expanded.has(x.closest('.paper').dataset.id); });
