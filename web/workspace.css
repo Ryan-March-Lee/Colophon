@@ -182,8 +182,7 @@
 
 .listcol { background:var(--paper-surface); }
 .listbar {
-  gap:10px;
-  padding:21px var(--paper-gutter) 14px;
+  padding:21px var(--paper-gutter) 32px;
   background:var(--paper-surface);
 }
 .results-title { display:flex; align-items:baseline; gap:12px; min-width:0; }
@@ -192,29 +191,6 @@
 .countacts { flex-wrap:wrap; gap:7px; }
 .countacts .btn, .countacts .sel { height:33px; padding-inline:10px; font-size:12px; }
 .ask-btn { color:var(--accent-2); }
-.exprbar {
-  flex-wrap:wrap;
-  gap:5px 8px;
-  min-height:0;
-  padding:0;
-  background:none;
-  border:0;
-}
-.expr-label { font-size:11.5px; color:var(--muted); }
-.expr-text { flex:1 1 145px; font-size:12px; gap:5px; padding:2px; }
-.expr-seg {
-  max-width:100%;
-  padding:4px 7px;
-  border-radius:5px;
-  background:var(--accent-soft);
-  color:var(--accent-2);
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-button.expr-seg:hover { background:color-mix(in srgb, var(--accent) 20%, var(--panel)); }
-.expr-action { height:28px; font-size:11.5px; }
-.relax-box { right:0; }
-
 .papers { padding:0 var(--paper-gutter) 24px; overscroll-behavior:contain; scrollbar-gutter:stable; }
 .paper {
   align-items:start;
@@ -367,7 +343,7 @@ button.expr-seg:hover { background:color-mix(in srgb, var(--accent) 20%, var(--p
   .search kbd, .import-btn span { display:none; }
   .topacts { gap:3px; }
   .topacts .btn { height:30px; min-width:27px; }
-  .listbar { padding-block:14px 10px; }
+  .listbar { padding-block:14px 24px; }
   .results-title { gap:7px; }
   .results-title h1 { font-size:21px; }
   .countacts { gap:4px; }

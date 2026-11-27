@@ -178,23 +178,10 @@
   .action-entry:hover{border-color:var(--line-2);background:var(--hover)}
   .action-entry[aria-pressed="true"]{border-color:color-mix(in srgb,var(--warn) 45%,var(--line));background:color-mix(in srgb,var(--warn) 8%,var(--panel));color:var(--warn)}
   .action-entry b{font-variant-numeric:tabular-nums}
-  .exprbar{display:flex;align-items:center;gap:7px;min-height:34px;padding:4px 14px;border-bottom:1px solid var(--line);background:var(--panel)}
-  .exprbar[hidden]{display:none}
-  .expr-text{display:flex;align-items:center;gap:4px;flex:1;min-width:0;overflow-x:auto;white-space:nowrap;font-size:10.5px;color:var(--muted)}
-  .expr-seg{color:var(--ink);padding:2px 4px;border-radius:4px}
-  button.expr-seg:hover{background:var(--hover);color:var(--accent)}
-  .expr-and{color:var(--muted-2);flex:none}
-  .expr-actions{display:flex;align-items:center;gap:7px;flex:none}
-  .expr-action{font-size:10px;color:var(--accent);white-space:nowrap}
-  .expr-action:hover{text-decoration:underline}
-  .relax-box{display:none;position:absolute;right:14px;top:calc(100% + 3px);z-index:20;width:min(390px,calc(100vw - 28px));background:var(--panel);border:1px solid var(--line);border-radius:7px;box-shadow:var(--shadow);padding:7px}
-  .exprbar{position:relative}
-  .exprbar.relax-open .relax-box{display:block}
   .relax-row{display:flex;width:100%;align-items:center;justify-content:space-between;gap:8px;padding:6px 5px;border-radius:4px;text-align:left;font-size:10.5px}
   .relax-row:hover{background:var(--hover)}
   #papers .relax-row{max-width:440px;margin:0 auto}
   .relax-row b{font-variant-numeric:tabular-nums;color:var(--accent);white-space:nowrap}
-  .relax-none{font-size:10px;color:var(--muted-2);padding:7px 5px}
   .op-select{height:22px;border:1px solid var(--line);border-radius:5px;background:var(--panel);font-size:9.5px;padding:0 3px;color:var(--muted);outline:none;flex:none}
   .op-select:focus{border-color:var(--accent)}
   .qg-head .op-select{margin-left:auto}
@@ -286,7 +273,7 @@
 
   /* ---------- list ---------- */
   .listcol{display:flex;flex-direction:column;min-width:0;min-height:0;flex:1;background:var(--bg)}
-  .listbar{padding:7px 14px 6px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:5px;flex:none;background:var(--panel-2)}
+  .listbar{padding:7px 14px 6px;border-bottom:1px solid var(--line);flex:none;background:var(--panel-2)}
   .chiprow{display:flex;flex-wrap:wrap;align-items:center;gap:5px;min-height:24px}
   .chiphint{font-size:11.5px;color:var(--muted-2)}
   .fchip{
@@ -784,7 +771,6 @@
     <div class="listcol">
       <div class="listbar">
         <div id="listHeading"></div>
-        <div class="exprbar" id="exprbar" role="group" aria-label="当前筛选" hidden></div>
       </div>
       <div class="papers" id="papers" aria-labelledby="resultsTitle"></div>
     </div>
@@ -867,7 +853,6 @@ const state = {
   groupsExpanded:false,
   expandedGroups:new Set(),
   filtersOpen:false,
-  relaxOpen:false,
   tagQuery:{op:'and',include:[],exclude:[]},
   eval:null,
   rescue:[],
@@ -1045,38 +1030,6 @@ function termLabel(kind,term){
 
 function opLabel(op){ return op === 'all' ? '全部' : op === 'none' ? '排除' : '任一'; }
 
-function activeExpressions(){
-  const out = [];
-  const tags = state.tagQuery.include;
-  if(tags.length) out.push({id:'@tags',text:'标签 ' + tags.map(t => termLabel(Retrieval.TAG,t)).join(state.tagQuery.op === 'or' ? ' 或 ' : ' 且 ')});
-  if(state.tagQuery.exclude.length) out.push({id:'@excluded-tags',text:'不含 ' + state.tagQuery.exclude.map(t => termLabel(Retrieval.TAG,t)).join('、')});
-  currentEvaluation().groups.forEach(function(g){
-    if(g.group_id === '@tags' || g.group_id === '@excluded-tags') return;
-    if(!g.active) return;
-    const filter = getGroupFilter(g.group_id);
-    const def = g.kind === Retrieval.TAG ? findGroupDef(g.group_id) : null;
-    const labels = filter.terms.map(t => termLabel(g.kind,t));
-    if(g.kind === Retrieval.YEAR){
-      if(filter.includeUnknown) labels.push('年份未知');
-      out.push({id:g.group_id,text:'年份：' + (labels.join(' 或 ') || '仅已知年份')});
-      return;
-    }
-    if(g.kind === Retrieval.ATTR){
-      out.push({id:g.group_id,text:filter.terms[0]?.star === false ? '非星标' : '仅星标'});
-      return;
-    }
-    const name = g.kind === Retrieval.META ? labelOf(g.group_id.slice(1)) : (def ? def.name : '标签组');
-    const joiner = g.op === 'all' ? ' 且 ' : ' 或 ';
-    let text = name + '：';
-    if(g.op === 'none') text += '不含（' + labels.join(joiner) + '）';
-    else text += labels.join(joiner);
-    out.push({id:g.group_id,text:text});
-  });
-  if(state.mode) out.push({id:'@mode',text:'整理状态：' + MODE_LABELS[state.mode]});
-  if(state.q) out.push({id:'@query',text:'搜索「' + state.q + '」'});
-  return out;
-}
-
 function checkSVG(){
   return '<svg width="9" height="9" viewBox="0 0 10 10" fill="none" aria-hidden="true">' +
     '<path d="M2 5.1 4.1 7.2 8 3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>' +
@@ -1215,28 +1168,6 @@ function renderRescueButton(fix){
   const label = fix.action === 'include-unknown' ? '勾选「包含未知年份」' : '去掉「' + termLabel(fix.kind,fix.term) + '」';
   const text = fix.action === 'remove-tag' ? '去掉标签「' + termLabel(fix.kind,fix.term || fix.key) + '」' : label;
   return '<button class="relax-row" data-act="apply-rescue" data-kind="' + fix.action + '" data-field="' + (fix.field || '') + '" data-group="' + esc(fix.group_id) + '" data-key="' + esc(fix.key) + '"><span>' + esc(text) + '</span><b>能救回 ' + fix.rescued + ' 篇</b></button>';
-}
-
-function renderExpression(){
-  const el = $('#exprbar');
-  const parts = activeExpressions();
-  const hasFilters = Boolean(selectedCount() || state.mode);
-  el.hidden = !hasFilters && !state.q;
-  if(el.hidden){
-    el.innerHTML = '';
-    state.pendingScroll = null;
-    return;
-  }
-  const content = parts.map((p,i) => (i ? '<span class="expr-and">且</span>' : '') + '<button class="expr-seg" data-act="jump-group" data-group="' + esc(p.id) + '">' + esc(p.text) + '</button>').join('');
-  const near = currentEvaluation().count === 0;
-  const fixes = near ? Retrieval.rescue(PAPERS,retrievalFilter(),5) : [];
-  const rows = fixes.map(renderRescueButton).join('');
-  el.classList.toggle('relax-open',state.relaxOpen);
-  el.innerHTML = '<span class="expr-label">当前条件</span><div class="expr-text">' + content + '</div><div class="expr-actions">' +
-    (near ? '<button class="expr-action" data-act="relax-toggle">放宽建议</button>' : '') +
-    (state.q && hasFilters ? '<button class="expr-action" data-act="clear-all">清除筛选</button>' : '') +
-    '<button class="expr-action" data-act="reset-all">' + (state.q && hasFilters ? '全部清除' : '清除') + '</button></div>' +
-    (near ? '<div class="relax-box">' + (rows || '<div class="relax-none">没有可用建议</div>') + '</div>' : '');
 }
 
 function renderListbar(ps){
@@ -2740,7 +2671,6 @@ function toggleYear(year){
 
 function renderFilterChange(focusId){
   state.eval = null;
-  state.relaxOpen = false;
   state.pendingScroll = 'top';
   renderAll();
   if(focusId) document.getElementById(focusId)?.focus({preventScroll:true});
@@ -2792,7 +2722,7 @@ function addMetadataSelection(input){
   renderFilterChange();
 }
 
-function clearAll(clearQuery = false){
+function clearAll(){
   Object.keys(state.groupFilters).forEach(id => { state.groupFilters[id].terms = []; });
   state.tagQuery.include = [];
   state.tagQuery.exclude = [];
@@ -2800,14 +2730,10 @@ function clearAll(clearQuery = false){
   getGroupFilter(Retrieval.YEAR_GROUP).includeUnknown = true;
   state.yearDraft = {yearFrom:'', yearTo:'', yearSingle:'', adding:false};
   state.metadataDraft = {};
-  if(clearQuery){
-    state.q = '';
-    const search = $('#search');
-    if(search) search.value = '';
-  }
+  state.q = '';
+  $('#search').value = '';
   state.mode = null;
   state.eval = null;
-  state.relaxOpen = false;
   state.pendingScroll = 'top';
   renderAll();
 }
@@ -3217,7 +3143,6 @@ function renderAll(){
   syncScope(ps);
   renderGroups();
   renderActionBar();
-  renderExpression();
   renderListbar(ps);
   renderList(ps);
   renderDetail();
@@ -3293,13 +3218,8 @@ document.addEventListener('click', function(e){
       }
     }
     state.eval = null;
-    state.relaxOpen = false;
     state.pendingScroll = 'top';
     renderAll();
-  }
-  else if(act === 'relax-toggle'){
-    state.relaxOpen = !state.relaxOpen;
-    renderExpression();
   }
   else if(act === 'group-expand'){
     const id = el.dataset.group;
@@ -3312,21 +3232,7 @@ document.addEventListener('click', function(e){
     renderGroups();
     $('#groupsExpand')?.focus();
   }
-  else if(act === 'clear-all'){ clearAll(); }
-  else if(act === 'reset-all'){ clearAll(true); }
-  else if(act === 'jump-group'){
-    const id = el.dataset.group;
-    if(id === '@query'){ $('#search').focus(); return; }
-    if(sidebarOverlay.matches) setFiltersOpen(true);
-    const target = id === '@mode' ? $('#mode-' + state.mode) :
-      id === '@tags' || id === '@excluded-tags' ? $('#filterzone .tag-search-bar') :
-      $('#filterzone [data-group="' + CSS.escape(id) + '"]');
-    const advanced = target?.closest('#advancedFilters');
-    if(advanced) advanced.open = true;
-    target?.scrollIntoView({block:'nearest'});
-    const control = target?.matches('button') ? target : target?.querySelector('button, input');
-    control?.focus({preventScroll:true});
-  }
+  else if(act === 'reset-all'){ clearAll(); }
   else if(act === 'year-single-add'){
     state.yearDraft.adding = true;
     renderGroups();
@@ -3616,7 +3522,6 @@ document.addEventListener('change', function(e){
     const filter = getGroupFilter(e.target.dataset.group,'any');
     filter.op = e.target.value;
     state.eval = null;
-    state.relaxOpen = false;
     renderAll();
     return;
   }
@@ -3671,7 +3576,6 @@ document.addEventListener('input', function(e){
   if(e.target.id === 'search'){
     state.q = e.target.value.trim();
     state.eval = null;
-    state.relaxOpen = false;
     state.pendingScroll = 'top';
     renderAll();
     return;
