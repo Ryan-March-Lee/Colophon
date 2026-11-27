@@ -238,6 +238,7 @@
 .paper-menu summary:hover, .paper-menu[open] summary { background:var(--hover); }
 .paper-menu-content {
   position:absolute;
+  display:grid;
   right:0;
   top:calc(100% + 4px);
   z-index:2;
@@ -248,8 +249,10 @@
   box-shadow:var(--shadow);
   white-space:nowrap;
 }
-.paper-menu-content button { padding:7px 10px; border-radius:4px; font-size:12px; }
+.paper-menu:not([open]) .paper-menu-content { display:none; }
+.paper-menu-content button { padding:7px 10px; border-radius:4px; font-size:12px; text-align:left; }
 .paper-menu-content button:hover, .paper-menu-content button:focus-visible { background:var(--hover); }
+.paper-menu-content .delete-paper-action { color:var(--warn); }
 .paper-status { font-size:11px; white-space:nowrap; }
 .paper-status { display:inline-flex; align-items:center; gap:5px; color:var(--muted); }
 .paper-status > span { width:5px; height:5px; border-radius:50%; background:var(--muted-2); }

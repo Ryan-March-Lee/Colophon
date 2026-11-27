@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import re
 import sqlite3
+import stat
 from pathlib import Path
 
 from .db import LIBRARY, new_id, now
@@ -878,6 +879,47 @@ def merge(conn: sqlite3.Connection, facet: str, from_name: str, to_name: str) ->
 
 # ---------------------------------------------------------------- 文件
 
+def delete_item(conn: sqlite3.Connection, item_id: str) -> dict | None:
+    """删除条目、关联数据及书库中的 PDF 副本。"""
+    files_deleted = 0
+    with conn:
+        conn.execute("BEGIN IMMEDIATE")
+        if not conn.execute(
+            "SELECT 1 FROM item WHERE id = ? AND deleted_at IS NULL", (item_id,)
+        ).fetchone():
+            return None
+
+        files_dir = LIBRARY / "files"
+        paths = []
+        rows = conn.execute("SELECT rel_path FROM file WHERE item_id = ?", (item_id,))
+        for row in rows:
+            path = LIBRARY / row["rel_path"]
+            if files_dir.resolve() != files_dir or path.parent != files_dir or path.suffix.lower() != ".pdf":
+                raise OSError("附件不在书库的 PDF 目录中")
+            try:
+                mode = path.lstat().st_mode
+            except FileNotFoundError:
+                continue
+            if not stat.S_ISREG(mode):
+                raise OSError("附件不是普通 PDF 文件")
+            if conn.execute(
+                "SELECT 1 FROM file WHERE rel_path = ? COLLATE NOCASE AND item_id <> ?",
+                (row["rel_path"], item_id),
+            ).fetchone():
+                raise OSError("该 PDF 还被其他文献使用")
+            paths.append(path)
+
+        # 先执行数据库删除，让约束先于磁盘删除生效；删文件失败时回滚书库条目。
+        conn.execute("DELETE FROM item WHERE id = ?", (item_id,))
+        for path in paths:
+            try:
+                path.unlink()
+            except FileNotFoundError:
+                continue
+            files_deleted += 1
+    return {"ok": True, "filesDeleted": files_deleted}
+
+
 def _store_pdf(
     conn: sqlite3.Connection, item_id: str, filename: str, data: bytes
 ) -> str:
@@ -951,23 +993,26 @@ def attach_pdf(conn: sqlite3.Connection, item_id: str, filename: str, data: byte
     """给已有条目补一个 PDF。"""
     if not data.startswith(b"%PDF"):
         return {"status": "error", "reason": "not a PDF", "filename": filename}
-    if not conn.execute(
-        "SELECT 1 FROM item WHERE id = ? AND deleted_at IS NULL", (item_id,)
-    ).fetchone():
-        return {"status": "missing", "reason": "item not found"}
-    if conn.execute("SELECT 1 FROM file WHERE item_id = ?", (item_id,)).fetchone():
-        return {"status": "exists", "item_id": item_id}
 
     digest = hashlib.sha256(data).hexdigest()
-    other = conn.execute(
-        "SELECT item_id FROM file WHERE sha256 = ?", (digest,)
-    ).fetchone()
-    if other:
-        return {"status": "duplicate", "item_id": other["item_id"], "filename": filename}
+    with conn:
+        # 在写入附件前锁定书库，避免检查条目后，它已被另一请求删除。
+        conn.execute("BEGIN IMMEDIATE")
+        if not conn.execute(
+            "SELECT 1 FROM item WHERE id = ? AND deleted_at IS NULL", (item_id,)
+        ).fetchone():
+            return {"status": "missing", "reason": "item not found"}
+        if conn.execute("SELECT 1 FROM file WHERE item_id = ?", (item_id,)).fetchone():
+            return {"status": "exists", "item_id": item_id}
 
-    _store_pdf(conn, item_id, filename, data)
-    conn.execute("DELETE FROM passage WHERE item_id = ?", (item_id,))
-    conn.commit()
+        other = conn.execute(
+            "SELECT item_id FROM file WHERE sha256 = ?", (digest,)
+        ).fetchone()
+        if other:
+            return {"status": "duplicate", "item_id": other["item_id"], "filename": filename}
+
+        _store_pdf(conn, item_id, filename, data)
+        conn.execute("DELETE FROM passage WHERE item_id = ?", (item_id,))
     return {"status": "attached", "item_id": item_id, "filename": filename}
 
 

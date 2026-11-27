@@ -164,6 +164,25 @@ def get_item(item_id: str) -> dict:
     return item
 
 
+@app.delete("/api/items/{item_id}")
+def delete_item(item_id: str, request: Request) -> dict:
+    # 旧页面的删除请求可能没有授权移除 PDF，必须重新打开新版确认框。
+    if not _is_local_request(request) or request.headers.get("x-colophon-delete") != "permanent":
+        raise HTTPException(status_code=403, detail="请在本机重新打开 Colophon 后确认永久删除。")
+    conn = connect()
+    try:
+        result = repo.delete_item(conn, item_id)
+    except PermissionError as exc:
+        raise HTTPException(status_code=409, detail="无法删除本地 PDF。若文件正在使用，请关闭后重试。") from exc
+    except (OSError, RuntimeError) as exc:
+        raise HTTPException(status_code=409, detail="无法删除本地 PDF，文献条目已保留。") from exc
+    finally:
+        conn.close()
+    if result is None:
+        raise HTTPException(status_code=404, detail="item not found")
+    return result
+
+
 @app.get("/api/items/{item_id}/file")
 def item_file(item_id: str) -> FileResponse:
     conn = connect()
@@ -588,15 +607,18 @@ MAX_FS_FILES = 2000
 _FS_SKIP_DIRS = {"$RECYCLE.BIN", "System Volume Information", "node_modules"}
 
 
-def _require_local_browser(request: Request) -> None:
-    # 自定义请求头挡住跨站简单请求；校验 Host 防止 DNS 重绑定。
+def _is_local_request(request: Request) -> bool:
+    # 文件操作要求回环地址，同时校验 Host 防止 DNS 重绑定。
     local_hosts = {"127.0.0.1", "localhost", "::1"}
-    if (
-        request.client is None
-        or request.client.host not in local_hosts
-        or request.url.hostname not in local_hosts
-        or request.headers.get("x-colophon-import") != "1"
-    ):
+    return (
+        request.client is not None
+        and request.client.host in local_hosts
+        and request.url.hostname in local_hosts
+    )
+
+
+def _require_local_browser(request: Request) -> None:
+    if not _is_local_request(request) or request.headers.get("x-colophon-import") != "1":
         raise HTTPException(status_code=403, detail="只能在本机 Colophon 中浏览文件")
 
 

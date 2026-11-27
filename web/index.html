@@ -499,6 +499,10 @@
   .mhead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
   .mhead h3{margin:0 0 3px;font-size:16px;font-weight:650;letter-spacing:.02em}
   .mhead p{margin:0;font-size:11px;color:var(--muted)}
+  .delete-paper-card{width:min(460px,100%);overflow-wrap:anywhere}
+  .delete-paper-error{margin:12px 0 0;font-size:12px;color:var(--warn)}
+  .delete-paper-card .metafoot{justify-content:flex-end}
+  .btn.primary.delete-paper-confirm{background:var(--warn);border-color:var(--warn)}
   .libgroup{margin-bottom:14px}
   .lib-drop-ready{outline:1px dashed var(--line);outline-offset:4px;border-radius:6px}
   .lib-drop-active{outline:2px solid var(--accent);background:var(--accent-soft)}
@@ -1249,7 +1253,10 @@ function renderList(ps){
       '</div>' +
       '<div class="paper-actions">' +
          '<div class="paper-tools"><button class="btn pdf-btn" data-act="open-pdf" data-id="' + id + '">' + (p.hasFile ? '打开 PDF' : '补 PDF') + '</button>' +
-         '<details class="paper-menu"><summary title="更多操作" aria-label="更多操作">···</summary><div class="paper-menu-content"><button data-act="copy-cite" data-id="' + id + '">复制引用</button></div></details></div>' +
+         '<details class="paper-menu"><summary title="更多操作" aria-label="更多操作">···</summary><div class="paper-menu-content">' +
+           '<button data-act="copy-cite" data-id="' + id + '">复制引用</button>' +
+           '<button class="delete-paper-action" data-act="delete-paper" data-id="' + id + '" aria-haspopup="dialog">删除该文件</button>' +
+         '</div></details></div>' +
          (status ? '<div class="paper-state">' + status + '</div>' : '') +
       '</div></article>';
   }).join('');
@@ -2414,6 +2421,7 @@ function renderModal(){
   const modal = $('#modal');
   clearLibraryDrag();
   if(!state.modalOpen){ modal.classList.remove('open'); modal.innerHTML = ''; return; }
+  if(state.modalMode === 'delete-paper'){ renderDeletePaperDialog(); return; }
   if(state.modalMode === 'import'){ renderImportModal(); return; }
   if(state.modalMode === 'meta'){ renderMetaModal(); return; }
   if(state.modalMode === 'settings'){ renderSettingsModal(); return; }
@@ -2997,9 +3005,91 @@ async function moveTagGroup(dialog){
   }
 }
 
+function openDeletePaperDialog(paper){
+  state.dialog = {kind:'delete-paper', itemId:paper.id, title:paper.title, hasFile:paper.hasFile};
+  state.modalMode = 'delete-paper';
+  state.modalOpen = true;
+  renderModal();
+  $('#app').inert = true;
+}
+
+function renderDeletePaperDialog(){
+  const dialog = state.dialog;
+  const modal = $('#modal');
+  const focusedId = modal.contains(document.activeElement) ? document.activeElement.id : '';
+  const disabled = dialog.busy ? ' disabled' : '';
+  const impact = dialog.hasFile
+    ? '将删除这条文献及书库中的 PDF 副本。此操作无法撤销，导入前的原文件不受影响。'
+    : '将删除这条文献。此操作无法撤销。';
+  modal.classList.add('open');
+  modal.innerHTML = '<div class="modal-card delete-paper-card" role="alertdialog" tabindex="-1" aria-modal="true" aria-labelledby="deletePaperTitle" aria-describedby="deletePaperImpact">' +
+    '<div class="mhead"><div><h3 id="deletePaperTitle">删除「' + esc(dialog.title || '未命名') + '」？</h3>' +
+    '<p id="deletePaperImpact">' + impact + '</p></div></div>' +
+    (dialog.message ? '<p class="delete-paper-error" role="alert">' + esc(dialog.message) + '</p>' : '') +
+    '<div class="metafoot"><button class="btn" id="deletePaperCancel" data-act="dialog-cancel"' + disabled + '>取消</button>' +
+      '<button class="btn primary delete-paper-confirm" id="deletePaperConfirm" data-act="dialog-confirm"' + disabled + '>' +
+        (dialog.busy ? '删除中…' : '确认删除') + '</button></div></div>';
+  const previous = focusedId && document.getElementById(focusedId);
+  const focusTarget = dialog.busy ? $('.delete-paper-card', modal) :
+    (previous && !previous.disabled ? previous : $('#deletePaperCancel'));
+  focusTarget.focus({preventScroll:true});
+}
+
+const deletedPaperIds = new Set();
+
+async function deletePaper(dialog){
+  if(dialog.busy) return;
+  dialog.busy = true;
+  dialog.message = '';
+  renderModal();
+  const id = dialog.itemId;
+  let data;
+  try{
+    const res = await fetch('/api/items/' + encodeURIComponent(id), {
+      method:'DELETE', headers:{'X-Colophon-Delete':'permanent'}
+    });
+    data = await res.json();
+    if(!(res.ok && data?.ok === true) && !(res.status === 404 && data?.detail === 'item not found')){
+      if(res.status === 403) dialog.message = '请重启 Colophon 后重新确认删除。';
+      else dialog.message = res.status === 409 && typeof data?.detail === 'string' ? data.detail : '删除失败，请重试。';
+    }
+  }catch(err){
+    dialog.message = '删除失败，请重试。';
+  }
+  dialog.busy = false;
+  if(dialog.message){
+    renderModal();
+    return;
+  }
+
+  deletedPaperIds.add(id);
+  clearTimeout(saveTimers[id]);
+  delete saveTimers[id];
+  delete pendingPatch[id];
+  delete state.sugg[id];
+  if(state.readerItemId === id) closeReader();
+  try{ localStorage.removeItem('colophon:pos:' + id); }catch(err){ /* 隐私模式 */ }
+  PAPERS = PAPERS.filter(p => p.id !== id);
+  closeDialog();
+  renderAll();
+  $('#resultsTitle')?.focus({preventScroll:true});
+  if(data.filesDeleted) toast('已删除文献及 PDF 副本');
+  else toast(data.ok ? '已删除文献' : '这篇文献已不存在');
+}
+
 function closeDialog(){
   const dialog = state.dialog;
   if(dialog?.busy) return;
+  if(dialog?.kind === 'delete-paper'){
+    state.dialog = null;
+    state.modalMode = null;
+    state.modalOpen = false;
+    renderModal();
+    $('#app').inert = false;
+    const summary = $('.paper[data-id="' + CSS.escape(dialog.itemId) + '"] .paper-menu summary');
+    (summary || $('#resultsTitle'))?.focus({preventScroll:true});
+    return;
+  }
   const focusAction = isTagMoveDialog() ? 'pick-tag-group' : dialog?.kind === 'delete-tag' ? 'del-tag' : null;
   state.dialog = null;
   if(state.modalMode === 'group-dialog' || state.modalMode === 'tag-def'){
@@ -3157,7 +3247,7 @@ document.addEventListener('click', function(e){
   }
   if(e.target.id === 'modal'){
     if(state.modalMode === 'import') closeImportBrowser();
-    else if(state.dialog?.kind === 'delete-tag' || isTagMoveDialog()) closeDialog();
+    else if(state.modalMode === 'delete-paper' || state.dialog?.kind === 'delete-tag' || isTagMoveDialog()) closeDialog();
     else { state.modalOpen = false; renderModal(); }
     return;
   }
@@ -3265,6 +3355,12 @@ document.addEventListener('click', function(e){
   else if(act === 'reader-fit'){ fitWidth(); }
   else if(act === 'reader-rotate'){ rotatePage(); }
   else if(act === 'reader-attach'){ $('#attachInput').click(); }
+  else if(act === 'delete-paper'){
+    const p = PAPERS.find(x => x.id === el.dataset.id);
+    if(!p) return;
+    el.closest('.paper-menu').open = false;
+    openDeletePaperDialog(p);
+  }
   else if(act === 'copy-cite'){
     const p = PAPERS.find(x => x.id === el.dataset.id);
     if(!p) return;
@@ -3442,6 +3538,10 @@ document.addEventListener('click', function(e){
     if(dialog?.kind === 'pick-tag-group') confirmTagMove(dialog.tagId, dialog.sourceId, el.dataset.id);
   }
   else if(act === 'dialog-confirm'){
+    if(state.modalMode === 'delete-paper'){
+      deletePaper(state.dialog);
+      return;
+    }
     if(state.dialog?.kind === 'move-tag'){
       moveTagGroup(state.dialog);
       return;
@@ -3630,7 +3730,7 @@ document.addEventListener('keydown', function(e){
   if(e.key === 'Escape' && state.modalOpen){
     if(e.isComposing || e.keyCode === 229) return;
     if(state.modalMode === 'import'){ closeImportBrowser(); return; }
-    if(state.dialog?.kind === 'delete-tag' || isTagMoveDialog()){ closeDialog(); return; }
+    if(state.modalMode === 'delete-paper' || state.dialog?.kind === 'delete-tag' || isTagMoveDialog()){ closeDialog(); return; }
     state.modalOpen = false;
     renderModal();
     if(state.readerOpen) $('[data-act="rt-edit-meta"]')?.focus({preventScroll:true});
@@ -3655,7 +3755,7 @@ document.addEventListener('keydown', function(e){
       return;
     }
   }
-  if(state.modalOpen && (state.modalMode === 'import' || state.dialog?.kind === 'delete-tag' || isTagMoveDialog())){
+  if(state.modalOpen && (state.modalMode === 'import' || state.modalMode === 'delete-paper' || state.dialog?.kind === 'delete-tag' || isTagMoveDialog())){
     if(e.key === 'Tab'){
       const controls = $$('#modal button:not(:disabled), #modal input:not(:disabled)');
       const first = controls[0], last = controls[controls.length - 1];
@@ -4105,7 +4205,7 @@ async function refreshPapers(){
         if(local) paper.note = local.note;
       }
     }
-    PAPERS = fresh;
+    PAPERS = fresh.filter(p => !deletedPaperIds.has(p.id));
     state.eval = null;
     await refreshGroups();
     renderAll();
