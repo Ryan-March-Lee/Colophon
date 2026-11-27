@@ -123,9 +123,9 @@
   .tag-join{display:inline-flex;gap:2px;padding:2px;background:var(--hover);border-radius:5px}
   .tag-join button{height:20px;padding:0 7px;border-radius:3px;font-size:9.5px;color:var(--muted-2)}
   .tag-join button[aria-pressed="true"]{background:var(--panel);color:var(--ink);font-weight:650;box-shadow:0 1px 2px rgba(20,24,20,.08)}
-  .tag-search-spacer{flex:1}
-  .tag-excluded{font-size:9.5px;color:var(--warn);white-space:nowrap}
-  .tag-exclude-toggle{height:18px;padding:0 4px;margin-left:2px;border-radius:3px;color:var(--muted-2);font-size:9px}
+  .tag-excluded{margin-left:auto;font-size:9.5px;color:var(--warn);white-space:nowrap}
+  .tag-exclude-toggle{width:22px;height:22px;flex:none;border-radius:4px;color:var(--muted-2);font-size:11px}
+  .tag-exclude-toggle:hover{background:var(--hover);color:var(--ink)}
   .tag-exclude-toggle[aria-pressed="true"]{background:color-mix(in srgb,var(--warn) 12%,var(--panel));color:var(--warn)}
   .attr-row{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;min-width:0;min-height:30px;white-space:nowrap;padding:2px 0 5px}
   .year-controls,.reading-controls{display:flex;align-items:center;gap:7px;min-width:0}
@@ -150,7 +150,7 @@
   .filter-option{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 7px;border:1px solid var(--line);border-radius:5px;background:var(--panel);font-size:10.5px;color:var(--muted);white-space:nowrap;flex:none}
   .filter-option:hover{border-color:var(--line-2);background:var(--hover);color:var(--ink)}
   .filter-option[aria-pressed="true"]{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 40%,var(--line));color:var(--accent-2);font-weight:600}
-  .tag-option[data-selection="exclude"]{background:color-mix(in srgb,var(--warn) 10%,var(--panel));border-color:color-mix(in srgb,var(--warn) 45%,var(--line));color:var(--warn)}
+  .tag-option[data-selection="exclude"]{background:color-mix(in srgb,var(--warn) 10%,var(--panel));border-color:color-mix(in srgb,var(--warn) 45%,var(--line));color:var(--warn);font-weight:600}
   .reading-statuses.has-selection .filter-option[aria-pressed="false"]:not(:hover){background:var(--panel-2);color:var(--muted-2)}
   .filter-option:disabled{opacity:.42;cursor:default}
   .filter-option .fcount,.filter-check .fcount{font-size:9.5px;color:var(--muted-2);font-variant-numeric:tabular-nums}
@@ -166,11 +166,13 @@
   .qg-op:hover{color:var(--ink)}
   .qg-op[aria-pressed="true"]{background:var(--panel);color:var(--ink);box-shadow:0 1px 2px rgba(20,24,20,.08);font-weight:650}
   .qg-foot{font-size:9px;color:var(--muted-2);font-variant-numeric:tabular-nums;flex:none}
-  .qg-options{display:flex;align-items:center;gap:4px;min-width:0;overflow:hidden;flex-wrap:wrap;max-height:26px}
-  .query-group.expanded .qg-options{max-height:84px;overflow-y:auto}
-  .qg-more{font-size:9.5px;color:var(--accent);white-space:nowrap;flex:none;padding:2px}
+  .qg-controls{display:flex;align-items:flex-start;gap:4px}
+  .qg-options{display:flex;align-items:center;gap:4px;min-width:0;overflow:auto;scrollbar-width:thin}
+  .query-group.expanded .qg-options{flex-wrap:wrap;max-height:84px}
+  .qg-more{height:22px;font-size:9.5px;color:var(--accent);white-space:nowrap;flex:none;padding:2px}
   .qg-more:hover{text-decoration:underline}
-  .tag-option{--tc:var(--gc);height:22px;padding:0 6px;max-width:100%;font-size:10px}
+  .tag-controls{display:inline-flex;align-items:center;gap:2px;flex:none;max-width:100%}
+  .tag-option{--tc:var(--gc);height:22px;padding:0 6px;min-width:0;flex:0 1 auto;font-size:10px}
   .tag-option .tname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
   .tag-option .fcount{color:color-mix(in srgb,var(--tc) 78%,var(--muted))}
   .group-overflow{display:flex;justify-content:center;margin-top:3px}
@@ -679,7 +681,6 @@
     .app.show-detail .detail{display:flex;position:fixed;inset:58px 0 0 0;z-index:44}
     .dback{display:inline-flex}
     .group-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-    .qg-options{flex-wrap:nowrap;overflow-x:auto}
     .actionbar,.exprbar{padding-left:10px;padding-right:10px}
   }
   @media (max-width:620px){
@@ -696,7 +697,6 @@
     .query-group:nth-child(n+3):not(.unfiled){display:none}
     .filterzone.more-groups .query-group:nth-child(n+3):not(.unfiled){display:block}
     .query-group.unfiled{display:block}
-    .qg-options{max-height:24px}
   }
 
   /* ---------- 元数据 ---------- */
@@ -939,7 +939,6 @@ const state = {
   expandedGroups:new Set(),
   relaxOpen:false,
   tagQuery:{op:'and',include:[],exclude:[]},
-  advancedSearch:false,
   eval:null,
   rescue:[],
   paperId:null,
@@ -1050,10 +1049,10 @@ function getFiltered(){
 }
 
 function selectedCount(){
-  const advancedCount = Object.keys(state.groupFilters).reduce(function(n,id){
+  const fieldCount = Object.keys(state.groupFilters).reduce(function(n,id){
     return n + ((state.groupFilters[id].terms || []).length);
   },getGroupFilter(Retrieval.YEAR_GROUP).includeUnknown ? 0 : 1);
-  return advancedCount + state.tagQuery.include.length + state.tagQuery.exclude.length;
+  return fieldCount + state.tagQuery.include.length + state.tagQuery.exclude.length;
 }
 
 function tagSelection(id){
@@ -1236,17 +1235,18 @@ function renderTagGroup(groupId,isUnfiled){
     const option = result && result.options.find(o => o.key === t.id);
     const selection = tagSelection(t.id);
     const definition = t.definition ? ' · ' + t.definition : '';
-    return '<button class="filter-option tag-option" style="--tc:' + color + '" data-act="tag-toggle" data-group="' + esc(groupId) + '" data-id="' + esc(t.id) + '"' +
-      ' aria-pressed="' + Boolean(selection) + '" data-selection="' + selection + '"' +
+    const id = esc(t.id);
+    return '<span class="tag-controls"><button id="tag-toggle-' + id + '" class="filter-option tag-option" style="--tc:' + color + '" data-act="tag-toggle" data-group="' + esc(groupId) + '" data-id="' + id + '"' +
+      ' aria-pressed="' + (selection === 'include') + '" data-selection="' + selection + '"' +
       ' title="' + esc(t.name + ' · ' + (option ? option.count : 0) + ' 篇' + definition) + '"><span class="tname">' + esc(t.name) + '</span><span class="fcount">' + (option ? option.count : 0) + '</span></button>' +
-      (state.advancedSearch ? '<button class="tag-exclude-toggle" data-act="tag-exclude" data-id="' + esc(t.id) + '" aria-pressed="' + (selection === 'exclude') + '" aria-label="排除标签「' + esc(t.name) + '」" title="排除包含此标签的文献">−</button>' : '');
+      '<button id="tag-exclude-' + id + '" class="tag-exclude-toggle" data-act="tag-exclude" data-id="' + id + '" aria-pressed="' + (selection === 'exclude') + '" aria-label="排除标签「' + esc(t.name) + '」" title="' + (selection === 'exclude' ? '取消排除' : '排除包含此标签的文献') + '">−</button></span>';
   }).join('');
   const more = tags.length > 4 ? '<button class="qg-more" data-act="group-expand" data-group="' + esc(groupId) + '">' + (expanded ? '收起' : '+' + (tags.length - 4)) + '</button>' : '';
   const foot = result && result.foot !== null ? result.foot : '';
   return '<section class="query-group' + (isUnfiled ? ' unfiled' : '') + (expanded ? ' expanded' : '') + '" style="--gc:' + color + '">' +
     '<div class="qg-head"><span class="qg-name" title="' + esc(def.name) + '">' + esc(def.name) + '</span>' +
     (isUnfiled ? '<span class="qg-mark">整理</span>' : '') + '<span class="qg-foot">' + foot + '</span></div>' +
-    '<div class="qg-options">' + options + more + '</div></section>';
+    '<div class="qg-controls"><div class="qg-options">' + options + '</div>' + more + '</div></section>';
 }
 
 function renderGroups(){
@@ -1264,8 +1264,7 @@ function renderGroups(){
   const noGroups = !regular.length && !hasUnfiled;
   el.innerHTML = '<div class="tag-search-bar"><span class="tag-search-label">标签</span><div class="tag-join" role="group" aria-label="标签组合逻辑">' +
       '<button data-act="tag-join" data-op="and" aria-pressed="' + (state.tagQuery.op === 'and') + '">AND</button><button data-act="tag-join" data-op="or" aria-pressed="' + (state.tagQuery.op === 'or') + '">OR</button></div>' +
-      '<span class="tag-search-spacer"></span>' + (state.tagQuery.exclude.length ? '<span class="tag-excluded">排除 ' + state.tagQuery.exclude.length + '</span>' : '') +
-       '<button class="btn tiny" data-act="advanced-search" aria-expanded="' + state.advancedSearch + '">' + (state.advancedSearch ? '收起高级检索' : '高级检索') + '</button></div>' +
+      (state.tagQuery.exclude.length ? '<span class="tag-excluded">排除 ' + state.tagQuery.exclude.length + '</span>' : '') + '</div>' +
     (noGroups ? '<div class="group-empty"><span>暂无标签分组</span><button class="btn tiny" data-act="new-group">＋ 新建分组</button></div>' : '<div class="group-grid">' + tagGroups + '</div>') +
     (hiddenN ? '<div class="group-overflow"><button data-act="groups-expand">更多组 ' + hiddenN + '</button></div>' : (state.groupsExpanded && regular.length > limit ? '<div class="group-overflow"><button data-act="groups-expand">收起分组</button></div>' : '')) +
     '<div class="common-filters"><div class="attr-row"><div class="year-controls" data-group="@year" role="group" aria-label="年份筛选">' + renderYearOptions() + '</div><div class="reading-controls">' + renderAttrOptions() + '</div></div>' + renderMetadataFilters() + '</div>';
@@ -3240,19 +3239,20 @@ document.addEventListener('click', function(e){
     state.eval = null;
     renderAll();
   }
-  else if(act === 'tag-toggle'){
-    toggleTagQuery(el.dataset.id, false);
-  }
-  else if(act === 'tag-exclude'){
-    toggleTagQuery(el.dataset.id, true);
+  else if(act === 'tag-toggle' || act === 'tag-exclude'){
+    const options = el.closest('.qg-options');
+    const scrollLeft = options?.scrollLeft;
+    const scrollTop = options?.scrollTop;
+    toggleTagQuery(el.dataset.id, act === 'tag-exclude');
+    const button = options && document.getElementById(el.id);
+    if(button){
+      button.closest('.qg-options').scrollTo(scrollLeft,scrollTop);
+      button.focus({preventScroll:true});
+    }
   }
   else if(act === 'tag-join'){
     state.tagQuery.op = el.dataset.op === 'or' ? 'or' : 'and';
     renderFilterChange();
-  }
-  else if(act === 'advanced-search'){
-    state.advancedSearch = !state.advancedSearch;
-    renderGroups();
   }
   else if(act === 'reading-filter'){
     const status = el.dataset.status;
