@@ -393,17 +393,6 @@
   .tagcloud{display:flex;flex-wrap:wrap;gap:4px}
   .hintline{font-size:11px;color:var(--muted-2);line-height:1.6;margin:7px 0 0}
 
-  .addrow{display:flex;gap:5px;margin-top:9px}
-  .addrow select{
-    height:30px;border:1px solid var(--line);border-radius:7px;background:var(--panel-2);
-    font-size:11.5px;padding:0 4px;outline:none;flex:none;color:var(--muted);
-  }
-  .addrow input{
-    flex:1;min-width:0;height:30px;border:1px solid var(--line);border-radius:7px;
-    background:var(--panel-2);padding:0 9px;font-size:12px;outline:none;
-  }
-  .addrow input:focus,.addrow select:focus{border-color:var(--accent);background:var(--panel)}
-
   /* ---------- 打标 / 组 ---------- */
   .groupbar{display:flex;align-items:center;gap:5px;margin-top:9px;flex-wrap:wrap}
   .groupbar .glabel{font-size:11px;color:var(--muted);flex:none}
@@ -523,15 +512,9 @@
   .mhead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
   .mhead h3{margin:0 0 3px;font-size:16px;font-weight:650;letter-spacing:.02em}
   .mhead p{margin:0;font-size:11px;color:var(--muted)}
-  .mergesec{margin-bottom:16px}
-  .merge{
-    display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid var(--line);
-    border-radius:10px;margin-bottom:6px;background:var(--panel-2);flex-wrap:wrap;
-  }
-  .merge-path{display:flex;align-items:center;gap:6px;font-size:12px}
-  .merge-why{font-size:10.5px;color:var(--muted-2);flex:1;min-width:120px}
-  .merge .btn{margin-left:auto;height:25px;font-size:11px}
   .libgroup{margin-bottom:14px}
+  .lib-drop-ready{outline:1px dashed var(--line);outline-offset:4px;border-radius:6px}
+  .lib-drop-active{outline:2px solid var(--accent);background:var(--accent-soft)}
   .libhead{
     display:flex;align-items:center;justify-content:space-between;
     font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;
@@ -539,9 +522,15 @@
   .libhead span:last-child{letter-spacing:0}
   .libvals{display:flex;flex-wrap:wrap;gap:4px}
   .libvals .tag{height:21px;font-size:11px}
+  .libvals .tagmove{display:inline-grid;place-items:center;min-width:16px;height:100%;cursor:grab;opacity:.75}
+  .libvals .tagmove:is(:hover,:focus-visible){opacity:1}
+  .libvals .tagmove:active{cursor:grabbing}
+  .libvals .lib-dragging{opacity:.45}
   .libvals .tagx[data-act="del-tag"]{min-width:16px;height:100%;opacity:.75}
   .libvals .tagx[data-act="del-tag"]:is(:hover,:focus-visible){color:var(--warn);opacity:1}
-  #libDeleteTitle{overflow-wrap:anywhere}
+  #libDeleteTitle,#libMoveTitle,#libMoveImpact,#libPickTitle{overflow-wrap:anywhere}
+  #libMoveImpact{line-height:1.65}
+  .lib-move-error{margin:0 0 8px;color:var(--warn);font-size:12px}
   .libacts{display:flex;gap:9px;margin-top:5px}
   .libhead .hint{letter-spacing:0;text-transform:none;font-weight:400;color:var(--muted-2)}
   .pickgrouplist{display:flex;flex-direction:column;gap:5px;margin-top:4px}
@@ -570,7 +559,6 @@
   .tbtn{font-size:10.5px;padding:2px 6px;border:1px solid var(--line);border-radius:5px;background:var(--panel-2);color:var(--muted)}
   .tbtn:hover{border-color:var(--line-2);color:var(--ink)}
   .tbtn.on{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 40%,transparent);color:var(--accent-2);font-weight:600}
-  .mnote{font-size:10.5px;color:var(--muted-2);line-height:1.6;margin:4px 0 0;border-top:1px solid var(--line);padding-top:10px}
 
   /* ---------- 导入浏览 ---------- */
   .import-card{width:min(840px,100%);max-height:84vh;display:flex;flex-direction:column}
@@ -1516,22 +1504,124 @@ function renderGroupDialog(){
     return;
   }
 
-  modal.innerHTML = '<div class="modal-card" style="width:min(460px,92vw)">' +
-    '<div class="mhead"><h3>把「' + esc(d.name) + '」归入哪个组？</h3></div>' +
-    (groups.length
-      ? '<div class="pickgrouplist">' + groups.map(function(g){
-          return '<button class="pickgroup' + (g.id === state.groupSel ? ' on' : '') + '"' +
-            ' data-act="dialog-pick-group" data-id="' + g.id + '" style="--c:' + (g.color || 'var(--c-topic)') + '">' +
-            '<span class="gdot"></span>' + esc(g.name) +
-            '<span class="cnt">' + g.tags.length + ' 个标签</span>' +
-          '</button>';
-        }).join('') + '</div>'
-      : '<p class="hintline">还没有组。先到「分组」里新建一个。</p>') +
-    '<div class="metafoot">' +
-      '<button class="btn" data-act="dialog-unfiled">移到未分组</button>' +
-      '<button class="btn" data-act="dialog-cancel" style="margin-left:auto">取消</button>' +
-    '</div>' +
+  if(d.kind === 'move-tag'){
+    modal.innerHTML = '<div class="modal-card" role="alertdialog" tabindex="-1" aria-modal="true" aria-labelledby="libMoveTitle" aria-describedby="libMoveImpact" style="width:min(460px,100%)">' +
+      '<div class="mhead"><div><h3 id="libMoveTitle">移动标签「' + esc(d.name) + '」？</h3>' +
+        '<p id="libMoveImpact">从「<b>' + esc(d.sourceName) + '</b>」移到「<b>' + esc(d.targetName) + '</b>」。' +
+        '此操作会改变标签在整库中的分组。已关联的文献会保留这个标签。</p></div></div>' +
+      (d.message ? '<p class="lib-move-error" role="alert">' + esc(d.message) + '</p>' : '') +
+      '<div class="metafoot">' +
+        '<button class="btn" data-act="dialog-cancel"' + (d.busy ? ' disabled' : '') + '>取消</button>' +
+        '<button class="btn primary" data-act="dialog-confirm"' + (d.busy || d.stale ? ' disabled' : '') + '>' +
+          (d.busy ? '移动中…' : '确认移动') + '</button>' +
+      '</div>' +
+    '</div>';
+    return;
+  }
+
+  const destinations = groups.concat(findGroupDef(Retrieval.UNFILED)).filter(g => g.id !== d.sourceId);
+  modal.innerHTML = '<div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="libPickTitle" style="width:min(460px,100%)">' +
+    '<div class="mhead"><h3 id="libPickTitle">移动标签「' + esc(d.name) + '」</h3></div>' +
+    '<div class="pickgrouplist">' + destinations.map(function(g){
+      return '<button class="pickgroup" data-act="dialog-pick-group" data-id="' + esc(g.id) +
+        '" style="--c:' + esc(g.color || 'var(--c-topic)') + '">' +
+        '<span class="gdot"></span>' + esc(g.name) +
+        '<span class="cnt">' + g.tags.length + ' 个标签</span></button>';
+    }).join('') + '</div>' +
+    '<div class="metafoot"><button class="btn" data-act="dialog-cancel">取消</button></div>' +
   '</div>';
+}
+
+function chooseTagDestination(tagId){
+  const hit = findTagById(tagId);
+  if(!hit) return;
+  const sourceId = hit.group?.id ?? Retrieval.UNFILED;
+  state.dialog = {kind:'pick-tag-group', tagId, name:hit.tag.name, sourceId,
+    libraryScroll:$('.modal-card', $('#modal')).scrollTop};
+  state.modalMode = 'group-dialog';
+  renderModal();
+}
+
+function confirmTagMove(tagId, sourceId, targetId){
+  if(sourceId === targetId) return;
+  const hit = findTagById(tagId);
+  const target = findGroupDef(targetId);
+  if(!hit || !target || (hit.group?.id ?? Retrieval.UNFILED) !== sourceId){
+    toast('标签或分组已变化，请重新选择');
+    return;
+  }
+  const libraryScroll = state.dialog?.libraryScroll ?? $('.modal-card', $('#modal')).scrollTop;
+  state.dialog = {kind:'move-tag', tagId, name:hit.tag.name, sourceId, targetId,
+    sourceName:hit.group?.name ?? '未分组', targetName:target.name, libraryScroll};
+  state.modalMode = 'group-dialog';
+  renderModal();
+}
+
+let libraryDrag = null;
+let libraryDropTarget = null;
+
+function clearLibraryDrag(){
+  if(!libraryDrag) return;
+  libraryDrag.pill.classList.remove('lib-dragging');
+  for(const group of $$('#modal .lib-drop-ready')) group.classList.remove('lib-drop-ready', 'lib-drop-active');
+  libraryDrag = null;
+  libraryDropTarget = null;
+}
+
+const libraryModal = $('#modal');
+libraryModal.addEventListener('dragstart', function(e){
+  const handle = e.target.closest('[data-tag-drag]');
+  if(state.modalMode !== 'tags' || !handle || !e.dataTransfer) return;
+  clearLibraryDrag();
+  const pill = handle.closest('.tag');
+  const sourceId = pill.closest('[data-tag-drop]').dataset.tagDrop;
+  const targets = $$('[data-tag-drop]', libraryModal).filter(group => group.dataset.tagDrop !== sourceId);
+  if(!targets.length){ e.preventDefault(); return; }
+  e.dataTransfer.setData('application/x-colophon-tag', handle.dataset.id);
+  e.dataTransfer.effectAllowed = 'move';
+  const rect = pill.getBoundingClientRect();
+  e.dataTransfer.setDragImage(pill, e.clientX - rect.left, e.clientY - rect.top);
+  libraryDrag = {tagId:handle.dataset.id, sourceId, pill};
+  pill.classList.add('lib-dragging');
+  for(const group of targets) group.classList.add('lib-drop-ready');
+});
+
+libraryModal.addEventListener('dragover', function(e){
+  if(!libraryDrag) return;
+  const target = e.target.closest('[data-tag-drop].lib-drop-ready');
+  if(target !== libraryDropTarget){
+    libraryDropTarget?.classList.remove('lib-drop-active');
+    target?.classList.add('lib-drop-active');
+    libraryDropTarget = target;
+  }
+  if(target){
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  }
+});
+
+libraryModal.addEventListener('dragleave', function(e){
+  if(libraryDropTarget && !libraryDropTarget.contains(e.relatedTarget)){
+    libraryDropTarget.classList.remove('lib-drop-active');
+    libraryDropTarget = null;
+  }
+});
+
+libraryModal.addEventListener('drop', function(e){
+  if(!libraryDrag) return;
+  const target = e.target.closest('[data-tag-drop].lib-drop-ready');
+  const {tagId, sourceId} = libraryDrag;
+  clearLibraryDrag();
+  if(!target) return;
+  e.preventDefault();
+  confirmTagMove(tagId, sourceId, target.dataset.tagDrop);
+});
+
+libraryModal.addEventListener('dragend', clearLibraryDrag);
+
+function isTagMoveDialog(){
+  return state.modalMode === 'group-dialog' &&
+    (state.dialog?.kind === 'move-tag' || state.dialog?.kind === 'pick-tag-group');
 }
 
 /* ---------- 组 ---------- */
@@ -2391,11 +2481,16 @@ async function fetchAllMissing(){
 
 function renderModal(){
   const modal = $('#modal');
+  clearLibraryDrag();
   if(!state.modalOpen){ modal.classList.remove('open'); modal.innerHTML = ''; return; }
   if(state.modalMode === 'import'){ renderImportModal(); return; }
   if(state.modalMode === 'meta'){ renderMetaModal(); return; }
   if(state.modalMode === 'settings'){ renderSettingsModal(); return; }
-  if(state.modalMode === 'group-dialog'){ renderGroupDialog(); return; }
+  if(state.modalMode === 'group-dialog'){
+    renderGroupDialog();
+    if(isTagMoveDialog()) ($('[data-act="dialog-cancel"]:not(:disabled)') || $('[role="alertdialog"]', modal)).focus();
+    return;
+  }
   if(state.modalMode === 'tag-def'){ renderTagDefDialog(); return; }
   if(state.modalMode === 'clean'){ renderCleanModal(); return; }
   modal.classList.add('open');
@@ -2404,37 +2499,27 @@ function renderModal(){
   const summary = '标签 ' + tagCount + ' · 作者 ' +
     new Set(PAPERS.flatMap(p => p.tags.author)).size + ' · 单位 ' + new Set(PAPERS.flatMap(p => p.tags.org)).size;
 
-  const mergeSection =
-    '<section class="mergesec">' +
-      '<div class="slabel">手动合并 <span class="hint">把旧写法并到保留的写法</span></div>' +
-      '<div class="addrow">' +
-        '<select id="mergeFacet" aria-label="合并维度">' +
-          '<option value="topic">标签</option>' +
-          '<option value="author">作者</option>' +
-          '<option value="org">单位</option>' +
-        '</select>' +
-        '<input id="mergeFrom" list="mergeFromList" placeholder="旧写法" autocomplete="off">' +
-        '<input id="mergeToList" list="mergeToList" placeholder="保留的写法" autocomplete="off">' +
-        '<button class="btn primary" data-act="merge-manual">合并</button>' +
-      '</div>' +
-      '<datalist id="mergeFromList"></datalist>' +
-      '<datalist id="mergeToList"></datalist>' +
-    '</section>';
-
-  const tagPill = function(t, color, extra){
+  const tagPill = function(t, color){
     const def = (t.definition || '').trim();
     const hint = def || '还没有一句话定义';
+    const id = esc(t.id);
+    const moveLabel = esc('移动标签「' + t.name + '」');
     const deleteLabel = esc('删除标签「' + t.name + '」');
     return '<span class="tag" style="--c:' + color + '" title="' + esc(hint) + '">' +
-      '<button class="taglabel defopen" data-act="tag-def" data-id="' + t.id + '" data-name="' + esc(t.name) + '">' + esc(t.name) + '</button>' +
-      '<b>' + t.count + '</b>' + (extra || '') +
-      '<button class="tagx" data-act="del-tag" data-id="' + t.id + '" data-name="' + esc(t.name) + '" data-count="' + t.count +
+      ((state.groups || []).length ? '<button class="tagx tagmove" data-act="pick-tag-group" data-id="' + id +
+        '" data-tag-drag draggable="true" title="' + moveLabel + '（可拖拽）" aria-label="' + moveLabel + '">' +
+        '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
+        '<circle cx="9" cy="5" r="1.5"/><circle cx="15" cy="5" r="1.5"/><circle cx="9" cy="12" r="1.5"/>' +
+        '<circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="19" r="1.5"/><circle cx="15" cy="19" r="1.5"/></svg></button>' : '') +
+      '<button class="taglabel defopen" data-act="tag-def" data-id="' + id + '" data-name="' + esc(t.name) + '">' + esc(t.name) + '</button>' +
+      '<b>' + t.count + '</b>' +
+      '<button class="tagx" data-act="del-tag" data-id="' + id + '" data-name="' + esc(t.name) + '" data-count="' + t.count +
         '" title="' + deleteLabel + '" aria-label="' + deleteLabel + '">×</button></span>';
   };
 
   const groupsHTML = (state.groups || []).map(function(g){
     const vals = g.tags.slice().sort(function(a,b){ return b.count - a.count || a.name.localeCompare(b.name,'zh'); });
-    return '<section class="libgroup" style="--c:' + (g.color || 'var(--c-topic)') + '">' +
+    return '<section class="libgroup" data-tag-drop="' + esc(g.id) + '" style="--c:' + (g.color || 'var(--c-topic)') + '">' +
       '<div class="libhead"><span>' + esc(g.name) + '</span><span>' + (vals.length ? vals.length + ' 个' : '空组') + '</span></div>' +
       '<div class="libvals">' + (vals.length
         ? vals.map(function(t){
@@ -2448,16 +2533,14 @@ function renderModal(){
     '</section>';
   }).join('');
 
-  const unfiledHTML = '<section class="libgroup" style="--c:var(--warn)">' +
+  const unfiledHTML = '<section class="libgroup" data-tag-drop="' + Retrieval.UNFILED + '" style="--c:var(--warn)">' +
     '<div class="libhead"><span>未分组</span><span>' + ((state.unfiled || []).length || '无') + '</span></div>' +
     '<div class="libvals">' + ((state.unfiled || []).length
       ? state.unfiled.map(function(t){
-          return tagPill(t, 'var(--warn)',
-            '<button class="tagx" data-act="file-tag" data-id="' + t.id + '" data-name="' + esc(t.name) + '" title="归入某个组">↗</button>');
+          return tagPill(t, 'var(--warn)');
         }).join('')
       : '<span class="none">没有落在未分组的标签。</span>') +
     '</div>' +
-    '<p class="hintline" style="margin-top:6px">未分组的标签可以检索，但会带「整理」标记。点 ↗ 把它归入某个组。</p>' +
   '</section>';
 
   const metaHTML = METADATA_FACETS.map(function(f){
@@ -2483,7 +2566,6 @@ function renderModal(){
         '</svg>' +
       '</button>' +
     '</div>' +
-    mergeSection +
     '<section>' +
       '<div class="slabel">分组 <button class="linkbtn" data-act="new-group" style="margin-left:auto">＋ 新建组</button></div>' +
       groupsHTML + unfiledHTML +
@@ -2497,9 +2579,7 @@ function renderModal(){
       '<div class="slabel">元数据词表 <span class="hint">来自 Crossref / OpenAlex，不需要分组</span></div>' +
       metaHTML +
     '</section>' +
-    '<p class="mnote">合并会改写所有文献上的标签；旧名会记为别名，之后输入旧名仍指向新名。组归属随保留的标签走。</p>' +
   '</div>';
-  paintMergeOptions();
 }
 
 function renderCleanModal(){
@@ -2638,25 +2718,6 @@ async function applyClean(){
   }catch(err){
     toast('应用失败，请重试');
   }
-}
-
-function paintMergeOptions(){
-  const sel = $('#mergeFacet');
-  if(!sel) return;
-  const facet = sel.value;
-  const values = Array.from(new Set(PAPERS.flatMap(p => p.tags[facet] || [])))
-    .sort(function(a, b){ return a.localeCompare(b, 'zh'); });
-  const options = values.map(v => '<option value="' + esc(v) + '"></option>').join('');
-  const fromList = $('#mergeFromList');
-  const toList = $('#mergeToList');
-  if(fromList) fromList.innerHTML = options;
-  if(toList) toList.innerHTML = options;
-
-  const label = facet === 'author' ? '作者' : (facet === 'org' ? '单位' : '标签');
-  const from = $('#mergeFrom');
-  const to = $('#mergeToList');
-  if(from) from.placeholder = '要并掉的' + label + '写法';
-  if(to) to.placeholder = '保留的' + label + '写法';
 }
 
 /* ============================================================
@@ -2961,32 +3022,71 @@ async function createGroup(name, color){
   }
 }
 
-async function assignTagGroup(tagId, groupId){
-  if(!apiOnline) return;
+async function moveTagGroup(dialog){
+  if(dialog.busy || dialog.stale) return;
+  if(!apiOnline){ toast('未连接本地服务'); return; }
+  dialog.busy = true;
+  dialog.message = '';
+  renderModal();
   try{
     const res = await fetch('/api/groups/assign', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({tag_id: tagId, group_id: groupId || null})
+      body: JSON.stringify({
+        tag_id:dialog.tagId,
+        group_id:dialog.targetId === Retrieval.UNFILED ? null : dialog.targetId,
+        expected_group_id:dialog.sourceId === Retrieval.UNFILED ? null : dialog.sourceId
+      })
     });
+    if(res.status === 409 || res.status === 404 || res.status === 400){
+      dialog.stale = true;
+      dialog.message = '标签或分组已变化，请取消后重新选择。';
+      await refreshGroups();
+      renderAll();
+      return;
+    }
     if(!res.ok) throw new Error('assign');
+
+    // 服务已保存：即使随后读库失败，也显示这次已确认的归属。
+    const hit = findTagById(dialog.tagId);
+    const target = findGroupDef(dialog.targetId);
+    if(hit && target && (hit.group?.id ?? Retrieval.UNFILED) !== target.id){
+      const sourceTags = hit.group?.tags ?? state.unfiled;
+      sourceTags.splice(sourceTags.indexOf(hit.tag), 1);
+      if(hit.group) hit.group.count = sourceTags.length;
+      target.tags.push(hit.tag);
+      if(dialog.targetId !== Retrieval.UNFILED) target.count = target.tags.length;
+    }
     await refreshGroups();
+    renderAll();
+    if(state.readerOpen) renderReaderSide();
+    dialog.busy = false;
+    closeDialog();
+    toast('已将「' + esc(dialog.name) + '」移到「' + esc(dialog.targetName) + '」');
   }catch(err){
-    toast('改组失败，请重试');
+    dialog.message = '移动失败，请重试。';
+  }finally{
+    dialog.busy = false;
+    if(state.dialog === dialog) renderModal();
   }
 }
 
 function closeDialog(){
   const dialog = state.dialog;
   if(dialog?.busy) return;
+  const focusAction = isTagMoveDialog() ? 'pick-tag-group' : dialog?.kind === 'delete-tag' ? 'del-tag' : null;
   state.dialog = null;
   if(state.modalMode === 'group-dialog' || state.modalMode === 'tag-def'){
     state.modalMode = 'tags';
   }
   renderModal();
-  if(dialog?.kind === 'delete-tag'){
-    const button = $('[data-act="del-tag"][data-id="' + CSS.escape(dialog.tagId) + '"]');
-    (button || $('[data-act="close-lib"]'))?.focus();
+  if(dialog?.libraryScroll !== undefined){
+    const card = $('.modal-card', $('#modal'));
+    if(card) card.scrollTop = dialog.libraryScroll;
+  }
+  if(focusAction){
+    const button = $('[data-act="' + focusAction + '"][data-id="' + CSS.escape(dialog.tagId) + '"]');
+    (button || $('[data-act="close-lib"]'))?.focus({preventScroll:dialog?.libraryScroll !== undefined});
   }
 }
 
@@ -3090,50 +3190,6 @@ async function commitNewGroup(){
   }, 0);
 }
 
-async function mergeTags(facet, from, to){
-  if(facet === 'topic'){
-    const oldTag = findTag(from);
-    const newTag = findTag(to);
-    if(oldTag && newTag){
-      state.tagQuery.include = Array.from(new Set(state.tagQuery.include.map(id => id === oldTag.tag.id ? newTag.tag.id : id)));
-      state.tagQuery.exclude = Array.from(new Set(state.tagQuery.exclude.map(id => id === oldTag.tag.id ? newTag.tag.id : id)));
-    }
-  }
-  state.eval = null;
-
-  if(apiOnline){
-    try{
-      const res = await fetch('/api/merge', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({facet: facet, from_name: from, to_name: to})
-      });
-      if(!res.ok) throw new Error('merge');
-      await refreshPapers();
-      state.eval = null;
-      toast('已合并：' + esc(from) + ' → <b>' + esc(to) + '</b>');
-      renderModal();
-      return;
-    }catch(err){
-      toast('合并失败');
-      return;
-    }
-  }
-
-  let n = 0;
-  PAPERS.forEach(function(p){
-    const arr = p.tags[facet];
-    if(arr.indexOf(from) !== -1){
-      p.tags[facet] = Array.from(new Set(arr.map(v => v === from ? to : v)));
-      n++;
-    }
-  });
-  state.eval = null;
-  toast('已合并 ' + n + ' 处：' + esc(from) + ' → <b>' + esc(to) + '</b>');
-  renderAll();
-  renderModal();
-}
-
 function syncScope(ps){
   const ids = (state.aiExpand ? PAPERS : ps).map(p => p.id).sort().join(',');
   if(state.scopeIds !== undefined && state.scopeIds !== ids && state.chat.length && !state.busy){
@@ -3176,7 +3232,7 @@ document.addEventListener('click', function(e){
   }
   if(e.target.id === 'modal'){
     if(state.modalMode === 'import') closeImportBrowser();
-    else if(state.dialog?.kind === 'delete-tag') closeDialog();
+    else if(state.dialog?.kind === 'delete-tag' || isTagMoveDialog()) closeDialog();
     else { state.modalOpen = false; renderModal(); }
     return;
   }
@@ -3463,30 +3519,27 @@ document.addEventListener('click', function(e){
   else if(act === 'close-meta'){ state.modalOpen = false; renderModal(); }
   else if(act === 'save-meta'){ saveMetaFields(); }
   else if(act === 'fetch-all'){ fetchAllMissing(); }
-  else if(act === 'merge'){ mergeTags(el.dataset.facet, el.dataset.from, el.dataset.to); }
   else if(act === 'del-group'){
     openLibraryDialog('delete-group', el.dataset.id, el.dataset.name || '');
   }
   else if(act === 'del-tag'){
     openLibraryDialog('delete-tag', el.dataset.id, el.dataset.name, Number(el.dataset.count));
   }
-  else if(act === 'file-tag'){
-    openLibraryDialog('assign-tag', el.dataset.id, el.dataset.name || '');
+  else if(act === 'pick-tag-group'){
+    chooseTagDestination(el.dataset.id);
   }
   else if(act === 'tag-def'){
     openTagDefDialog(el.dataset.id, el.dataset.name || '');
   }
   else if(act === 'dialog-pick-group'){
-    const tagId = state.dialog ? state.dialog.tagId : null;
-    if(tagId) assignTagGroup(tagId, el.dataset.id);
-    closeDialog();
-  }
-  else if(act === 'dialog-unfiled'){
-    const tagId = state.dialog ? state.dialog.tagId : null;
-    if(tagId) assignTagGroup(tagId, null);
-    closeDialog();
+    const dialog = state.dialog;
+    if(dialog?.kind === 'pick-tag-group') confirmTagMove(dialog.tagId, dialog.sourceId, el.dataset.id);
   }
   else if(act === 'dialog-confirm'){
+    if(state.dialog?.kind === 'move-tag'){
+      moveTagGroup(state.dialog);
+      return;
+    }
     if(state.dialog?.kind === 'delete-tag'){
       deleteTag(state.dialog);
       return;
@@ -3517,14 +3570,6 @@ document.addEventListener('click', function(e){
   }
   else if(act === 'dialog-cancel'){
     closeDialog();
-  }
-  else if(act === 'merge-manual'){
-    const facet = $('#mergeFacet') ? $('#mergeFacet').value : 'topic';
-    const from = $('#mergeFrom') ? $('#mergeFrom').value.trim() : '';
-    const to = $('#mergeToList') ? $('#mergeToList').value.trim() : '';
-    if(!from || !to){ toast('旧写法和保留写法都要填'); return; }
-    if(from.toLowerCase() === to.toLowerCase()){ toast('两个写法相同，不需要合并'); return; }
-    mergeTags(facet, from, to);
   }
   else if(act === 'import'){ openImportBrowser(el); }
   else if(act === 'import-close'){ closeImportBrowser(); }
@@ -3578,9 +3623,6 @@ document.addEventListener('change', function(e){
   if(e.target.id === 'sort'){
     state.sort = e.target.value;
     renderAll();
-  }
-  if(e.target.id === 'mergeFacet'){
-    paintMergeOptions();
   }
   if(e.target.id === 'rtGroup'){
     if(e.target.value === '__new'){
@@ -3684,7 +3726,7 @@ document.addEventListener('keydown', function(e){
   if(e.key === 'Escape' && state.modalOpen){
     if(e.isComposing || e.keyCode === 229) return;
     if(state.modalMode === 'import'){ closeImportBrowser(); return; }
-    if(state.dialog?.kind === 'delete-tag'){ closeDialog(); return; }
+    if(state.dialog?.kind === 'delete-tag' || isTagMoveDialog()){ closeDialog(); return; }
     state.modalOpen = false;
     renderModal();
     if(state.readerOpen) $('[data-act="rt-edit-meta"]')?.focus({preventScroll:true});
@@ -3709,7 +3751,7 @@ document.addEventListener('keydown', function(e){
       return;
     }
   }
-  if(state.modalOpen && (state.modalMode === 'import' || state.dialog?.kind === 'delete-tag')){
+  if(state.modalOpen && (state.modalMode === 'import' || state.dialog?.kind === 'delete-tag' || isTagMoveDialog())){
     if(e.key === 'Tab'){
       const controls = $$('#modal button:not(:disabled), #modal input:not(:disabled)');
       const first = controls[0], last = controls[controls.length - 1];

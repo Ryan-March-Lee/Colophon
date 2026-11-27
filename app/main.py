@@ -86,6 +86,8 @@ class GroupAssignIn(BaseModel):
     # 省略或 null = 移回未分组
     group_id: str | None = None
     group_name: str | None = Field(default=None, max_length=120)
+    # 显式 null 校验未分组；省略则不校验来源组。
+    expected_group_id: str | None = None
 
 
 class MergeIn(BaseModel):
@@ -255,9 +257,20 @@ def assign_group(payload: GroupAssignIn) -> dict:
     try:
         group_id = payload.group_id
         try:
+            if "expected_group_id" in payload.model_fields_set:
+                conn.execute("BEGIN IMMEDIATE")
+                current = conn.execute(
+                    "SELECT t.id, m.group_id FROM tag t "
+                    "LEFT JOIN tag_group_member m ON m.tag_id = t.id "
+                    "WHERE t.id = ? AND t.deleted_at IS NULL",
+                    (payload.tag_id,),
+                ).fetchone()
+                if not current:
+                    raise HTTPException(status_code=404, detail="tag not found")
+                if current["group_id"] != payload.expected_group_id:
+                    raise HTTPException(status_code=409, detail="tag group changed")
             if not group_id and payload.group_name and payload.group_name.strip():
                 group_id = repo.ensure_tag_group(conn, payload.group_name)
-                conn.commit()
             result = repo.set_tag_group(conn, payload.tag_id, group_id)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
