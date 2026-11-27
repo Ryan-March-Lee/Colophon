@@ -441,25 +441,6 @@
   }
   .groupbar .btn{height:30px}
   .groupbar .gnew{font-size:11px;color:var(--accent);white-space:nowrap}
-  .app.workbench{grid-template-columns:minmax(0,1fr)}
-  .app.workbench .filterzone,.app.workbench .actionbar,.app.workbench .exprbar,.app.workbench .detail,.app.workbench .listbar{display:none}
-  .app.workbench .desk{grid-column:1}
-  .app.workbench .papers{display:block;padding:20px 18px 40px}
-  .wb-card{width:min(700px,100%);margin:0 auto}
-  .wb-top{display:flex;align-items:center;gap:9px;font-size:11px;color:var(--muted)}
-  .wb-num{font-variant-numeric:tabular-nums;font-weight:650;color:var(--ink)}
-  .wb-top .sp{margin-left:auto}
-  .wb-title{font-family:var(--serif);font-size:20px;line-height:1.32;font-weight:600;margin:11px 0 6px;letter-spacing:-.01em}
-  .wb-sub{font-size:11.5px;color:var(--muted);margin-bottom:10px}
-  .wb-abs{font-size:12.5px;line-height:1.72;color:var(--ink);opacity:.88;max-height:156px;overflow:hidden}
-  .wb-meta{display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;border:1px solid var(--line);border-radius:8px;background:var(--panel-2);padding:7px 9px;margin-top:11px}
-  .wb-meta.warn{border-color:color-mix(in srgb,var(--warn) 32%,var(--line));background:color-mix(in srgb,var(--warn) 7%,var(--panel))}
-  .wb-meta-info{flex:1;min-width:0;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
-  .wb-meta-title{font-size:11.5px;font-weight:600;flex:none}
-  .wb-meta-miss{font-size:11px;color:var(--warn)}
-  .wb-meta-doi{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
-  .wb-meta-hint{font-size:10.5px;color:var(--muted-2)}
-  .wb-meta-acts{display:flex;gap:5px;flex:none}
   .qtag{
     display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;
     border:1px solid color-mix(in srgb,var(--c) 28%,transparent);border-radius:99px;
@@ -469,10 +450,6 @@
   .qtag:hover{background:color-mix(in srgb,var(--c) 16%,transparent);border-color:color-mix(in srgb,var(--c) 46%,transparent)}
   .qtag b{font-weight:600;font-size:9.5px;opacity:.6}
   .qtag.has{opacity:.42;cursor:default}
-  .wb-tags{margin-top:15px;border-top:1px solid var(--line);padding-top:13px}
-  .wb-foot{display:flex;align-items:center;gap:8px;margin-top:16px}
-  .wb-foot .skip{margin-left:auto}
-  .wb-empty{margin:auto;text-align:center;color:var(--muted);padding:40px 20px}
   /* chat */
   .dbody.chat{display:flex;flex-direction:column;overflow:hidden;padding:0}
   .chat-top{padding:12px 20px 0;flex:none}
@@ -961,16 +938,13 @@ const state = {
   groups:[],          // 后端按组返回的标签树
   unfiled:[],         // 未分组的标签（后端算出来的，不是数据库行）
   clean:null,         // 数据清洗的扫描结果与逐条选择
-  workbench:false,    // 未打标队列（只路由，不在这里打标）
   groupSel:null,      // 阅读器打标面板当前的组 id
   readerTags:true,    // 阅读器右侧的打标栏是否展开
   readerGroupNew:false,  // 阅读器侧栏正在内联新建组（全应用唯一的组状态）
-  readerItemId:null,  // 阅读器里正在读的条目（loadPdf 完成前也有效）
-  wbSkip:new Set(),   // 工作台里跳过的（本次会话内）
-  wbDone:0,           // 本次会话已打标的篇数
-  wbHist:[],          // 回看的上一篇
-  wbId:null           // 正在看的那篇（null = 队列里的下一篇）
+  readerItemId:null   // 阅读器里正在读的条目（loadPdf 完成前也有效）
 };
+
+const MODE_LABELS = {untagged:'未打标', review:'待补全'};
 
 let toastTimer = null;
 function toast(msg){
@@ -1140,7 +1114,7 @@ function activeExpressions(){
     else text += labels.join(joiner);
     out.push({id:g.group_id,text:text});
   });
-  if(state.mode === 'review') out.push({id:'@mode',text:'待补全模式'});
+  if(state.mode) out.push({id:'@mode',text:MODE_LABELS[state.mode] + '模式'});
   if(state.q) out.push({id:'@query',text:'搜索「' + state.q + '」'});
   return out;
 }
@@ -1280,9 +1254,9 @@ function renderGroups(){
 function renderActionBar(){
   const untagged = PAPERS.filter(p => !(p.topicIds || []).length).length;
   const review = PAPERS.filter(p => p.needsReview).length;
-  $('#actionbar').innerHTML = '<button class="action-entry" data-act="open-untagged" title="进入逐条打标工作台">未打标 <b>' + untagged + '</b> · 去整理 ›</button>' +
-    '<button class="action-entry" data-act="toggle-review" aria-pressed="' + (state.mode === 'review') + '" title="进入待补全队列">待补全 <b>' + review + '</b> · 去补全 ›</button>' +
-    '<span class="action-spacer"></span>' + (state.mode === 'review' ? '<button class="linkbtn" data-act="mode-clear">退出待补全</button>' : '');
+  $('#actionbar').innerHTML = '<button id="mode-untagged" class="action-entry" data-act="toggle-mode" data-mode="untagged" aria-pressed="' + (state.mode === 'untagged') + '" title="只看未打标的文献">未打标 <b>' + untagged + '</b></button>' +
+    '<button id="mode-review" class="action-entry" data-act="toggle-mode" data-mode="review" aria-pressed="' + (state.mode === 'review') + '" title="进入待补全队列">待补全 <b>' + review + '</b> · 去补全 ›</button>' +
+    '<span class="action-spacer"></span>' + (state.mode ? '<button class="linkbtn" data-act="mode-clear">退出' + MODE_LABELS[state.mode] + '</button>' : '');
 }
 
 function renderRescueButton(fix){
@@ -1314,7 +1288,7 @@ function renderExpression(){
 
 function renderListbar(ps){
   const batch = state.batchProgress;
-  $('#listbar').innerHTML = '<div class="countrow"><div class="count"><b>' + ps.length + '</b> 篇 <span style="color:var(--muted-2)">· 全库 ' + PAPERS.length + '</span>' + (state.mode === 'review' ? ' <span style="color:var(--warn)">· 待补全模式</span>' : '') + '</div>' +
+  $('#listbar').innerHTML = '<div class="countrow"><div class="count"><b>' + ps.length + '</b> 篇 <span style="color:var(--muted-2)">· 全库 ' + PAPERS.length + '</span>' + (state.mode ? ' <span style="color:var(--warn)">· ' + MODE_LABELS[state.mode] + '模式</span>' : '') + '</div>' +
     '<div class="countacts"><select class="sel" id="sort" aria-label="排序"><option value="year"' + (state.sort === 'year' ? ' selected' : '') + '>年份 新→旧</option>' +
     '<option value="cites"' + (state.sort === 'cites' ? ' selected' : '') + '>引用最多</option><option value="added"' + (state.sort === 'added' ? ' selected' : '') + '>入库顺序</option></select>' +
     (batch ? '<span class="batch-progress" id="batchProgress" role="status">' + batchProgressText(batch) + '</span>' : state.mode === 'review' ? '<button class="btn tiny primary" data-act="fetch-all"' + (ps.length ? '' : ' disabled') + '>补全全部 ' + ps.length + ' 篇</button>' : '') +
@@ -1354,7 +1328,10 @@ function renderList(ps){
     else {
       const fixes = Retrieval.rescue(PAPERS,retrievalFilter(),5);
       const suggestions = fixes.map(renderRescueButton).join('');
-      el.innerHTML = '<div class="empty"><div class="em">○</div><p>' + (state.mode === 'review' ? '待补全队列为空' : '没有符合这些条件的文献') + '</p>' + suggestions + '<button class="btn tiny" data-act="reset-all">清除搜索与筛选</button></div>';
+      let message = '没有符合这些条件的文献';
+      if(state.mode === 'review') message = '待补全队列为空';
+      if(state.mode === 'untagged' && !state.q && !selectedCount()) message = '没有未打标的文献';
+      el.innerHTML = '<div class="empty"><div class="em">○</div><p>' + message + '</p>' + suggestions + '<button class="btn tiny" data-act="reset-all">清除搜索与筛选</button></div>';
     }
     el.scrollTop = 0;
     return;
@@ -1813,107 +1790,6 @@ function readerRemoveTag(name){
     .then(function(res){ if(!res.ok) throw new Error('save'); return refreshPapers(); })
     .then(function(){ renderReaderSide(); })
     .catch(function(){ toast('保存失败，改动只在本页'); });
-}
-function wbQueue(){
-  return PAPERS.filter(p => p.tags.topic.length === 0 && !state.wbSkip.has(p.id));
-}
-
-function workbenchCurrent(){
-  const queue = wbQueue();
-  if(state.wbId){
-    const pinned = PAPERS.find(x => x.id === state.wbId);
-    if(pinned) return { paper: pinned, queue: queue, pinned: true };
-  }
-  return queue.length ? { paper: queue[0], queue: queue, pinned: false } : null;
-}
-
-function renderWorkbench(){
-  const el = $('#papers');
-  const app = $('#app');
-  if(!state.workbench){
-    app.classList.remove('workbench');
-    if(el.classList.contains('wb')) el.className = 'papers';
-    return;
-  }
-  app.classList.add('workbench');
-  el.className = 'papers wb';
-
-  const cur = workbenchCurrent();
-  if(!cur){
-    el.innerHTML = '<div class="wb-empty">' +
-      '<p>这一轮没有剩下的未打标文献了。</p>' +
-      '<button class="btn tiny" data-act="wb-exit">回到列表</button>' +
-    '</div>';
-    return;
-  }
-
-  const p = cur.paper;
-  const existing = p.tags.topic;
-  const left = cur.queue.length;
-  const done = state.wbDone;
-  const metaBusy = state.metaBusy === p.id;
-  const missing = (p.missing || []).map(fieldLabel);
-  const metaBlock =
-    '<div class="wb-meta' + (p.needsReview ? ' warn' : '') + '">' +
-      '<div class="wb-meta-info">' +
-        '<span class="wb-meta-title">' + (p.needsReview ? '元数据待补全' : '元数据') + '</span>' +
-        (missing.length
-          ? '<span class="wb-meta-miss">缺 ' + esc(missing.join('、')) + '</span>'
-          : (p.doi
-              ? '<span class="wb-meta-doi">' + esc(p.doi) + '</span>'
-              : '<span class="wb-meta-doi">字段齐了</span>')) +
-        (!p.abstract
-          ? '<span class="wb-meta-hint">没有摘要，先去原文里看</span>'
-          : '') +
-      '</div>' +
-      '<div class="wb-meta-acts">' +
-        '<button class="btn tiny" data-act="wb-fetch"' + (metaBusy ? ' disabled' : '') + '>' +
-          (metaBusy ? '抓取中…' : '抓取元数据') +
-        '</button>' +
-        '<button class="btn tiny" data-act="wb-edit-meta">手动补全</button>' +
-      '</div>' +
-    '</div>';
-
-  el.innerHTML = '<div class="wb-card">' +
-    '<div class="wb-top">' +
-      '<span class="wb-num">已打标 ' + done + '</span>' +
-      '<span>· 还剩 ' + left + ' 篇未打标</span>' +
-      '<span class="sp">全库 ' + PAPERS.length + ' 篇</span>' +
-      '<button class="linkbtn" data-act="wb-exit">退出</button>' +
-    '</div>' +
-    '<h2 class="wb-title">' + esc(p.title) + '</h2>' +
-    '<p class="wb-sub">' + wbSubline(p) + '</p>' +
-    metaBlock +
-    (p.abstract
-      ? '<p class="wb-abs">' + esc(p.abstract) + '</p>'
-      : '') +
-    '<div class="wb-tags">' +
-      '<div class="slabel">标签 <span class="hint">' + (existing.length ? '已有 ' + existing.length + ' 个' : '这篇还没打标') + '</span></div>' +
-      '<div class="tagcloud" style="margin-bottom:8px">' +
-        (existing.length
-          ? existing.map(t => '<span class="tag" style="--c:' + topicColor(t) + '"><span class="taglabel">' + esc(t) + '</span></span>').join('')
-          : '<span class="none">还没有标签</span>') +
-      '</div>' +
-    '</div>' +
-    '<div class="wb-foot">' +
-      '<button class="btn" data-act="wb-prev"' + (state.wbHist.length ? '' : ' disabled') + '>← 上一篇</button>' +
-      '<button class="btn primary" data-act="wb-read">' +
-        (p.hasFile ? (existing.length ? '回到原文打标 →' : '打开原文打标 →') : '无 PDF，在侧栏打标 →') +
-      '</button>' +
-      '<button class="btn" data-act="wb-done"' + (existing.length ? '' : ' disabled') + '>完成这篇 →</button>' +
-      '<button class="btn skip" data-act="wb-skip">跳过</button>' +
-    '</div>' +
-  '</div>';
-}
-
-function wbSubline(p){
-  const year = p.tags.year[0];
-  const venue = p.venue ? esc(p.venue) : '';
-  const yearBit = year
-    ? esc(year)
-    : '<span style="color:var(--warn)">年份待补</span>';
-  const authors = (p.authors || []).slice(0,3).map(esc).join('、');
-  return [venue, yearBit, authors].filter(Boolean).join(' · ');
 }
 
 function aiScope(){
@@ -2460,12 +2336,9 @@ async function saveMetaFields(){
   }
 }
 
-async function fetchMeta(itemId, opts){
-  opts = opts || {};
+async function fetchMeta(itemId){
   if(state.metaBusy) return;
   if(!apiOnline){ toast('未连接本地服务，无法抓取元数据'); return; }
-  // 钉住这一篇：抓完可能已不在队列里，工作台不能因此跳走
-  if(opts.keepWorkbench) state.wbId = itemId;
   state.metaBusy = itemId;
   renderAll();
   if(state.readerOpen) renderReaderSide();
@@ -2484,7 +2357,6 @@ async function fetchMeta(itemId, opts){
       toast((report.source ? '<b>' + esc(report.source) + '</b> · ' : '') + esc(report.message || '已补全'));
     }
     await refreshPapers();
-    if(opts.keepWorkbench) state.wbId = itemId;
   }catch(err){
     toast('抓取失败：检查网络或模型设置后再试');
   }finally{
@@ -3188,11 +3060,6 @@ function syncScope(ps){
 }
 
 function renderAll(){
-  renderWorkbench();
-  if(state.workbench){
-    if(state.modalOpen) renderModal();
-    return;
-  }
   state.eval = null;
   let ps = getFiltered();
   if(!ps.length){
@@ -3227,17 +3094,17 @@ document.addEventListener('click', function(e){
   }
   const act = el.dataset.act;
 
-  if(act === 'toggle-review'){
-    state.mode = state.mode === 'review' ? null : 'review';
-    state.eval = null;
+  if(act === 'toggle-mode'){
+    const mode = el.dataset.mode;
+    state.mode = state.mode === mode ? null : mode;
     state.paperId = null;
-    state.pendingScroll = 'top';
-    renderAll();
+    $('#papers').scrollTop = 0;
+    renderFilterChange(el.id);
   }
   else if(act === 'mode-clear'){
+    const focusId = 'mode-' + state.mode;
     state.mode = null;
-    state.eval = null;
-    renderAll();
+    renderFilterChange(focusId);
   }
   else if(act === 'tag-toggle' || act === 'tag-exclude'){
     const options = el.closest('.qg-options');
@@ -3388,65 +3255,6 @@ document.addEventListener('click', function(e){
     applyClean();
     return;
   }
-  else if(act === 'open-untagged'){
-    state.workbench = true;
-    state.wbDone = 0;
-    state.wbHist = [];
-    state.wbSkip = new Set();
-    state.wbId = null;
-    state.pendingScroll = 'top';
-    renderAll();
-  }
-  else if(act === 'wb-exit'){
-    state.workbench = false;
-    state.wbId = null;
-    renderAll();
-  }
-  else if(act === 'wb-skip'){
-    const cur = workbenchCurrent();
-    if(!cur) return;
-    state.wbSkip.add(cur.paper.id);
-    state.wbId = null;
-    renderAll();
-  }
-  else if(act === 'wb-done'){
-    const cur = workbenchCurrent();
-    if(!cur) return;
-    if(cur.paper.tags.topic.length === 0){
-      toast('这一篇还没打标签。想先放着就点「跳过」。');
-      return;
-    }
-    state.wbHist.push(cur.paper.id);
-    state.wbDone += 1;
-    state.wbId = null;
-    renderAll();
-  }
-  else if(act === 'wb-prev'){
-    const prev = state.wbHist.pop();
-    if(prev){ state.wbId = prev; state.wbDone = Math.max(0, state.wbDone - 1); }
-    renderAll();
-  }
-  else if(act === 'wb-read'){
-    const cur = workbenchCurrent();
-    if(!cur) return;
-    state.wbId = cur.paper.id;
-    state.paperId = cur.paper.id;
-    openReader();
-    return;
-  }
-  else if(act === 'wb-fetch'){
-    const cur = workbenchCurrent();
-    if(cur) fetchMeta(cur.paper.id, { keepWorkbench: true });
-  }
-  else if(act === 'wb-edit-meta'){
-    const cur = workbenchCurrent();
-    if(!cur) return;
-    state.wbId = cur.paper.id;
-    state.paperId = cur.paper.id;
-    state.modalMode = 'meta';
-    state.modalOpen = true;
-    renderModal();
-  }
   else if(act === 'create-group'){
     commitNewGroup();
   }
@@ -3514,7 +3322,7 @@ document.addEventListener('click', function(e){
   }
   else if(act === 'rt-fetch-meta'){
     const p = readerPaper();
-    if(p) fetchMeta(p.id, {keepWorkbench: state.workbench});
+    if(p) fetchMeta(p.id);
   }
   else if(act === 'rt-open-lib'){
     closeReader();
