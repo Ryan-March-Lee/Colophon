@@ -50,7 +50,7 @@
 | `TagSuggestCard` | 阅读（仅右侧栏） | 生成中、待采纳、已采纳、已忽略、失败 |
 | `ScopeBar` | AI | 筛选范围 N、全库、0 篇、已扩范围 |
 | `ChatComposer` | AI | 可用、0 篇禁用、发送中、无 Key |
-| `MessageList` | AI | 空、流式、完成、错误、无引用 |
+| `MessageList` | AI | 空、生成中、完成、错误、无引用 |
 | `CitationChip` | AI | 可跳转、未定位、页码缺失 |
 | `EvidenceCard` | AI / 阅读 | 段落预览、跳转、定位失败 |
 | `SavedViewMenu` | 左栏 / 列表 | 保存、重命名、删除、脏状态 |

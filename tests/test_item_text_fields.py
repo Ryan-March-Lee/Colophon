@@ -42,11 +42,13 @@ class ItemTextFieldsTests(unittest.TestCase):
         columns = self._columns()
         self.assertNotIn("memory", columns)
         self.assertNotIn("ai_brief", columns)
+        self.assertNotIn("cites", columns)
 
     def test_item_payload_has_no_summary_fields(self):
         item = self.repo.get_item(self.conn, self.item_id)
         self.assertNotIn("memory", item)
         self.assertNotIn("aiBrief", item)
+        self.assertNotIn("cites", item)
 
     def test_legacy_memory_patch_is_ignored(self):
         item = self.repo.patch_item(
@@ -139,6 +141,35 @@ class LegacyLibraryMigrationTests(unittest.TestCase):
             INSERT INTO item (id, title, status, starred, memory, note_md, ai_brief, added_at, updated_at)
               VALUES ('itm_old', '旧文献', 'read', 1, '一句话概括', '读书笔记', 'AI 摘要', '2026-01-01', '2026-01-01');
             CREATE INDEX ix_item_status ON item(status);
+            CREATE TABLE saved_view (
+              id TEXT PRIMARY KEY,
+              name TEXT NOT NULL,
+              filter_json TEXT NOT NULL,
+              sort TEXT NOT NULL DEFAULT 'year',
+              created_at TEXT NOT NULL
+            );
+            INSERT INTO saved_view (id, name, filter_json, sort, created_at)
+              VALUES ('view_old', '旧视图', '{}', 'cites', '2026-01-01');
+            CREATE TABLE conversation (
+              id TEXT PRIMARY KEY,
+              title TEXT NOT NULL,
+              scope_json TEXT NOT NULL,
+              created_at TEXT NOT NULL
+            );
+            INSERT INTO conversation VALUES ('cnv_old', '旧对话', '{}', '2026-01-01');
+            CREATE TABLE message (
+              id TEXT PRIMARY KEY,
+              conversation_id TEXT NOT NULL REFERENCES conversation(id),
+              role TEXT NOT NULL,
+              content TEXT NOT NULL,
+              cites_json TEXT NOT NULL DEFAULT '[]',
+              model TEXT,
+              created_at TEXT NOT NULL
+            );
+            INSERT INTO message VALUES (
+              'msg_old', 'cnv_old', 'assistant', '历史回答 [1]', '[{"title":"旧文献"}]',
+              'test-model', '2026-01-01'
+            );
             """
         )
         conn.executescript(self.db.SCHEMA_PATH.read_text(encoding="utf-8"))
@@ -165,11 +196,20 @@ class LegacyLibraryMigrationTests(unittest.TestCase):
             self.assertNotIn("memory", columns)
             self.assertNotIn("ai_brief", columns)
             self.assertNotIn("status", columns)
+            self.assertNotIn("cites", columns)
             self.assertIsNone(conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'ix_item_status'").fetchone())
             row = conn.execute("SELECT id, title, starred, note_md FROM item").fetchone()
             self.assertEqual(tuple(row), ("itm_old", "旧文献", 1, "读书笔记"))
             link = conn.execute("SELECT item_id, tag_id FROM item_tag").fetchone()
             self.assertEqual(tuple(link), ("itm_old", "tag_old"))
+            self.assertEqual(
+                conn.execute("SELECT sort FROM saved_view WHERE id='view_old'").fetchone()[0],
+                "year",
+            )
+            message_columns = {row["name"] for row in conn.execute("PRAGMA table_info(message)")}
+            self.assertIn("cites_json", message_columns)
+            message = conn.execute("SELECT content, cites_json, model FROM message WHERE id='msg_old'").fetchone()
+            self.assertEqual(tuple(message), ("历史回答 [1]", '[{"title":"旧文献"}]', "test-model"))
             self.assertEqual(conn.execute("PRAGMA foreign_key_check").fetchall(), [])
         finally:
             conn.close()

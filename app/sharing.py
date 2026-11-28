@@ -21,7 +21,7 @@ MAX_ITEMS = 10000
 Key = Annotated[str, Field(min_length=1, max_length=128, pattern=r"^[a-zA-Z0-9_-]+$")]
 Name = Annotated[str, Field(min_length=1, max_length=120, pattern=r"\S")]
 Digest = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
-META_FIELDS = ("type", "title", "abstract", "year", "venue", "doi", "arxiv_id", "url", "language", "cites")
+META_FIELDS = ("type", "title", "abstract", "year", "venue", "doi", "arxiv_id", "url", "language")
 
 
 class ShareModel(BaseModel):
@@ -50,7 +50,6 @@ class ShareItem(ShareModel):
     arxiv_id: str | None = None
     url: str | None = None
     language: str = "en"
-    cites: int = Field(default=0, ge=-(2**63), le=2**63-1)
     authors: list[str] = Field(default_factory=list)
     orgs: list[str] = Field(default_factory=list)
     tag_ids: list[Key] = Field(default_factory=list)
@@ -141,6 +140,12 @@ def read_package(data: bytes) -> SharePackage:
         raise ValueError("所选文件不是 Colophon 文献分享包")
     if type(raw.get("version")) is not int or raw["version"] != 1:
         raise ValueError("此版本的 Colophon 不支持该分享包格式版本")
+    # 旧版分享包的被引次数在校验前丢弃，其余字段仍按格式严格校验。
+    items = raw.get("items")
+    if isinstance(items, list):
+        for item in items:
+            if isinstance(item, dict):
+                item.pop("cites", None)
     try:
         package = SharePackage.model_validate(raw)
     except ValidationError as exc:

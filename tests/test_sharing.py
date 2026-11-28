@@ -59,6 +59,7 @@ class SharePackageTests(unittest.TestCase):
         self.assertNotIn("note", plain["items"][0])
         data = sharing.export_package(self.source, [item_id], True, True)
         exported = json.loads(data)["items"][0]
+        self.assertNotIn("cites", exported)
         for private in ("starred", "fileName", "original_name", "rel_path", "needs_review"):
             self.assertNotIn(private, exported)
         self.assertNotIn(b"%PDF", data)
@@ -103,6 +104,13 @@ class SharePackageTests(unittest.TestCase):
             self.assertEqual(self.transfer(data)["added"], 1)
             self.assertEqual(repo.import_pdf(self.local, "received-updated.pdf", other_pdf)["status"], "attached")
             self.assertEqual(len(repo.list_items(self.local)), 1)
+
+    def test_legacy_share_citation_count_is_ignored(self):
+        item_id = self.seed(self.source, self.source_path)
+        raw = json.loads(sharing.export_package(self.source, [item_id], False, False))
+        raw["items"][0]["cites"] = 42
+        package = sharing.read_package(json.dumps(raw).encode())
+        self.assertFalse(hasattr(package.items[0], "cites"))
 
     def test_exact_file_with_multiple_printed_dois_still_attaches(self):
         pdf = self.pdf("DOI: 10.1234/another")

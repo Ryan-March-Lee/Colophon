@@ -123,7 +123,6 @@ def _dict_to_item(
         "doi": row["doi"] or "",
         "arxivId": row["arxiv_id"] or "",
         "url": row["url"] or "",
-        "cites": row["cites"],
         "abstract": row["abstract"],
         "note": row["note_md"],
         "year": row["year"],

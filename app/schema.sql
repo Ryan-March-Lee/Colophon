@@ -14,7 +14,6 @@ CREATE TABLE IF NOT EXISTS item (
   language      TEXT NOT NULL DEFAULT 'en',
   starred       INTEGER NOT NULL DEFAULT 0,
   note_md       TEXT NOT NULL DEFAULT '',
-  cites         INTEGER NOT NULL DEFAULT 0,
   needs_review  INTEGER NOT NULL DEFAULT 0,
   added_at      TEXT NOT NULL,
   updated_at    TEXT NOT NULL,

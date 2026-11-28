@@ -26,10 +26,12 @@ def connect() -> sqlite3.Connection:
 
 def _drop_legacy_columns(conn: sqlite3.Connection) -> None:
     existing = {row["name"] for row in conn.execute("PRAGMA table_info(item)")}
-    # 必须先移除引用阅读状态列的索引，才能删除该列。
+    # 删除阅读状态列前，先移除对应索引。
     conn.execute("DROP INDEX IF EXISTS ix_item_status")
     if "status" in existing:
         conn.execute("ALTER TABLE item DROP COLUMN status")
+    if "cites" in existing:
+        conn.execute("ALTER TABLE item DROP COLUMN cites")
 
     for name in ("memory", "ai_brief"):
         if name in existing:
@@ -38,6 +40,11 @@ def _drop_legacy_columns(conn: sqlite3.Connection) -> None:
             except sqlite3.OperationalError:
                 # 旧版 SQLite 不支持 DROP COLUMN 时，已停用的摘要列可以保留。
                 pass
+
+    messages = {row["name"] for row in conn.execute("PRAGMA table_info(message)")}
+    if "cites_json" not in messages:
+        conn.execute("ALTER TABLE message ADD COLUMN cites_json TEXT NOT NULL DEFAULT '[]'")
+    conn.execute("UPDATE saved_view SET sort = 'year' WHERE sort = 'cites'")
 
 
 def init_db() -> None:
