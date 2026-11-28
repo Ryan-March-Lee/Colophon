@@ -728,9 +728,6 @@
   .rtagbtn{display:inline-flex}
   .rtagbtn[aria-pressed="true"]{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 40%,var(--line));color:var(--accent-2);font-weight:600}
   .rmain{flex:1;min-height:0;display:flex;position:relative;overflow:hidden}
-  .rbody{flex:1;min-width:0;overflow:auto;padding:18px 24px 64px;background:var(--bg);position:relative}
-  .rbody.blank{overflow:hidden}
-
   /* ---------- 阅读时打标签（右侧不遮挡原文） ---------- */
   .rside{
     width:318px;flex:none;overflow-y:auto;background:var(--panel);
@@ -776,11 +773,19 @@
   .rs-foot .save{font-size:10px;color:var(--muted-2);margin-left:auto}
   .rpage{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:66px;text-align:center}
   .rz{min-width:58px;font-variant-numeric:tabular-nums;font-size:12px}
-  .rbody{flex:1;min-width:0;overflow:auto;padding:18px 24px 64px;background:var(--bg);position:relative}
+  .rbody{flex:1;min-width:0;overflow:auto;overflow-anchor:none;scrollbar-gutter:stable;padding:18px 24px 64px;background:var(--bg);position:relative}
   .rbody.blank{overflow:hidden}
   .rpage-wrap{position:relative;margin:0 auto 16px;background:#fff;border-radius:2px;box-shadow:0 2px 12px rgba(20,24,20,.14);overflow:hidden}
-  .rpage-wrap canvas{display:block}
-  .rpage-n{position:absolute;left:8px;bottom:6px;font-size:10px;color:#8a8c84;background:rgba(255,255,255,.86);border-radius:3px;padding:1px 5px;pointer-events:none}
+  .rpage-wrap canvas{display:block;width:100%;height:100%}
+  .rpage-wrap canvas[hidden]{display:none}
+  .rtext{position:absolute;top:0;left:0;overflow:hidden;line-height:1;text-align:start;text-size-adjust:none;forced-color-adjust:none;transform-origin:0 0;user-select:text}
+  .rtext :is(span,br){position:absolute;color:transparent;white-space:pre;cursor:text;transform-origin:0 0}
+  .rtext[data-main-rotation="90"]{transform:rotate(90deg) translateY(-100%)}
+  .rtext[data-main-rotation="180"]{transform:rotate(180deg) translate(-100%,-100%)}
+  .rtext[data-main-rotation="270"]{transform:rotate(270deg) translateX(-100%)}
+  .rtext ::selection{color:transparent;background:rgba(36,112,238,.34)}
+  .rtext br::selection{background:transparent}
+  .rpage-n{position:absolute;left:8px;bottom:6px;font-size:10px;color:#8a8c84;background:rgba(255,255,255,.86);border-radius:3px;padding:1px 5px;pointer-events:none;user-select:none}
   .rmissing{max-width:430px;margin:11vh auto 0;text-align:center;color:var(--muted)}
   .rmissing .em{font-size:30px;color:var(--line-2);margin-bottom:12px}
   .rmissing p{margin:0 0 16px;line-height:1.75;font-size:13px}
@@ -895,15 +900,15 @@
       <button class="rbtn" data-act="reader-next" title="下一页（→）" aria-label="下一页">›</button>
     </div>
     <div class="rgroup">
-      <button class="rbtn" data-act="reader-zoom-out" title="缩小" aria-label="缩小">−</button>
+      <button class="rbtn" data-act="reader-zoom-out" title="缩小（Ctrl + 滚轮向下）" aria-label="缩小">−</button>
       <button class="rbtn rz" data-act="reader-fit" id="readerZoom" title="适应宽度">100%</button>
-      <button class="rbtn" data-act="reader-zoom-in" title="放大" aria-label="放大">+</button>
+      <button class="rbtn" data-act="reader-zoom-in" title="放大（Ctrl + 滚轮向上）" aria-label="放大">+</button>
       <button class="rbtn" data-act="reader-rotate" title="旋转 90°" aria-label="旋转">⟳</button>
     </div>
     <button class="rbtn rtagbtn" data-act="reader-tags" id="readerTagsBtn" title="打标签（T）" aria-pressed="true" aria-controls="readerSide">标签</button>
   </div>
   <div class="rmain">
-    <div class="rbody" id="readerBody"></div>
+    <div class="rbody" id="readerBody" tabindex="0" role="region" aria-label="PDF 页面"></div>
     <div class="rloading" id="readerLoading">正在载入 PDF…</div>
     <aside class="rside" id="readerSide" aria-label="打标签"></aside>
   </div>
@@ -1874,7 +1879,9 @@ function renderReaderSide(){
   const el = $('#readerSide');
   if(!el) return;
   const on = state.readerTags !== false;
+  const layoutChanged = el.hidden === on;
   el.hidden = !on;
+  if(layoutChanged && pdfView.fit && pdfView.itemId === state.readerItemId) fitWidth();
   const btn = $('#readerTagsBtn');
   if(btn) btn.setAttribute('aria-pressed', String(on));
   if(!on){ el.innerHTML = ''; return; }
@@ -4358,8 +4365,8 @@ document.addEventListener('keydown', function(e){
    PDF 阅读器（只读，不做批注）
    ============================================================ */
 const pdfView = {
-  doc:null, itemId:null, scale:1, fitScale:1, fit:true, rotation:0,
-  pages:[], io:null, current:1, seq:0
+  doc:null, loading:null, itemId:null, scale:1, fitScale:1, fit:true, rotation:0,
+  pages:[], io:null, current:1, renderTimer:0, wheelFrame:0, wheelDelta:0
 };
 
 function setReaderLoading(on, text){
@@ -4385,14 +4392,17 @@ function updateReaderChrome(){
 }
 
 function destroyPdf(){
-  if(pdfView.io){ pdfView.io.disconnect(); pdfView.io = null; }
-  pdfView.pages.forEach(function(ps){
-    if(ps.task){ try { ps.task.cancel(); } catch(err) { /* 已结束 */ } }
-  });
-  if(pdfView.doc){
-    try { pdfView.doc.destroy(); } catch(err) { /* 已在销毁 */ }
-    pdfView.doc = null;
+  clearTimeout(pdfView.renderTimer);
+  cancelAnimationFrame(pdfView.wheelFrame);
+  pdfView.renderTimer = pdfView.wheelFrame = pdfView.wheelDelta = 0;
+  pdfView.io?.disconnect();
+  pdfView.io = null;
+  for(const ps of pdfView.pages){
+    ps.rasterJob?.task.cancel();
+    ps.textTask?.cancel();
   }
+  pdfView.loading?.destroy().catch(() => {});
+  pdfView.loading = pdfView.doc = null;
   pdfView.pages = [];
   pdfView.current = 1;
   pdfView.itemId = null;
@@ -4478,9 +4488,6 @@ function openReader(itemId = state.paperId){
   $('#readerTitle').innerHTML =
     '<span>' + esc(p.title || '未命名') + '</span>' +
     (p.fileName ? '<span class="rname">' + esc(p.fileName) + '</span>' : '');
-  const body = $('#readerBody');
-  body.classList.remove('blank');
-  body.innerHTML = '';
   renderReaderSide();
 
   if(!p.hasFile) readerMissing(p);
@@ -4523,24 +4530,26 @@ async function loadPdf(p){
     return;
   }
 
+  let loading;
   try{
-    const doc = await pdfjsLib.getDocument({
+    loading = pdfView.loading = pdfjsLib.getDocument({
       url: '/api/items/' + encodeURIComponent(p.id) + '/file'
-    }).promise;
-    if(!state.readerOpen || pdfView.itemId !== p.id){
-      try { doc.destroy(); } catch(err) { /* 已关闭 */ }
-      return;
-    }
+    });
+    const doc = await loading.promise;
+    if(loading !== pdfView.loading) return;
     pdfView.doc = doc;
-    await buildPages();
+    await buildPages(doc);
+    if(loading !== pdfView.loading) return;
     setReaderLoading(false);
     updateReaderChrome();
   }catch(err){
-    if(!state.readerOpen || pdfView.itemId !== p.id) return;
+    if(!state.readerOpen || (loading && loading !== pdfView.loading)) return;
     if(err?.name === 'MissingPDFException'){
       readerMissing(p);
       return;
     }
+    destroyPdf();
+    pdfView.itemId = p.id;
     setReaderLoading(false);
     body.classList.add('blank');
     body.innerHTML =
@@ -4553,118 +4562,128 @@ async function loadPdf(p){
   }
 }
 
-async function buildPages(){
-  const doc = pdfView.doc;
-  if(!doc) return;
+async function buildPages(doc){
   const body = $('#readerBody');
-  const first = await doc.getPage(1);
-  const base = first.getViewport({ scale:1, rotation: pdfView.rotation });
-  const avail = Math.max(240, body.clientWidth - 48);
-  pdfView.fit = true;
-  pdfView.scale = Math.max(0.3, Math.min(3, avail / base.width));
-  pdfView.fitScale = pdfView.scale;
-
-  // 先恢复上次的页码，再建页；否则 rebuild 会把位置写成第 1 页。
-  const saved = Number(localStorage.getItem('colophon:pos:' + pdfView.itemId)) || 1;
-  pdfView.current = Math.min(Math.max(1, saved), doc.numPages);
-
-  await rebuildPages();
-}
-
-async function rebuildPages(){
-  const doc = pdfView.doc;
-  if(!doc) return;
-  const body = $('#readerBody');
-  const keep = pdfView.current || 1;
-
-  if(pdfView.io){ pdfView.io.disconnect(); pdfView.io = null; }
-  pdfView.pages.forEach(function(ps){
-    if(ps.task){ try { ps.task.cancel(); } catch(err) { /* 已结束 */ } }
-  });
-  pdfView.pages = [];
-  body.innerHTML = '';
-
+  const pages = [];
   const frag = document.createDocumentFragment();
   for(let n = 1; n <= doc.numPages; n++){
     const page = await doc.getPage(n);
-    const vp = page.getViewport({ scale: pdfView.scale, rotation: pdfView.rotation });
+    if(doc !== pdfView.doc) return;
     const wrap = document.createElement('div');
     wrap.className = 'rpage-wrap';
     wrap.dataset.page = String(n);
-    wrap.style.width = Math.floor(vp.width) + 'px';
-    wrap.style.height = Math.floor(vp.height) + 'px';
-    const canvas = document.createElement('canvas');
+    const textLayer = document.createElement('div');
+    textLayer.className = 'rtext';
     const label = document.createElement('span');
     label.className = 'rpage-n';
     label.textContent = String(n);
-    wrap.append(canvas, label);
+    label.setAttribute('aria-hidden', 'true');
+    wrap.append(textLayer, label);
     frag.appendChild(wrap);
-    pdfView.pages.push({
-      n, page, wrap, canvas,
-      rendered:false, rendering:false, failed:false, task:null
-    });
+    pages.push({n, page, wrap, textLayer});
   }
-  body.appendChild(frag);
-  observePages();
-  renderPage(keep);
-  updateReaderChrome();
-  goToPage(keep, false);
-}
+  pdfView.pages = pages;
+  pdfView.scale = pdfView.fitScale = readerFitScale();
+  pages.forEach(layoutPdfPage);
+  body.replaceChildren(frag);
+  body.scrollLeft = 0;
 
-function observePages(){
-  if(pdfView.io){ pdfView.io.disconnect(); pdfView.io = null; }
-  const root = $('#readerBody');
   pdfView.io = new IntersectionObserver(function(entries){
-    entries.forEach(function(entry){
-      if(entry.isIntersecting) renderPage(Number(entry.target.dataset.page));
-    });
-  }, { root: root, rootMargin: '800px 0px' });
-  pdfView.pages.forEach(function(ps){
-    if(!ps.rendered && !ps.failed) pdfView.io.observe(ps.wrap);
-  });
+    if(doc !== pdfView.doc) return;
+    for(const {target, isIntersecting} of entries){
+      const ps = pages[Number(target.dataset.page) - 1];
+      ps.nearby = isIntersecting;
+      if(isIntersecting) renderPage(ps.n);
+    }
+  }, { root:body, rootMargin:'800px 0px' });
+  for(const ps of pages) pdfView.io.observe(ps.wrap);
+
+  let saved = 1;
+  try{ saved = parseInt(localStorage.getItem('colophon:pos:' + pdfView.itemId), 10) || 1; }catch(err){ /* 隐私模式 */ }
+  goToPage(saved, false);
 }
 
-async function renderPage(n){
-  const ps = pdfView.pages.find(function(p){ return p.n === n; });
-  if(!ps || ps.rendered || ps.rendering || ps.failed) return;
-  ps.rendering = true;
+function layoutPdfPage(ps){
+  const viewport = ps.page.getViewport({scale:pdfView.scale, rotation:(ps.page.rotate + pdfView.rotation) % 360});
+  ps.viewport = viewport;
+  ps.wrap.style.width = Math.max(1, Math.floor(viewport.width)) + 'px';
+  ps.wrap.style.height = Math.max(1, Math.floor(viewport.height)) + 'px';
+  ps.wrap.style.setProperty('--scale-factor', viewport.scale);
+  ps.textLayer.dataset.mainRotation = viewport.rotation;
+  if(ps.canvas) ps.canvas.hidden = ps.canvasRotation !== viewport.rotation;
+}
+
+async function renderPageText(ps){
+  if(ps.textStarted) return;
+  ps.textStarted = true;
   try{
-    const vp = ps.page.getViewport({ scale: pdfView.scale, rotation: pdfView.rotation });
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const w = Math.floor(vp.width);
-    const h = Math.floor(vp.height);
-    ps.wrap.style.width = w + 'px';
-    ps.wrap.style.height = h + 'px';
-    ps.canvas.width = Math.floor(w * dpr);
-    ps.canvas.height = Math.floor(h * dpr);
-    ps.canvas.style.width = w + 'px';
-    ps.canvas.style.height = h + 'px';
-    const ctx = ps.canvas.getContext('2d', { alpha:false });
-    ps.task = ps.page.render({
-      canvasContext: ctx,
-      viewport: vp,
-      transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : null
+    ps.textTask = pdfjsLib.renderTextLayer({
+      textContentSource:ps.page.streamTextContent(),
+      container:ps.textLayer,
+      viewport:ps.viewport
     });
-    await ps.task.promise;
-    ps.task = null;
-    ps.rendered = true;
-    if(pdfView.io) pdfView.io.unobserve(ps.wrap);
+    await ps.textTask.promise;
   }catch(err){
-    ps.task = null;
-    ps.rendered = false;
-    if(err && err.name === 'RenderingCancelledException') return;
-    ps.failed = true;
-    console.error('PDF 页渲染失败', n, err);
+    if(err.name !== 'AbortException') console.warn('PDF 文本层渲染失败', ps.n, err);
   }finally{
-    ps.rendering = false;
+    ps.textTask = null;
   }
+}
+
+function renderPage(n){
+  const ps = pdfView.pages[n - 1];
+  if(!ps) return;
+  renderPageText(ps);
+  if(!pdfView.renderTimer) renderPageCanvas(ps);
+}
+
+async function renderPageCanvas(ps){
+  const viewport = ps.viewport;
+  if(ps.canvasViewport === viewport || ps.rasterJob?.viewport === viewport) return;
+  ps.rasterJob?.task.cancel();
+  let job;
+  try{
+    // 限制高倍率下的画布像素数，页面大小和文字位置仍按阅读倍率显示。
+    const pixelScale = Math.min(window.devicePixelRatio || 1, 2,
+      4096 / viewport.width, 4096 / viewport.height);
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.ceil(viewport.width * pixelScale));
+    canvas.height = Math.max(1, Math.ceil(viewport.height * pixelScale));
+    const task = ps.page.render({
+      canvasContext:canvas.getContext('2d', {alpha:false}),
+      viewport,
+      transform:[pixelScale, 0, 0, pixelScale, 0, 0]
+    });
+    job = ps.rasterJob = {viewport, task};
+    await task.promise;
+    if(pdfView.pages[ps.n - 1] !== ps || ps.rasterJob !== job || ps.viewport !== viewport) return;
+    ps.canvas?.remove();
+    ps.wrap.prepend(canvas);
+    ps.canvas = canvas;
+    ps.canvasViewport = viewport;
+    ps.canvasRotation = viewport.rotation;
+  }catch(err){
+    if(err.name !== 'RenderingCancelledException') console.error('PDF 页渲染失败', ps.n, err);
+  }finally{
+    if(ps.rasterJob === job) ps.rasterJob = null;
+  }
+}
+
+function schedulePdfRender(delay){
+  clearTimeout(pdfView.renderTimer);
+  pdfView.renderTimer = setTimeout(function(){
+    pdfView.renderTimer = 0;
+    for(const ps of pdfView.pages){
+      if(ps.nearby || ps.n === pdfView.current) renderPage(ps.n);
+    }
+  }, delay);
 }
 
 function goToPage(n, smooth){
   const doc = pdfView.doc;
   if(!doc) return;
   const target = Math.min(Math.max(1, n), doc.numPages);
-  const ps = pdfView.pages.find(function(p){ return p.n === target; });
+  const ps = pdfView.pages[target - 1];
   const body = $('#readerBody');
   if(!ps || !body) return;
   pdfView.current = target;
@@ -4701,43 +4720,84 @@ function syncReaderSidePage(){
     : '没有托管 PDF · 只能凭标题和摘要打标';
 }
 
-async function zoomBy(factor){
-  if(!pdfView.doc) return;
-  const base = pdfView.fitScale || pdfView.scale;
-  const rel = pdfView.fit ? 1 : pdfView.scale / base;
-  const nextRel = Math.min(4, Math.max(0.25, rel * factor));
+function readerFitScale(rotation = pdfView.rotation){
+  const body = $('#readerBody');
+  const style = getComputedStyle(body);
+  const available = body.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+  const {page} = pdfView.pages[0];
+  const {width} = page.getViewport({scale:1, rotation:(page.rotate + rotation) % 360});
+  return Math.max(0.3, Math.min(3, available / width));
+}
+
+function resizePdfPages(scale, rotation, pointer, renderDelay = 0){
+  if(scale === pdfView.scale && rotation === pdfView.rotation){
+    updateReaderChrome();
+    return;
+  }
+  const body = $('#readerBody');
+  const bounds = body.getBoundingClientRect();
+  const x = pointer ? pointer.x : bounds.left + body.clientWidth / 2;
+  const y = pointer ? pointer.y : bounds.top + body.clientHeight / 2;
+  const mark = body.scrollTop + y - bounds.top;
+  const ps = pdfView.pages.find(page => page.wrap.offsetTop + page.wrap.offsetHeight >= mark)
+    || pdfView.pages[pdfView.pages.length - 1];
+  const rect = ps.wrap.getBoundingClientRect();
+  const oldViewport = ps.viewport;
+  const offsetX = Math.max(0, Math.min(rect.width, x - rect.left));
+  const offsetY = Math.max(0, Math.min(rect.height, y - rect.top));
+  const pdfPoint = oldViewport.convertToPdfPoint(
+    offsetX / rect.width * oldViewport.width, offsetY / rect.height * oldViewport.height);
+
+  pdfView.scale = scale;
+  pdfView.rotation = rotation;
+  pdfView.pages.forEach(layoutPdfPage);
+
+  // 将同一个 PDF 坐标留在原来的屏幕位置。
+  const nextRect = ps.wrap.getBoundingClientRect();
+  const [pageX, pageY] = ps.viewport.convertToViewportPoint(...pdfPoint);
+  body.scrollLeft += nextRect.left + pageX / ps.viewport.width * nextRect.width - rect.left - offsetX;
+  body.scrollTop += nextRect.top + pageY / ps.viewport.height * nextRect.height - rect.top - offsetY;
+  updateReaderChrome();
+  schedulePdfRender(renderDelay);
+}
+
+function zoomBy(factor, pointer){
+  if(!pdfView.pages.length) return;
+  const base = pdfView.fitScale;
+  const relative = Math.min(4, Math.max(0.25, pdfView.scale / base * factor));
   pdfView.fit = false;
-  pdfView.scale = base * nextRel;
-  updateReaderChrome();
-  await rebuildPages();
+  resizePdfPages(base * relative, pdfView.rotation, pointer, pointer ? 120 : 0);
 }
 
-async function fitWidth(){
-  if(!pdfView.doc) return;
-  const first = await pdfView.doc.getPage(1);
-  const base = first.getViewport({ scale:1, rotation: pdfView.rotation });
-  const body = $('#readerBody');
-  const avail = Math.max(240, body.clientWidth - 48);
+function fitWidth(){
+  if(!pdfView.pages.length) return;
   pdfView.fit = true;
-  pdfView.scale = Math.max(0.3, Math.min(3, avail / base.width));
-  pdfView.fitScale = pdfView.scale;
-  updateReaderChrome();
-  await rebuildPages();
+  pdfView.fitScale = readerFitScale();
+  resizePdfPages(pdfView.fitScale, pdfView.rotation);
 }
 
-async function rotatePage(){
-  if(!pdfView.doc) return;
-  const rel = pdfView.fit ? 1 : pdfView.scale / (pdfView.fitScale || pdfView.scale);
-  pdfView.rotation = (pdfView.rotation + 90) % 360;
-  const first = await pdfView.doc.getPage(1);
-  const base = first.getViewport({ scale:1, rotation: pdfView.rotation });
-  const body = $('#readerBody');
-  const avail = Math.max(240, body.clientWidth - 48);
-  pdfView.fitScale = Math.max(0.3, Math.min(3, avail / base.width));
-  pdfView.scale = pdfView.fit ? pdfView.fitScale : pdfView.fitScale * rel;
-  updateReaderChrome();
-  await rebuildPages();
+function rotatePage(){
+  if(!pdfView.pages.length) return;
+  const rotation = (pdfView.rotation + 90) % 360;
+  const relative = pdfView.scale / pdfView.fitScale;
+  pdfView.fitScale = readerFitScale(rotation);
+  resizePdfPages(pdfView.fitScale * relative, rotation);
 }
+
+$('#readerBody').addEventListener('wheel', function(event){
+  if(!event.ctrlKey || !event.deltaY) return;
+  event.preventDefault();
+  if(!pdfView.pages.length) return;
+  const units = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? this.clientHeight : 1;
+  pdfView.wheelDelta += event.deltaY * units;
+  pdfView.wheelPointer = {x:event.clientX, y:event.clientY};
+  if(pdfView.wheelFrame) return;
+  pdfView.wheelFrame = requestAnimationFrame(function(){
+    const delta = Math.max(-300, Math.min(300, pdfView.wheelDelta));
+    pdfView.wheelFrame = pdfView.wheelDelta = 0;
+    if(delta) zoomBy(Math.exp(-delta * 0.0014), pdfView.wheelPointer);
+  });
+}, {passive:false});
 
 async function attachPdfTo(itemId, file){
   if(!file) return;
@@ -4769,10 +4829,10 @@ async function attachPdfTo(itemId, file){
 
 let readerResizeTimer = null;
 window.addEventListener('resize', function(){
-  if(!state.readerOpen || !pdfView.doc) return;
+  if(!state.readerOpen || !pdfView.fit) return;
   clearTimeout(readerResizeTimer);
   readerResizeTimer = setTimeout(function(){
-    if(pdfView.fit) fitWidth(); else rebuildPages();
+    if(pdfView.fit) fitWidth();
   }, 200);
 });
 
