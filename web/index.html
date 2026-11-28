@@ -779,13 +779,18 @@
     <div class="listcol">
       <div class="listbar" id="searchHeader"></div>
       <div class="listbar organize-header" id="organizeHeader" hidden>
-        <div class="results-title"><h1 id="organizeTitle" tabindex="-1">文献整理</h1></div>
-        <div class="queue-bar">
-          <div class="queue-tabs" role="tablist" aria-label="整理队列">
-            <button id="queue-review" role="tab" aria-selected="true" aria-controls="papers" data-act="switch-queue" data-queue="review">待补全 <span></span></button>
-            <button id="queue-untagged" role="tab" aria-selected="false" aria-controls="papers" tabindex="-1" data-act="switch-queue" data-queue="untagged">未打标 <span></span></button>
+        <div class="countrow">
+          <div class="results-title"><h1 id="organizeTitle" tabindex="-1">文献整理</h1><span class="count" id="queueCount" aria-live="polite"></span></div>
+          <div class="queue-controls">
+            <div class="queue-tabs" role="tablist" aria-label="整理队列">
+              <button id="queue-review" role="tab" aria-selected="true" aria-controls="papers" data-act="switch-queue" data-queue="review">待补全 <span></span></button>
+              <button id="queue-untagged" role="tab" aria-selected="false" aria-controls="papers" tabindex="-1" data-act="switch-queue" data-queue="untagged">未打标 <span></span></button>
+            </div>
+            <div class="countacts">
+              <button class="btn filter-toggle" id="organizeFilterToggle" data-act="open-filters" aria-controls="sidebar" aria-expanded="false">筛选</button>
+              <div id="queueActions"></div>
+            </div>
           </div>
-          <div id="queueActions"></div>
         </div>
       </div>
       <div class="papers" id="papers" aria-labelledby="resultsTitle"></div>
@@ -856,24 +861,32 @@ const LABEL_STATE_LABELS = {review:'待补全', untagged:'未打标', tagged:'�
 const fieldLabel = k => ({title:'标题', authors:'作者', year:'年份', venue:'期刊 / 会议', orgs:'单位', abstract:'摘要'}[k] || k);
 const ORGANIZE_HASH = '#organize';
 
+function initialFacets(){
+  return {
+    groupFilters:{'@year':{terms:[], includeUnknown:true}},
+    yearDraft:{yearFrom:'', yearTo:'', yearSingle:'', adding:false},
+    metadataDraft:{}
+  };
+}
+
 const state = {
   q:'',
+  organizeQ:'',
   sort:'year',
   workspace:'search',
   queue:'review',
   searchListScroll:0,
+  searchSidebarScroll:0,
   searchExpandedPapers:new Set(),
-  groupFilters:{
-    '@year':{terms:[], includeUnknown:true},
-    '@star':{terms:[]}
-  },
-  yearDraft:{yearFrom:'', yearTo:'', yearSingle:'', adding:false},
-  metadataDraft:{},
+  searchFacets:initialFacets(),
+  queueFacets:{review:initialFacets(), untagged:initialFacets()},
+  metadataOpen:{search:false, organize:true},
   groupsExpanded:false,
   expandedGroups:new Set(),
   filtersOpen:false,
   tagQuery:{op:'and',include:[],exclude:[]},
   eval:null,
+  queueEval:null,
   rescue:[],
   paperId:null,
   detailOpen:false,
@@ -921,10 +934,15 @@ function toast(msg){
 /* ============================================================
    检索状态与求值
    ============================================================ */
-function getGroupFilter(id, op){
-  if(!state.groupFilters[id]) state.groupFilters[id] = {op:op || 'any', terms:[]};
-  if(!Array.isArray(state.groupFilters[id].terms)) state.groupFilters[id].terms = [];
-  return state.groupFilters[id];
+function activeFacets(){
+  return state.workspace === 'organize' ? state.queueFacets[state.queue] : state.searchFacets;
+}
+
+function getGroupFilter(id, op, facets = activeFacets()){
+  const filters = facets.groupFilters;
+  if(!filters[id]) filters[id] = {op:op || 'any', terms:[]};
+  if(!Array.isArray(filters[id].terms)) filters[id].terms = [];
+  return filters[id];
 }
 
 function metadataValues(p, key){
@@ -942,14 +960,14 @@ function searchPapers(){
   return PAPERS.filter(p => labelState(p) === 'tagged');
 }
 
-function retrievalGroups(papers){
+function metadataGroups(papers, facets){
   const groups = [];
-  const year = getGroupFilter(Retrieval.YEAR_GROUP);
+  const year = getGroupFilter(Retrieval.YEAR_GROUP,'any',facets);
   groups.push({kind:Retrieval.YEAR, group_id:Retrieval.YEAR_GROUP, terms:year.terms.slice(), includeUnknown:year.includeUnknown});
 
   METADATA_FACETS.slice(1).forEach(function(f){
     const id = '@' + f.key;
-    const filter = getGroupFilter(id,'any');
+    const filter = getGroupFilter(id,'any',facets);
     const options = new Map();
     papers.forEach(p => metadataValues(p,f.key).forEach(function(value){
       const key = Retrieval.termKey(Retrieval.META,value);
@@ -957,8 +975,12 @@ function retrievalGroups(papers){
     }));
     groups.push({kind:Retrieval.META, group_id:id, op:'any', terms:filter.terms.slice(), options:Array.from(options.values()).sort((a,b) => a.localeCompare(b,'zh'))});
   });
+  return groups;
+}
 
-  const star = getGroupFilter(Retrieval.STAR_GROUP);
+function retrievalGroups(papers){
+  const groups = metadataGroups(papers,state.searchFacets);
+  const star = getGroupFilter(Retrieval.STAR_GROUP,'any',state.searchFacets);
   groups.push({kind:Retrieval.ATTR, group_id:Retrieval.STAR_GROUP, terms:star.terms.slice(), options:[{star:true}]});
 
   (state.groups || []).forEach(function(g){
@@ -1023,7 +1045,8 @@ function findTagById(id){
 }
 
 function groupEval(id){
-  return currentEvaluation().groups.find(g => g.group_id === id) || null;
+  const evaluation = state.workspace === 'organize' ? queueEvaluation() : currentEvaluation();
+  return evaluation.groups.find(g => g.group_id === id) || null;
 }
 
 function optionEval(id,key){
@@ -1071,7 +1094,7 @@ function opControl(groupId,current){
 
 function renderYearOptions(){
   const filter = getGroupFilter(Retrieval.YEAR_GROUP);
-  const draft = state.yearDraft;
+  const draft = activeFacets().yearDraft;
   const chips = filter.terms.filter(Number.isInteger).map(y =>
     '<button class="filter-option" data-act="year-remove" data-year="' + y + '" aria-label="移除单年 ' + y + '" title="移除单年 ' + y + '">' + y + '<span aria-hidden="true">×</span></button>').join('');
   const rangeForm = '<span class="year-form" role="group" aria-label="年份区间">' +
@@ -1087,10 +1110,11 @@ function renderYearOptions(){
 
 function yearInput(id,placeholder,label){
   return '<input id="' + id + '" type="text" inputmode="numeric" autocomplete="off" placeholder="' + placeholder +
-    '" aria-label="' + label + '" value="' + esc(state.yearDraft[id]) + '">';
+    '" aria-label="' + label + '" value="' + esc(activeFacets().yearDraft[id]) + '">';
 }
 
 function renderMetadataFilters(){
+  const draft = activeFacets().metadataDraft;
   return '<div class="metadata-filters" role="group" aria-label="元数据检索">' + METADATA_FACETS.slice(1).map(function(f){
     const id = '@' + f.key;
     const inputId = 'metadataSearch-' + f.key;
@@ -1103,7 +1127,7 @@ function renderMetadataFilters(){
       '<button class="filter-option" data-act="metadata-toggle" data-group="' + id + '" data-value="' + esc(value) + '" aria-pressed="true" title="移除' + f.label + '条件">' + esc(value) + ' ×</button>').join('');
     return '<div class="metadata-filter" data-group="' + id + '"><input id="' + inputId + '" type="search" list="' + listId +
       '" data-metadata-search="' + id + '" autocomplete="off" placeholder="检索' + f.label + '" aria-label="检索' + f.label +
-      '" value="' + esc(state.metadataDraft[id] || '') + '">' +
+      '" value="' + esc(draft[id] || '') + '">' +
       '<datalist id="' + listId + '">' + options + '</datalist>' +
       (selected ? '<div class="metadata-chips">' + selected + '</div>' : '') + '</div>';
   }).join('') + '</div>';
@@ -1144,25 +1168,14 @@ function renderTagGroup(groupId,isUnfiled){
 
 function renderGroups(){
   const el = $('#filterzone');
-  const advancedOpen = $('#advancedFilters')?.open;
   const active = document.activeElement;
   const inputId = active && (active.dataset.metadataSearch || /^year(From|To|Single|IncludeUnknown)$/.test(active.id)) ? active.id : null;
   const caret = inputId && active.selectionStart !== null ? [active.selectionStart,active.selectionEnd] : null;
-  const regular = (state.groups || []).filter(g => (g.tags || []).length);
-  const limit = 6;
-  const visibleRegular = state.groupsExpanded ? regular : regular.slice(0,limit);
-  const hiddenN = Math.max(0,regular.length-visibleRegular.length);
-  const hasUnfiled = (state.unfiled || []).length > 0;
-  const tagGroups = visibleRegular.map(g => renderTagGroup(g.id,false)).join('') + (hasUnfiled ? renderTagGroup(Retrieval.UNFILED,true) : '');
-  const noGroups = !regular.length && !hasUnfiled;
-  el.innerHTML = '<div class="star-controls">' + renderAttrOptions() + '</div>' +
-    '<details class="advanced-filters" id="advancedFilters"' + (advancedOpen ? ' open' : '') + '><summary>元数据筛选</summary>' +
-    '<div class="year-controls" data-group="@year" role="group" aria-label="年份筛选">' + renderYearOptions() + '</div>' + renderMetadataFilters() + '</details>' +
-    '<div class="tag-search-bar"><h3>标签筛选</h3><div class="tag-join" role="group" aria-label="标签组合逻辑">' +
-      '<button id="tagJoinAnd" data-act="tag-join" data-op="and" aria-pressed="' + (state.tagQuery.op === 'and') + '">AND</button><button id="tagJoinOr" data-act="tag-join" data-op="or" aria-pressed="' + (state.tagQuery.op === 'or') + '">OR</button></div>' +
-      (state.tagQuery.exclude.length ? '<span class="tag-excluded">排除 ' + state.tagQuery.exclude.length + '</span>' : '') + '</div>' +
-    (noGroups ? '<div class="group-empty"><span>暂无标签分组</span><button class="btn tiny" data-act="new-group">＋ 新建分组</button></div>' : '<div class="group-grid">' + tagGroups + '</div>') +
-    (regular.length > limit ? '<div class="group-overflow"><button id="groupsExpand" data-act="groups-expand" aria-expanded="' + state.groupsExpanded + '">' + (hiddenN ? '更多组 ' + hiddenN : '收起分组') + '</button></div>' : '');
+  const previous = $('#advancedFilters');
+  if(previous) state.metadataOpen[previous.dataset.workspace] = previous.open;
+  const metadata = '<details class="advanced-filters" id="advancedFilters" data-workspace="' + state.workspace + '"' + (state.metadataOpen[state.workspace] ? ' open' : '') + '><summary>元数据筛选</summary>' +
+    '<div class="year-controls" data-group="@year" role="group" aria-label="年份筛选">' + renderYearOptions() + '</div>' + renderMetadataFilters() + '</details>';
+  el.innerHTML = state.workspace === 'organize' ? metadata : renderSearchGroups(metadata);
   if(inputId){
     const input = document.getElementById(inputId);
     if(input){
@@ -1172,8 +1185,32 @@ function renderGroups(){
   }
 }
 
+function renderSearchGroups(metadata){
+  const regular = (state.groups || []).filter(g => (g.tags || []).length);
+  const limit = 6;
+  const visibleRegular = state.groupsExpanded ? regular : regular.slice(0,limit);
+  const hiddenN = Math.max(0,regular.length-visibleRegular.length);
+  const hasUnfiled = (state.unfiled || []).length > 0;
+  const tagGroups = visibleRegular.map(g => renderTagGroup(g.id,false)).join('') + (hasUnfiled ? renderTagGroup(Retrieval.UNFILED,true) : '');
+  const noGroups = !regular.length && !hasUnfiled;
+  return '<div class="star-controls">' + renderAttrOptions() + '</div>' + metadata +
+    '<div class="tag-search-bar"><h3>标签筛选</h3><div class="tag-join" role="group" aria-label="标签组合逻辑">' +
+      '<button id="tagJoinAnd" data-act="tag-join" data-op="and" aria-pressed="' + (state.tagQuery.op === 'and') + '">AND</button><button id="tagJoinOr" data-act="tag-join" data-op="or" aria-pressed="' + (state.tagQuery.op === 'or') + '">OR</button></div>' +
+      (state.tagQuery.exclude.length ? '<span class="tag-excluded">排除 ' + state.tagQuery.exclude.length + '</span>' : '') + '</div>' +
+    (noGroups ? '<div class="group-empty"><span>暂无标签分组</span><button class="btn tiny" data-act="new-group">＋ 新建分组</button></div>' : '<div class="group-grid">' + tagGroups + '</div>') +
+    (regular.length > limit ? '<div class="group-overflow"><button id="groupsExpand" data-act="groups-expand" aria-expanded="' + state.groupsExpanded + '">' + (hiddenN ? '更多组 ' + hiddenN : '收起分组') + '</button></div>' : '');
+}
+
 function queuePapers(queue){
   return PAPERS.filter(p => labelState(p) === queue);
+}
+
+function queueEvaluation(){
+  if(!state.queueEval){
+    const papers = queuePapers(state.queue);
+    state.queueEval = Retrieval.evaluate(papers, {q:state.organizeQ, groups:metadataGroups(papers,activeFacets())});
+  }
+  return state.queueEval;
 }
 
 function defaultQueue(){
@@ -1182,6 +1219,8 @@ function defaultQueue(){
 }
 
 function renderQueueHeader(){
+  const evaluation = queueEvaluation();
+  $('#queueCount').textContent = evaluation.count + ' / ' + evaluation.total + ' 篇';
   for(const tab of $$('.queue-tabs [role="tab"]')){
     const queue = tab.dataset.queue;
     const selected = state.queue === queue;
@@ -1194,10 +1233,10 @@ function renderQueueHeader(){
     $('#queueActions').innerHTML = '';
     return;
   }
-  const count = queuePapers('review').length;
+  const count = evaluation.total;
   $('#queueActions').innerHTML = state.batchProgress
     ? '<span class="batch-progress" id="batchProgress" role="status">' + batchProgressText(state.batchProgress) + '</span>'
-    : '<button class="btn primary" data-act="fetch-all"' + (count ? '' : ' disabled') + '>补全全部 · ' + count + ' 篇</button>';
+    : '<button class="btn primary" data-act="fetch-all" title="补全整个待补全队列，不受搜索和筛选限制"' + (count ? '' : ' disabled') + '>补全全部 · ' + count + ' 篇</button>';
 }
 
 function renderRescueButton(fix){
@@ -1214,7 +1253,6 @@ function renderSearchHeader(ps){
 }
 
 function metadataLink(key,value){
-  if(state.workspace === 'organize') return '<span class="meta-value">' + esc(value) + '</span>';
   const id = '@' + key;
   const filter = getGroupFilter(id);
   const term = Retrieval.termKey(Retrieval.META,value);
@@ -1250,11 +1288,15 @@ function renderList(ps){
   if(!ps.length){
     if(!apiOnline) el.innerHTML = '<div class="empty"><div class="em">○</div><p>连不上本地服务</p><div style="font-size:11px;color:var(--muted-2);line-height:1.7;margin-bottom:12px">确认 run.py 还在运行，然后点下面重试。</div><button class="btn" data-act="reconnect">重试连接</button></div>';
     else if(organizing){
-      const otherQueue = state.queue === 'review' ? 'untagged' : 'review';
-      const next = queuePapers(otherQueue).length
-        ? '<button class="btn" data-act="switch-queue" data-queue="' + otherQueue + '">查看' + LABEL_STATE_LABELS[otherQueue] + '</button>'
-        : '';
-      el.innerHTML = '<div class="empty"><p>没有' + LABEL_STATE_LABELS[state.queue] + '的文献</p>' + next + '</div>';
+      if(queueEvaluation().total){
+        el.innerHTML = '<div class="empty"><p>没有符合这些条件的文献</p><button class="btn tiny" data-act="reset-all">清除搜索与筛选</button></div>';
+      }else{
+        const otherQueue = state.queue === 'review' ? 'untagged' : 'review';
+        const next = queuePapers(otherQueue).length
+          ? '<button class="btn" data-act="switch-queue" data-queue="' + otherQueue + '">查看' + LABEL_STATE_LABELS[otherQueue] + '</button>'
+          : '';
+        el.innerHTML = '<div class="empty"><p>没有' + LABEL_STATE_LABELS[state.queue] + '的文献</p>' + next + '</div>';
+      }
     }
     else if(!currentEvaluation().total){
       el.innerHTML = PAPERS.length
@@ -2937,7 +2979,7 @@ function parseFilterYear(value){
 }
 
 function updateYearRange(){
-  const draft = state.yearDraft;
+  const draft = activeFacets().yearDraft;
   const from = parseFilterYear(draft.yearFrom), to = parseFilterYear(draft.yearTo);
   const filter = getGroupFilter(Retrieval.YEAR_GROUP);
   const current = filter.terms.find(t => t.range);
@@ -2950,7 +2992,7 @@ function updateYearRange(){
 }
 
 function confirmSingleYear(){
-  const draft = state.yearDraft;
+  const draft = activeFacets().yearDraft;
   const year = parseFilterYear(draft.yearSingle);
   if(year === null){ toast('请输入 0 到 9999 之间的整数年份'); $('#yearSingle').focus(); return; }
   const filter = getGroupFilter(Retrieval.YEAR_GROUP);
@@ -2962,7 +3004,7 @@ function confirmSingleYear(){
 function removeSingleYear(year){
   const filter = getGroupFilter(Retrieval.YEAR_GROUP);
   filter.terms = filter.terms.filter(t => t !== year);
-  renderFilterChange(state.yearDraft.adding ? 'yearSingle' : 'yearSingleAdd');
+  renderFilterChange(activeFacets().yearDraft.adding ? 'yearSingle' : 'yearSingleAdd');
 }
 
 function addMetadataSelection(input){
@@ -2972,20 +3014,20 @@ function addMetadataSelection(input){
   const key = Retrieval.termKey(Retrieval.META,value);
   const option = groupEval(groupId).options.find(o => o.key === key && !o.selected);
   if(!option) return;
-  state.metadataDraft[groupId] = '';
+  activeFacets().metadataDraft[groupId] = '';
   getGroupFilter(groupId).terms.push(option.term);
   renderFilterChange();
 }
 
 function clearAll(){
-  Object.keys(state.groupFilters).forEach(id => { state.groupFilters[id].terms = []; });
-  state.tagQuery.include = [];
-  state.tagQuery.exclude = [];
-  state.tagQuery.op = 'and';
-  getGroupFilter(Retrieval.YEAR_GROUP).includeUnknown = true;
-  state.yearDraft = {yearFrom:'', yearTo:'', yearSingle:'', adding:false};
-  state.metadataDraft = {};
-  state.q = '';
+  if(state.workspace === 'organize'){
+    state.queueFacets[state.queue] = initialFacets();
+    state.organizeQ = '';
+  }else{
+    state.searchFacets = initialFacets();
+    state.tagQuery = {op:'and',include:[],exclude:[]};
+    state.q = '';
+  }
   $('#search').value = '';
   state.eval = null;
   state.pendingScroll = 'top';
@@ -3029,15 +3071,18 @@ function closeDetail(){
 }
 
 const sidebarOverlay = window.matchMedia('(max-width:960px)');
+function filterToggle(){
+  return $(state.workspace === 'organize' ? '#organizeFilterToggle' : '#filterToggle');
+}
+
 function setFiltersOpen(open, restoreFocus = true){
-  if(open && state.workspace !== 'search') return;
   state.filtersOpen = open;
   $('#app').classList.toggle('show-filters',open);
   $('.filter-backdrop').hidden = !open;
-  $('#filterToggle')?.setAttribute('aria-expanded',String(open));
+  filterToggle()?.setAttribute('aria-expanded',String(open));
   syncWorkspaceFocus();
   if(open) $('.rail-close').focus({preventScroll:true});
-  else if(restoreFocus) $('#filterToggle')?.focus({preventScroll:true});
+  else if(restoreFocus) filterToggle()?.focus({preventScroll:true});
 }
 function syncWorkspaceFocus(){
   $('.desk').inert = sidebarOverlay.matches && (state.detailOpen || state.filtersOpen);
@@ -3168,7 +3213,8 @@ async function refreshGroups(){
     state.tagQuery.include = state.tagQuery.include.filter(id => validTags.has(id));
     state.tagQuery.exclude = state.tagQuery.exclude.filter(id => validTags.has(id));
     const valid = new Set([Retrieval.STAR_GROUP,Retrieval.UNFILED].concat(METADATA_FACETS.map(f => '@' + f.key),state.groups.map(g => g.id)));
-    Object.keys(state.groupFilters).forEach(id => { if(!valid.has(id)) delete state.groupFilters[id]; });
+    const filters = state.searchFacets.groupFilters;
+    Object.keys(filters).forEach(id => { if(!valid.has(id)) delete filters[id]; });
     state.eval = null;
     // 记住的组被删了：清掉，回落到未分组，不把标签静默塞进别的组
     if(state.groupSel && !state.groups.some(g => g.id === state.groupSel)){
@@ -3468,8 +3514,9 @@ function syncScope(ps){
 
 function renderAll(){
   state.eval = null;
+  state.queueEval = null;
   const organizing = state.workspace === 'organize';
-  const ps = organizing ? queuePapers(state.queue) : getFiltered();
+  const ps = organizing ? queueEvaluation().matched : getFiltered();
   const restoreDetailFocus = state.detailOpen && state.tab === 'info' &&
     !ps.some(p => p.id === state.paperId) && $('#detail').contains(document.activeElement);
   if(state.paperId !== null && !ps.some(p => p.id === state.paperId)){
@@ -3484,9 +3531,9 @@ function renderAll(){
     renderQueueHeader();
   }else{
     syncScope(ps);
-    renderGroups();
     renderSearchHeader(ps);
   }
+  renderGroups();
   renderList(ps);
   renderDetail();
   if(restoreDetailFocus) focusWorkspaceTitle();
@@ -3512,8 +3559,11 @@ function applyWorkspaceFromLocation(focus = true){
   if(state.workspace === workspace) return;
 
   const list = $('#papers');
+  const sidebar = $('#sidebar');
+  const search = $('#search');
   if(organizing){
     state.searchListScroll = list.scrollTop;
+    state.searchSidebarScroll = sidebar.scrollTop;
     state.searchExpandedPapers = new Set($$('.paper-meta-more[open]',list).map(el => el.closest('.paper').dataset.id));
     const savedQueue = history.state?.organizeQueue;
     state.queue = savedQueue === 'review' || savedQueue === 'untagged' ? savedQueue : defaultQueue();
@@ -3523,8 +3573,9 @@ function applyWorkspaceFromLocation(focus = true){
   setFiltersOpen(false,false);
   state.workspace = workspace;
   $('#app').classList.toggle('organizing',organizing);
-  $('.search').hidden = organizing;
-  $('#sidebar').hidden = organizing;
+  search.value = organizing ? state.organizeQ : state.q;
+  search.placeholder = organizing ? '搜索当前队列' : '搜索文献';
+  search.setAttribute('aria-label', search.placeholder);
   $('#searchHeader').hidden = organizing;
   $('#organizeHeader').hidden = !organizing;
   $('.organize-btn').textContent = organizing ? '返回检索' : '文献整理';
@@ -3538,6 +3589,7 @@ function applyWorkspaceFromLocation(focus = true){
   }
   list.replaceChildren();
   renderAll();
+  sidebar.scrollTop = organizing ? 0 : state.searchSidebarScroll;
   if(!organizing){
     $$('.paper-meta-more',list).forEach(el => { el.open = state.searchExpandedPapers.has(el.closest('.paper').dataset.id); });
     list.scrollTop = state.searchListScroll;
@@ -3630,8 +3682,9 @@ document.addEventListener('click', function(e){
       const removedRange = kind === Retrieval.YEAR && filter.terms.some(t => t.range && Retrieval.termKey(kind,t) === el.dataset.key);
       filter.terms = filter.terms.filter(t => Retrieval.termKey(kind,t) !== el.dataset.key);
       if(removedRange){
-        state.yearDraft.yearFrom = '';
-        state.yearDraft.yearTo = '';
+        const draft = activeFacets().yearDraft;
+        draft.yearFrom = '';
+        draft.yearTo = '';
       }
     }
     state.eval = null;
@@ -3651,7 +3704,7 @@ document.addEventListener('click', function(e){
   }
   else if(act === 'reset-all'){ clearAll(); }
   else if(act === 'year-single-add'){
-    state.yearDraft.adding = true;
+    activeFacets().yearDraft.adding = true;
     renderGroups();
     $('#yearSingle').focus();
   }
@@ -4006,26 +4059,26 @@ document.addEventListener('input', function(e){
     return;
   }
   if(e.target.dataset.metadataSearch){
-    state.metadataDraft[e.target.dataset.metadataSearch] = e.target.value;
+    activeFacets().metadataDraft[e.target.dataset.metadataSearch] = e.target.value;
     return;
   }
   if(/^year(From|To|Single)$/.test(e.target.id)){
-    state.yearDraft[e.target.id] = e.target.value;
+    activeFacets().yearDraft[e.target.id] = e.target.value;
     if(e.target.id !== 'yearSingle' && !e.isComposing) updateYearRange();
     return;
   }
   if(e.target.id === 'search'){
-    state.q = e.target.value.trim();
-    state.eval = null;
-    state.pendingScroll = 'top';
-    renderAll();
+    if(state.workspace === 'organize') state.organizeQ = e.target.value;
+    else state.q = e.target.value;
+    $('#papers').scrollTop = 0;
+    renderFilterChange();
     return;
   }
 });
 
 document.addEventListener('compositionend', function(e){
   if(e.target.id === 'yearFrom' || e.target.id === 'yearTo'){
-    state.yearDraft[e.target.id] = e.target.value;
+    activeFacets().yearDraft[e.target.id] = e.target.value;
     updateYearRange();
   }
 });
@@ -4087,8 +4140,9 @@ document.addEventListener('keydown', function(e){
     }
     if(e.key === 'Escape'){
       e.preventDefault();
-      state.yearDraft.adding = false;
-      state.yearDraft.yearSingle = '';
+      const draft = activeFacets().yearDraft;
+      draft.adding = false;
+      draft.yearSingle = '';
       renderGroups();
       $('#yearSingleAdd').focus();
       return;
@@ -4144,7 +4198,7 @@ document.addEventListener('keydown', function(e){
     if(state.filtersOpen){ setFiltersOpen(false); return; }
     if(state.detailOpen){ closeDetail(); return; }
   }
-  if(e.key === '/' && state.workspace === 'search' && !state.modalOpen && !state.readerOpen && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){
+  if(e.key === '/' && !state.modalOpen && !state.readerOpen && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){
     e.preventDefault();
     $('#search').focus();
   }
