@@ -9,7 +9,7 @@ from typing import Literal
 from uuid import UUID
 
 from fastapi import Depends, FastAPI, File, HTTPException, Query, Request, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -17,7 +17,7 @@ from . import API_REVISION
 from . import ai as ai_src
 from . import clean
 from . import metadata as metadata_src
-from . import repo
+from . import repo, sharing
 from .db import init_db, connect
 from .paths import resource_root
 
@@ -116,6 +116,17 @@ class FetchQueueIn(BaseModel):
 class ImportPathsIn(BaseModel):
     paths: list[str] = Field(default_factory=list, max_length=5000)
     folder: str | None = None
+
+
+class ShareExportIn(BaseModel):
+    item_ids: list[str] = Field(min_length=1, max_length=sharing.MAX_ITEMS)
+    groups: bool = False
+    notes: bool = False
+
+
+class ShareImportIn(BaseModel):
+    path: str
+    token: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
 
 
 class AISettingsIn(BaseModel):
@@ -708,8 +719,9 @@ def _fs_roots() -> list[dict]:
 
 
 @app.get("/api/fs/list", dependencies=[Depends(_require_local_browser)])
-def fs_list(path: str | None = None) -> dict:
-    """应用内导入窗的目录列表：只列文件夹和 PDF，不列隐藏项。"""
+def fs_list(path: str | None = None, kind: Literal["pdf", "share"] = "pdf") -> dict:
+    """应用内导入窗的目录列表：按导入类型列文件，不列隐藏项。"""
+    suffix = sharing.SUFFIX if kind == "share" else ".pdf"
     if not path:
         return {
             "path": "",
@@ -736,7 +748,7 @@ def fs_list(path: str | None = None) -> dict:
                     if entry.is_dir(follow_symlinks=False):
                         dirs.append({"name": entry.name, "path": entry.path})
                     elif entry.is_file(follow_symlinks=False) and (
-                        entry.name.lower().endswith(".pdf")
+                        entry.name.lower().endswith(suffix)
                     ):
                         files.append(
                             {
@@ -825,6 +837,7 @@ def import_paths(payload: ImportPathsIn) -> dict:
     return {
         "total": len(results),
         "imported": sum(1 for r in results if r["status"] == "imported"),
+        "attached": sum(1 for r in results if r["status"] == "attached"),
         "duplicates": sum(1 for r in results if r["status"] == "duplicate"),
         "errors": [r for r in results if r["status"] == "error"],
         "results": results,
@@ -846,10 +859,44 @@ async def import_files(files: list[UploadFile] = File(...)) -> dict:
 
     return {
         "imported": sum(1 for r in results if r["status"] == "imported"),
+        "attached": sum(1 for r in results if r["status"] == "attached"),
         "duplicates": sum(1 for r in results if r["status"] == "duplicate"),
         "errors": [r for r in results if r["status"] == "error"],
         "results": results,
     }
+
+
+@app.post("/api/share/export", dependencies=[Depends(_require_local_browser)])
+def share_export(payload: ShareExportIn) -> Response:
+    conn = connect()
+    try:
+        with conn:
+            conn.execute("BEGIN")
+            data = sharing.export_package(conn, payload.item_ids, payload.groups, payload.notes)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    finally:
+        conn.close()
+    return Response(data, media_type="application/json", headers={"Cache-Control": "no-store"})
+
+
+@app.post("/api/share/import", dependencies=[Depends(_require_local_browser)])
+def share_import(payload: ShareImportIn) -> dict:
+    conn = connect()
+    try:
+        path = Path(payload.path)
+        if not path.name.lower().endswith(sharing.SUFFIX) or path.is_symlink():
+            raise ValueError("请选择 .colophon.json 文献分享包")
+        path = _local_path(payload.path)
+        if not path.is_file():
+            raise ValueError("请选择一个文献分享包文件")
+        with path.open("rb") as source:
+            data = source.read(sharing.MAX_BYTES + 1)
+        return sharing.import_package(conn, data, payload.token)
+    except (OSError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    finally:
+        conn.close()
 
 
 # ---------------------------------------------------------------- 数据清洗

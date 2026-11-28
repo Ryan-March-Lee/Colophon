@@ -7,6 +7,7 @@ import stat
 from pathlib import Path
 
 from .db import LIBRARY, new_id, now
+from .identity import arxiv_key, bibliographic_matches, doi_key, pdf_keys
 from .metadata import extract_abstract, missing_fields, pdf_text
 
 TAG_COLORS = ["#1c7566", "#a2672c", "#7757a6", "#5b6f83", "#8a5a22", "#2f7d4f"]
@@ -67,12 +68,16 @@ def _rows_to_items(conn: sqlite3.Connection, rows: list[sqlite3.Row]) -> list[di
             topics.append(dict(r))
 
     files = {}
-    for r in conn.execute(
-        f"SELECT item_id, original_name FROM file WHERE item_id IN ("
-        f"{','.join('?' * len(ids))}) ORDER BY added_at",
-        ids,
-    ):
-        files.setdefault(r["item_id"], r["original_name"])
+    for chunk_start in range(0, len(ids), 900):
+        chunk = ids[chunk_start : chunk_start + 900]
+        marks = ",".join("?" * len(chunk))
+        for r in conn.execute(
+            f"SELECT item_id, rel_path, original_name FROM file WHERE item_id IN ({marks}) ORDER BY added_at",
+            chunk,
+        ):
+            path = LIBRARY / r["rel_path"]
+            if path.is_file():
+                files.setdefault(r["item_id"], r["original_name"] or path.name)
 
     topic_map: dict[str, list[str]] = {}
     topic_ids: dict[str, list[str]] = {}
@@ -952,25 +957,17 @@ def _store_pdf(
 
 
 def get_item_file(conn: sqlite3.Connection, item_id: str) -> dict | None:
-    row = conn.execute(
+    rows = conn.execute(
         "SELECT rel_path, original_name, mime FROM file WHERE item_id = ? "
-        "ORDER BY added_at LIMIT 1",
+        "ORDER BY added_at",
         (item_id,),
-    ).fetchone()
-    if not row:
-        return None
-    path = (LIBRARY / row["rel_path"]).resolve()
-    try:
-        path.relative_to(LIBRARY.resolve())
-    except ValueError:
-        return None
-    if not path.exists():
-        return None
-    return {
-        "path": path,
-        "name": row["original_name"] or path.name,
-        "mime": row["mime"] or "application/pdf",
-    }
+    )
+    for row in rows:
+        path = (LIBRARY / row["rel_path"]).resolve()
+        if path.is_relative_to(LIBRARY.resolve()) and path.is_file():
+            return {"path": path, "name": row["original_name"] or path.name,
+                    "mime": row["mime"] or "application/pdf"}
+    return None
 
 
 def _fill_pdf_abstract(conn: sqlite3.Connection, item_id: str, path: Path) -> None:
@@ -1002,17 +999,18 @@ def attach_pdf(conn: sqlite3.Connection, item_id: str, filename: str, data: byte
             "SELECT 1 FROM item WHERE id = ? AND deleted_at IS NULL", (item_id,)
         ).fetchone():
             return {"status": "missing", "reason": "item not found"}
-        if conn.execute("SELECT 1 FROM file WHERE item_id = ?", (item_id,)).fetchone():
+        if get_item_file(conn, item_id):
             return {"status": "exists", "item_id": item_id}
 
         other = conn.execute(
             "SELECT item_id FROM file WHERE sha256 = ?", (digest,)
         ).fetchone()
-        if other:
+        if other and other["item_id"] != item_id:
             return {"status": "duplicate", "item_id": other["item_id"], "filename": filename}
 
-        _store_pdf(conn, item_id, filename, data)
+        conn.execute("DELETE FROM file WHERE item_id = ?", (item_id,))
         conn.execute("DELETE FROM passage WHERE item_id = ?", (item_id,))
+        _store_pdf(conn, item_id, filename, data)
     return {"status": "attached", "item_id": item_id, "filename": filename}
 
 
@@ -1021,29 +1019,52 @@ def import_pdf(conn: sqlite3.Connection, filename: str, data: bytes) -> dict:
         return {"status": "error", "reason": "not a PDF", "filename": filename}
 
     digest = hashlib.sha256(data).hexdigest()
-    existing = conn.execute(
-        "SELECT item_id FROM file WHERE sha256 = ?", (digest,)
-    ).fetchone()
-    if existing:
-        return {
-            "status": "duplicate",
-            "item_id": existing["item_id"],
-            "filename": filename,
-        }
-
-    item_id = new_id("itm")
     stem = Path(filename or "paper").stem or "paper"
-    ts = now()
-    try:
+    with conn:
+        conn.execute("BEGIN IMMEDIATE")
+        existing = conn.execute(
+            "SELECT item_id, rel_path FROM file WHERE sha256 = ?", (digest,)
+        ).fetchone()
+        if existing and (LIBRARY / existing["rel_path"]).is_file():
+            return {"status": "duplicate", "item_id": existing["item_id"], "filename": filename}
+
+        fingerprint_matches = {row["item_id"] for row in conn.execute(
+            "SELECT h.item_id FROM shared_pdf_hash h JOIN item i ON i.id = h.item_id "
+            "WHERE h.sha256 = ? AND i.deleted_at IS NULL", (digest,)
+        )}
+        if existing:
+            fingerprint_matches.add(existing["item_id"])
+
+        dois, arxiv = pdf_keys(data)
+        claimed = fingerprint_matches | bibliographic_matches(conn, dois, arxiv)
+        if len(claimed) == 1:
+            row = conn.execute("SELECT doi, arxiv_id FROM item WHERE id = ?", (next(iter(claimed)),)).fetchone()
+            local_doi, local_arxiv = doi_key(row["doi"]), arxiv_key(row["arxiv_id"])
+            incompatible = ((len(dois) == 1 and local_doi and local_doi not in dois)
+                            or (len(arxiv) == 1 and local_arxiv and local_arxiv not in arxiv))
+            ambiguous = (len(dois) > 1 or len(arxiv) > 1) and not fingerprint_matches
+            if ambiguous or incompatible:
+                return {"status": "error", "reason": "PDF 标识不唯一或冲突，请在文献详情中手动补 PDF", "filename": filename}
+        if len(claimed) > 1:
+            return {"status": "error", "reason": "PDF 匹配到多篇文献，请在文献详情中手动补 PDF", "filename": filename}
+        if claimed:
+            item_id = claimed.pop()
+            if get_item_file(conn, item_id):
+                return {"status": "duplicate", "item_id": item_id, "filename": filename}
+            conn.execute("DELETE FROM file WHERE item_id = ?", (item_id,))
+            conn.execute("DELETE FROM passage WHERE item_id = ?", (item_id,))
+            _store_pdf(conn, item_id, filename, data)
+            return {"status": "attached", "item_id": item_id, "filename": filename}
+
+        item_id = new_id("itm")
+        ts = now()
         conn.execute(
-            "INSERT INTO item (id, type, title, abstract, language, "
+            "INSERT INTO item (id, type, title, abstract, language, doi, arxiv_id, "
             "needs_review, added_at, updated_at) "
-            "VALUES (?, 'article', ?, '', 'en', 1, ?, ?)",
-            (item_id, stem, ts, ts),
+            "VALUES (?, 'article', ?, '', 'en', ?, ?, 1, ?, ?)",
+            (item_id, stem, next(iter(dois)) if len(dois) == 1 else None,
+             next(iter(arxiv)) if len(arxiv) == 1 else None, ts, ts),
         )
         _store_pdf(conn, item_id, filename, data)
-    except Exception:
-        conn.rollback()
-        raise
 
     return {"status": "imported", "item_id": item_id, "title": stem, "filename": filename}

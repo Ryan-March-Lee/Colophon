@@ -121,6 +121,19 @@ CREATE TABLE IF NOT EXISTS file (
 CREATE UNIQUE INDEX IF NOT EXISTS ux_file_sha ON file(sha256);
 CREATE INDEX IF NOT EXISTS ix_file_item ON file(item_id);
 
+CREATE TABLE IF NOT EXISTS shared_item_key (
+  share_id TEXT PRIMARY KEY,
+  item_id  TEXT NOT NULL REFERENCES item(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS ix_shared_item_key_item ON shared_item_key(item_id);
+
+CREATE TABLE IF NOT EXISTS shared_pdf_hash (
+  sha256  TEXT NOT NULL,
+  item_id TEXT NOT NULL REFERENCES item(id) ON DELETE CASCADE,
+  PRIMARY KEY (sha256, item_id)
+);
+CREATE INDEX IF NOT EXISTS ix_shared_pdf_hash_item ON shared_pdf_hash(item_id);
+
 CREATE TABLE IF NOT EXISTS annotation (
   id          TEXT PRIMARY KEY,
   file_id     TEXT NOT NULL REFERENCES file(id) ON DELETE CASCADE,

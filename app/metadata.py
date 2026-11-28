@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import difflib
+import io
 import json
 import re
 import urllib.parse
@@ -154,29 +155,32 @@ def _patent_meta(number: str) -> dict | None:
 
 # ---------------------------------------------------------------- PDF
 
-def _open_pymupdf(path: Path):
+def _open_pymupdf(path: Path | bytes):
     try:
         import pymupdf
     except ImportError:
         return None
     try:
+        if isinstance(path, bytes):
+            return pymupdf.open(stream=path, filetype="pdf")
         return pymupdf.open(str(path))
     except Exception:
         return None
 
 
-def read_pdf_info(path: Path | None) -> dict:
+def read_pdf_info(path: Path | bytes | None) -> dict:
     """读 PDF 内嵌的 DocInfo 字段，键统一成小写。
 
     论文和专利的 PDF 往往自带标题、期刊、DOI、专利号；先读这里比先跑模型便宜得多。
     """
-    if path is None or not path.exists():
+    if path is None or (isinstance(path, Path) and not path.exists()):
         return {}
 
     info: dict[str, str] = {}
     try:
         from pypdf import PdfReader
-        for key, value in (PdfReader(str(path)).metadata or {}).items():
+        source = io.BytesIO(path) if isinstance(path, bytes) else str(path)
+        for key, value in (PdfReader(source).metadata or {}).items():
             text = _clean(str(value or ""))
             if text:
                 info[str(key).lstrip("/").lower()] = text
@@ -195,7 +199,7 @@ def read_pdf_info(path: Path | None) -> dict:
     return info
 
 
-def pdf_text(path: Path, max_pages: int = 2) -> str:
+def pdf_text(path: Path | bytes, max_pages: int = 2) -> str:
     """抽前几页文本。优先 PyMuPDF（双栏排版更准），退回 pypdf。"""
     doc = _open_pymupdf(path)
     if doc is not None:
@@ -216,7 +220,7 @@ def pdf_text(path: Path, max_pages: int = 2) -> str:
     except ImportError:
         return ""
     try:
-        reader = PdfReader(str(path))
+        reader = PdfReader(io.BytesIO(path) if isinstance(path, bytes) else str(path))
         return "\n".join((page.extract_text() or "") for page in reader.pages[:max_pages])
     except Exception:
         return ""

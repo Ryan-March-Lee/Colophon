@@ -564,6 +564,88 @@
 
   /* ---------- 导入浏览 ---------- */
   .import-card{width:min(840px,100%);max-height:84vh;display:flex;flex-direction:column}
+  .share-body{padding:12px 16px;overflow:auto;min-height:0}
+  .share-options{display:grid;gap:10px}
+  .share-choice-card{width:min(440px,100%);border-radius:8px}
+  .share-choice{display:grid;gap:10px;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .share-choice button{
+    display:grid;justify-items:start;align-content:start;gap:6px;text-align:left;min-width:0;
+    border:1px solid var(--line);border-radius:8px;padding:12px;background:var(--panel-2);
+    overflow-wrap:anywhere;
+  }
+  .share-choice button:hover{background:var(--accent-soft);border-color:var(--accent)}
+  .share-choice strong{font-size:13px}
+  .share-choice small{font-size:11px;color:var(--muted)}
+  .share-choice-icon{display:grid;place-items:center;width:30px;height:30px;border-radius:6px;background:var(--accent-soft);color:var(--accent)}
+  .share-choice [data-kind="share"] .share-choice-icon{background:color-mix(in srgb,var(--c-year) 13%,var(--panel));color:var(--c-year)}
+  .share-export-card{width:min(920px,100%);border-radius:8px;height:min(690px,84vh);overflow:hidden}
+  .share-toolbar{display:grid;grid-template-columns:minmax(120px,1fr) auto auto;gap:8px;margin-bottom:12px}
+  .share-search{display:flex;align-items:center;gap:6px;padding:0 8px;min-width:0;color:var(--muted)}
+  .share-search input{width:100%;min-width:0;border:0;background:none;color:var(--ink);outline:0;padding:0}
+  .share-search:focus-within{border-color:var(--accent)}
+  .share-search,.share-toolbar select,.share-filter select,.share-filter input:is([type=number],[type=search]){
+    min-height:32px;background:var(--panel);border:1px solid var(--line-2);border-radius:6px;font-size:12px;
+  }
+  .share-toolbar select,.share-filter select,.share-filter input:is([type=number],[type=search]){padding:4px 6px;min-width:0}
+  .share-workspace{
+    flex:1;min-height:0;display:grid;grid-template-columns:minmax(190px,28%) minmax(0,1fr);
+    border:1px solid var(--line);border-radius:8px;overflow:hidden;
+  }
+  .share-filters{min-height:0;overflow:auto;background:var(--panel-2);border-right:1px solid var(--line);padding:0 10px 8px}
+  .share-filter-heading,.share-list-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+  .share-filter-heading{min-height:36px;margin:0 2px;color:var(--muted);font-size:12px}
+  .share-filter{min-width:0;border-top:1px solid var(--line);font-size:12px}
+  .share-filter summary{display:flex;align-items:center;min-height:32px;gap:6px;padding:0 4px;cursor:pointer;list-style:none}
+  .share-filter summary::-webkit-details-marker{display:none}
+  .share-filter summary:hover{background:var(--hover)}
+  .share-filter summary .impicon{margin-left:auto;width:13px;height:13px}
+  .share-filter[open] summary .impicon{transform:rotate(90deg)}
+  .share-filter-count{color:var(--accent);font-size:11px;font-weight:650}
+  .share-filter-count:empty{display:none}
+  .share-filter-panel{display:grid;gap:6px;padding:0 2px 8px}
+  .share-terms{min-width:0;max-height:180px;overflow:auto}
+  .share-terms [hidden]{display:none}
+  .share-check{display:flex;align-items:center;min-height:27px;gap:6px;padding:3px 5px;border-radius:4px;overflow-wrap:anywhere;cursor:pointer}
+  .share-check:is(:hover,:focus-within){background:var(--hover)}
+  .share-check:has(:checked){background:var(--accent-soft);color:var(--accent-2)}
+  .share-check input,.share-row input{flex:none;accent-color:var(--accent);margin:0}
+  .share-year-range{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .share-year-range label{display:grid;gap:3px;color:var(--muted)}
+  .share-year-range input{width:100%;color:var(--ink)}
+  .share-tag-group{margin-top:5px;color:var(--muted);font-size:11px}
+  .share-tag-entry{padding:4px 0;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
+  .share-tag-entry>span{display:block;padding-inline:4px}
+  .share-tag-actions{display:flex;gap:2px;flex-wrap:wrap}
+  .share-filter-empty{margin:3px;color:var(--muted);font-size:12px}
+  .share-filter-empty[hidden]{display:none}
+  .share-list{display:flex;min-width:0;min-height:0;flex-direction:column}
+  .share-list-head{min-height:36px;padding:4px 10px;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted)}
+  .share-results{flex:1;min-height:0;overflow:auto;padding:0 4px}
+  .share-row{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:start;gap:9px;padding:8px;border-bottom:1px solid var(--line);cursor:pointer;overflow-wrap:anywhere;font-size:13px}
+  .share-row input{margin-top:3px}
+  .share-row:hover{background:var(--hover)}
+  .share-row:has(:checked){background:var(--accent-soft)}
+  .share-row small{display:block;color:var(--muted-2)}
+  .share-conflicts{margin:8px 0;padding-left:20px;overflow-wrap:anywhere}
+  .paper.no-pdf{background:color-mix(in srgb,var(--warn) 9%,var(--panel));box-shadow:inset 3px 0 var(--warn)}
+  .paper.no-pdf:hover{background:color-mix(in srgb,var(--warn) 14%,var(--panel))}
+  .paper.no-pdf.on{background:var(--accent-soft);box-shadow:inset 3px 0 var(--warn),inset 0 0 0 1px var(--accent)}
+  .no-pdf-label{
+    display:inline-flex;align-items:center;gap:4px;margin:0 0 3px;padding:2px 5px;border-radius:4px;
+    background:color-mix(in srgb,var(--warn) 15%,var(--panel));color:color-mix(in srgb,var(--warn) 75%,var(--ink));
+    font-size:11px;font-weight:650;line-height:1.3;
+  }
+  .no-pdf-label .impicon{width:13px;height:13px;color:inherit}
+  @media (max-width:620px){
+    .share-export-card{padding:12px;max-height:90vh;height:90vh}
+    .share-toolbar{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .share-search{grid-column:1/-1}
+    .share-workspace{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
+    .share-filters{max-height:min(30vh,225px);border-right:0;border-bottom:1px solid var(--line)}
+    .share-filter-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:8px}
+    .share-filter[open]{grid-column:1/-1}
+  }
+  @media (max-width:360px){.share-choice{grid-template-columns:minmax(0,1fr)}}
   .importbar{display:flex;align-items:center;gap:6px;margin-bottom:8px}
   .importpath{
     flex:1;min-width:0;font-size:12px;color:var(--ink);background:var(--panel-2);border:1px solid var(--line);
@@ -590,7 +672,7 @@
   .impicon{display:block;width:16px;height:16px;flex:none;color:var(--muted)}
   .impname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .impsize{flex:none;font-size:10.5px;color:var(--muted-2);max-width:46%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .improw input[type="checkbox"]{
+   .improw input:is([type="checkbox"],[type="radio"]){
     width:14px;height:14px;flex:none;accent-color:var(--accent);margin:0;
   }
   .impempty{padding:34px 16px;text-align:center;font-size:12px;color:var(--muted)}
@@ -619,7 +701,7 @@
     .brand{gap:6px}
     .topacts .btn{padding:0 5px;font-size:0;gap:0;justify-content:center}
     .topacts .btn svg{width:14px;height:14px}
-    .topacts .organize-btn,.topacts .import-btn{font-size:11px}
+    .topacts .organize-btn,.topacts .import-btn,.topacts .export-btn{font-size:11px}
   }
 
   /* ---------- 元数据 ---------- */
@@ -757,6 +839,7 @@
   <div class="topacts">
     <button class="btn organize-btn" data-act="toggle-workspace">文献整理</button>
     <button class="btn import-btn" data-act="import" aria-haspopup="dialog"><span aria-hidden="true">＋</span>导入</button>
+    <button class="btn export-btn" data-act="export-share" aria-haspopup="dialog">导出</button>
     <button class="btn" data-act="open-settings" title="通用设置" aria-haspopup="dialog">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M9.67 4.14a2.34 2.34 0 0 1 4.66 0 2.34 2.34 0 0 0 3.32 1.92 2.34 2.34 0 0 1 2.33 4.03 2.34 2.34 0 0 0 0 3.82 2.34 2.34 0 0 1-2.33 4.03 2.34 2.34 0 0 0-3.32 1.92 2.34 2.34 0 0 1-4.66 0 2.34 2.34 0 0 0-3.32-1.92 2.34 2.34 0 0 1-2.33-4.03 2.34 2.34 0 0 0 0-3.82 2.34 2.34 0 0 1 2.33-4.03 2.34 2.34 0 0 0 3.32-1.92"/>
@@ -1002,9 +1085,9 @@ function currentEvaluation(){
   return state.eval;
 }
 
-function sorter(a,b){
-  if(state.sort === 'cites') return b.cites - a.cites;
-  if(state.sort === 'added') return PAPERS.indexOf(a) - PAPERS.indexOf(b);
+function sorter(a,b, sort = state.sort){
+  if(sort === 'cites') return b.cites - a.cites;
+  if(sort === 'added') return 0;
   return (b.year ?? -1) - (a.year ?? -1);
 }
 
@@ -1301,7 +1384,7 @@ function renderList(ps){
     else if(!currentEvaluation().total){
       el.innerHTML = PAPERS.length
         ? '<div class="empty"><p>还没有已打标的文献</p></div>'
-        : '<div class="empty"><p>书库还是空的</p><button class="btn primary" data-act="import">导入 PDF 或文件夹</button></div>';
+        : '<div class="empty"><p>书库还是空的</p><button class="btn primary" data-act="import">导入文献</button></div>';
     }
     else {
       const papers = searchPapers();
@@ -1332,8 +1415,9 @@ function renderList(ps){
       '<button class="btn" data-act="fetch-meta" data-id="' + id + '"' + (state.metaBusy ? ' disabled' : '') + '>' +
       (state.metaBusy === p.id ? '抓取中…' : '抓取元数据') + '</button>' +
       '<button class="btn" data-act="edit-meta" data-id="' + id + '" aria-haspopup="dialog">手动补全</button></div>' : '';
-    return '<article class="paper' + (current ? ' on' : '') + '" data-id="' + id + '">' +
+    return '<article class="paper' + (current ? ' on' : '') + (p.hasFile ? '' : ' no-pdf') + '" data-id="' + id + '">' +
        '<div class="paper-content">' +
+         (p.hasFile ? '' : '<span class="no-pdf-label" title="无 PDF 附件">' + importIcon('metadata') + '仅元数据</span>') +
          '<h2 class="ptitle"><button data-act="select" data-id="' + id + '" aria-controls="detail" aria-expanded="' + current + '">' + esc(p.title) + '</button></h2>' +
          renderPaperMetadata(p) +
         (tags ? '<div class="ptags" aria-label="内容标签">' + tags + '</div>' : '') +
@@ -2568,6 +2652,7 @@ function renderModal(){
   if(!state.modalOpen){ modal.classList.remove('open'); modal.innerHTML = ''; return; }
   if(state.modalMode === 'delete-paper'){ renderDeletePaperDialog(); return; }
   if(state.modalMode === 'import'){ renderImportModal(); return; }
+  if(state.modalMode === 'share'){ renderShareModal(); return; }
   if(state.modalMode === 'meta'){ renderMetaModal(); return; }
   if(isSettingsMode()){ renderSettingsModal(); return; }
   if(state.modalMode === 'group-dialog'){
@@ -3097,22 +3182,33 @@ sidebarOverlay.addEventListener('change', event => {
 
 const saveTimers = {};
 const pendingPatch = {};
+const activeSaves = {};
+
+function savePendingPatch(itemId){
+  clearTimeout(saveTimers[itemId]);
+  delete saveTimers[itemId];
+  const body = pendingPatch[itemId];
+  if(!body) return activeSaves[itemId];
+  delete pendingPatch[itemId];
+  const previous = activeSaves[itemId];
+  const request = Promise.resolve(previous).catch(() => {}).then(async () => {
+    const res = await fetch('/api/items/' + encodeURIComponent(itemId), {
+      method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
+    });
+    if(!res.ok) throw new Error('保存失败，改动只在本页');
+  }).finally(() => {
+    if(activeSaves[itemId] === request) delete activeSaves[itemId];
+  });
+  activeSaves[itemId] = request;
+  return request;
+}
 
 function scheduleSave(itemId, patch){
   if(!apiOnline) return;
   pendingPatch[itemId] = Object.assign(pendingPatch[itemId] || {}, patch);
   clearTimeout(saveTimers[itemId]);
-  saveTimers[itemId] = setTimeout(function(){
-    const body = pendingPatch[itemId];
-    delete pendingPatch[itemId];
-    delete saveTimers[itemId];
-    fetch('/api/items/' + encodeURIComponent(itemId), {
-      method:'PATCH',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(body)
-    }).then(function(res){
-      if(!res.ok) throw new Error('http ' + res.status);
-    }).catch(function(){ toast('保存失败，改动只在本页'); });
+  saveTimers[itemId] = setTimeout(() => {
+    savePendingPatch(itemId)?.catch(() => toast('保存失败，改动只在本页'));
   }, 600);
 }
 
@@ -3618,6 +3714,7 @@ document.addEventListener('click', function(e){
   }
   if(e.target.id === 'modal'){
     if(state.modalMode === 'import') closeImportBrowser();
+    else if(state.modalMode === 'share') closeShare();
     else if(state.modalMode === 'clean') closeClean();
     else if(state.modalMode === 'delete-paper' || state.dialog?.kind === 'delete-tag' || isTagMoveDialog()) closeDialog();
     else if(isSettingsMode()) closeSettings();
@@ -3970,13 +4067,26 @@ document.addEventListener('click', function(e){
   else if(act === 'dialog-cancel'){
     closeDialog();
   }
-  else if(act === 'import'){ openImportBrowser(el); }
+  else if(act === 'import'){ openShare('choose', el); }
+  else if(act === 'export-share'){ openShare('select', el); }
+  else if(act === 'share-close'){ closeShare(); }
+  else if(act === 'share-browse'){ openImportBrowser(shareView.anchor, el.dataset.kind); }
+  else if(act === 'share-all'){ toggleShareSelection(); }
+  else if(act === 'share-reset'){ resetShareFilters(); }
+  else if(act === 'share-confirm'){ shareView.mode = 'confirm'; renderShareModal(); }
+  else if(act === 'share-back'){ shareView.mode = 'select'; renderShareModal(); }
+  else if(act === 'share-download'){ downloadShare(); }
+  else if(act === 'share-commit'){ runShareImport(shareView.path, shareView.preview.token); }
+  else if(act === 'share-repreview'){ runShareImport(shareView.path); }
   else if(act === 'import-close'){ closeImportBrowser(); }
   else if(act === 'import-roots'){ loadImportLocation(); }
   else if(act === 'import-up'){ loadImportLocation(importView.location?.parent); }
   else if(act === 'import-enter'){ loadImportLocation(el.dataset.path); }
   else if(act === 'import-all'){ toggleImportSelection(); }
-  else if(act === 'import-selected'){ runLocalImport({paths:[...importView.selected]}); }
+  else if(act === 'import-selected'){
+    if(importView.kind === 'share') runShareImport([...importView.selected][0]);
+    else runLocalImport({paths:[...importView.selected]});
+  }
   else if(act === 'import-folder'){ runLocalImport({folder:importView.location?.path}); }
   else if(act === 'reconnect'){ boot(); }
 });
@@ -3991,6 +4101,10 @@ document.addEventListener('submit', function(e){
 });
 
 document.addEventListener('change', function(e){
+  if(e.target.closest('#modal') && state.modalMode === 'share'){
+    changeShareOption(e.target);
+    return;
+  }
   if(e.target.matches('#settings-appearance input[name="theme"]')){
     const theme = e.target.value;
     document.documentElement.dataset.theme = theme;
@@ -4037,6 +4151,7 @@ document.addEventListener('change', function(e){
   }
   if(e.target.matches('[data-import-check]') && !importView.importing){
     const path = e.target.dataset.path;
+    if(importView.kind === 'share') importView.selected.clear();
     if(e.target.checked) importView.selected.add(path);
     else importView.selected.delete(path);
     paintImportSelection();
@@ -4050,6 +4165,15 @@ document.addEventListener('change', function(e){
 });
 
 document.addEventListener('input', function(e){
+  if(e.target.matches('[data-share-find]')){
+    findShareTerms(e.target);
+    return;
+  }
+  if(e.target.id === 'shareSearch'){
+    shareView.filter.q = e.target.value;
+    paintShareResults();
+    return;
+  }
   if(e.target.matches('[data-note]')){
     const p = PAPERS.find(p => p.id === e.target.dataset.note);
     if(p){
@@ -4151,6 +4275,7 @@ document.addEventListener('keydown', function(e){
   if(e.key === 'Escape' && state.modalOpen){
     if(e.isComposing || e.keyCode === 229) return;
     if(state.modalMode === 'import'){ closeImportBrowser(); return; }
+    if(state.modalMode === 'share'){ closeShare(); return; }
     if(state.modalMode === 'clean'){
       if(!$('.clean-dialog[open]')) closeClean();
       return;
@@ -4180,9 +4305,10 @@ document.addEventListener('keydown', function(e){
       return;
     }
   }
-  if(state.modalOpen && (state.modalMode === 'import' || state.modalMode === 'delete-paper' || state.dialog?.kind === 'delete-tag' || isTagMoveDialog())){
+  if(state.modalOpen && (state.modalMode === 'import' || state.modalMode === 'share' || state.modalMode === 'delete-paper' || state.dialog?.kind === 'delete-tag' || isTagMoveDialog())){
     if(e.key === 'Tab'){
-      const controls = $$('#modal button:not(:disabled), #modal input:not(:disabled)');
+      const controls = $$('#modal button:not(:disabled), #modal input:not(:disabled), #modal select:not(:disabled), #modal summary')
+        .filter(el => el.getClientRects().length && (el.type !== 'radio' || el.checked || !$('#modal input[type="radio"]:checked')));
       const first = controls[0], last = controls[controls.length - 1];
       if(!controls.length || !$('#modal').contains(document.activeElement) ||
           document.activeElement === (e.shiftKey ? first : last)){
@@ -4622,7 +4748,7 @@ async function fetchPapers(){
 async function refreshPapers(){
   if(!apiOnline) return;
   try{
-    const pendingNotes = new Set(Object.keys(pendingPatch).filter(id => 'note_md' in pendingPatch[id]));
+    const pendingNotes = new Set([...Object.keys(activeSaves), ...Object.keys(pendingPatch).filter(id => 'note_md' in pendingPatch[id])]);
     const fresh = await fetchPapers();
     for(const paper of fresh){
       if(pendingNotes.has(paper.id) || pendingPatch[paper.id]?.note_md !== undefined){
@@ -4640,12 +4766,14 @@ async function refreshPapers(){
 }
 
 const importView = {
-  anchor:null, location:null, roots:[], selected:new Set(), loading:false,
+  anchor:null, kind:'pdf', location:null, roots:[], selected:new Set(), loading:false,
   importing:false, message:'', sequence:0
 };
 
-function openImportBrowser(anchor){
+function openImportBrowser(anchor, kind = 'pdf'){
   importView.anchor = anchor;
+  importView.kind = kind;
+  importView.selected.clear();
   state.modalOpen = true;
   state.modalMode = 'import';
   loadImportLocation(importView.location?.path, !importView.location);
@@ -4678,14 +4806,15 @@ async function loadImportLocation(path, startAtDesktop = false){
   importView.message = '';
   renderImportModal();
   try{
-    const data = await importResponse('/api/fs/list' + (path ? '?path=' + encodeURIComponent(path) : ''));
+    const listLocation = path => importResponse('/api/fs/list?kind=' + importView.kind + (path ? '&path=' + encodeURIComponent(path) : ''));
+    const data = await listLocation(path);
     if(seq !== importView.sequence) return;
     importView.location = data;
     importView.selected.clear();
     if(!data.path) importView.roots = data.roots;
     const desktop = startAtDesktop && importView.roots.find(entry => entry.kind === 'desktop');
     if(desktop){
-      const contents = await importResponse('/api/fs/list?path=' + encodeURIComponent(desktop.path));
+      const contents = await listLocation(desktop.path);
       if(seq === importView.sequence) importView.location = contents;
     }
   }catch(err){
@@ -4700,6 +4829,10 @@ async function loadImportLocation(path, startAtDesktop = false){
 
 function importIcon(kind){
   const paths = {
+    search:'<circle cx="6.75" cy="6.75" r="3.75"/><path d="m9.5 9.5 3 3"/>',
+    chevron:'<path d="m6 4 4 4-4 4"/>',
+    package:'<path d="m8 1.75 5.5 3v6.5L8 14.25l-5.5-3v-6.5zm-5.5 3L8 8l5.5-3.25M8 8v6.25M5.25 3.25l5.5 3"/>',
+    metadata:'<path d="M4 2h5l3 3v9H4zM9 2v3h3M6 8h4m-4 3h4"/>',
     desktop:'<rect x="2" y="2.5" width="12" height="8.5" rx="1"/><path d="M8 11v3m-3 0h6"/>',
     downloads:'<path d="M8 2v8m-3-3 3 3 3-3M3 11v2.5h10V11"/>',
     documents:'<path d="M4 2h5l3 3v9H4zM9 2v3h3M6 8h4m-4 3h4"/>',
@@ -4717,6 +4850,7 @@ function renderImportModal(){
   const {location, selected, loading, importing, message} = importView;
   const busy = loading || importing;
   const disabled = busy ? ' disabled' : '';
+  const sharing = importView.kind === 'share';
   const locationName = importView.roots.find(entry => entry.path === location?.path)?.name;
   const shortcut = entry => '<button data-act="import-enter" data-path="' + esc(entry.path) + '"' + disabled +
     (entry.path === location?.path ? ' aria-current="location"' : '') + ' title="' + esc(entry.path) + '">' +
@@ -4732,16 +4866,16 @@ function renderImportModal(){
   if(location?.path){
     rows = location.dirs.map(entry => directoryRow(entry, '文件夹')).join('') +
       location.files.map(file => '<label class="improw" title="' + esc(file.name) + '">' +
-        '<input type="checkbox" data-import-check data-path="' + esc(file.path) + '"' +
+        '<input type="' + (sharing ? 'radio' : 'checkbox') + '" name="import-file" data-import-check data-path="' + esc(file.path) + '"' +
         (selected.has(file.path) ? ' checked' : '') + disabled + '>' +
-        '<span class="impname">' + esc(file.name) + '</span><span class="impsize">PDF</span></label>').join('');
+        '<span class="impname">' + esc(file.name) + '</span><span class="impsize">' + (sharing ? '分享包' : 'PDF') + '</span></label>').join('');
   }else if(location){
     rows = location.roots.map(entry => directoryRow(entry, entry.path)).join('');
   }
 
   modal.classList.add('open');
   modal.innerHTML = '<div class="modal-card import-card" role="dialog" aria-modal="true" aria-labelledby="importTitle">' +
-    '<div class="mhead"><h3 id="importTitle">导入</h3>' +
+    '<div class="mhead"><h3 id="importTitle">' + (sharing ? '导入文献分享包' : '导入 PDF 或文件夹') + '</h3>' +
       '<button class="btn icon" data-act="import-close" aria-label="关闭" title="关闭"' +
         (importing ? ' disabled' : '') + '>×</button></div>' +
     '<div class="importbar"><button class="btn tiny icon" data-act="import-roots" title="常用位置" aria-label="常用位置"' +
@@ -4753,14 +4887,14 @@ function renderImportModal(){
     '<div class="importpane"><nav class="importnav" aria-label="常用位置与磁盘">' + sidebar + '</nav>' +
       '<div class="importbody" aria-busy="' + busy + '">' +
       '<div class="impcolumns"><span>名称</span><span>' + (location?.path ? '类型' : '位置') + '</span></div>' +
-      (rows || '<div class="impempty">' + (loading ? '正在读取…' : location?.path ? '没有子文件夹或 PDF' : '没有可显示的位置') +
+       ((busy ? '' : rows) || '<div class="impempty">' + (loading ? '正在读取…' : importing ? '正在处理…' : location?.path ? '没有子文件夹或' + (sharing ? '分享包' : ' PDF') : '没有可显示的位置') +
       '</div>') + '</div></div>' +
     (message ? '<p class="impmessage" role="status">' + esc(message) + '</p>' : '') +
     '<div class="importfoot"><div class="importsum"><span id="importCount" role="status"></span>' +
-      (location?.files.length && !busy ? ' · <button class="linkbtn" data-act="import-all"></button>' : '') + '</div>' +
+       (location?.files.length && !busy && !sharing ? ' · <button class="linkbtn" data-act="import-all"></button>' : '') + '</div>' +
       '<div class="importacts"><button class="btn primary" data-act="import-selected"></button>' +
-      '<button class="btn" data-act="import-folder"' + (location?.path && !busy ? '' : ' disabled') +
-        '>导入当前文件夹（含子文件夹）</button></div></div></div>';
+       (sharing ? '' : '<button class="btn" data-act="import-folder"' + (location?.path && !busy ? '' : ' disabled') +
+         '>导入当前文件夹（含子文件夹）</button>') + '</div></div></div>';
   paintImportSelection();
   if(!modal.contains(document.activeElement)){
     const card = $('.import-card', modal);
@@ -4773,11 +4907,11 @@ function paintImportSelection(){
   const {location, selected, loading, importing} = importView;
   const count = selected.size;
   $('#importCount').textContent = importing ? '正在导入…' : loading ? '正在读取…' : location?.path
-    ? (location.truncated ? '仅显示前 ' : '') + location.files.length + ' 个 PDF · 已选 ' + count
+    ? (location.truncated ? '仅显示前 ' : '') + location.files.length + (importView.kind === 'share' ? ' 个分享包 · 已选 ' : ' 个 PDF · 已选 ') + count
     : '选择一个位置';
   const button = $('[data-act="import-selected"]');
   button.disabled = !count || loading || importing;
-  button.textContent = '导入选中的 PDF' + (count ? '（' + count + '）' : '');
+  button.textContent = importView.kind === 'share' ? '预览导入' : '导入选中的 PDF' + (count ? '（' + count + '）' : '');
   const all = $('[data-act="import-all"]');
   if(all) all.textContent = count === location.files.length ? '取消全选' : '全选';
 }
@@ -4814,18 +4948,326 @@ async function runLocalImport(payload){
 
   const parts = [];
   if(data.imported) parts.push(data.imported + ' 篇已入库，可在「文献整理」中处理');
+  if(data.attached) parts.push(data.attached + ' 篇已补上 PDF');
   if(data.duplicates) parts.push(data.duplicates + ' 篇重复跳过');
   if(data.errors.length) parts.push(data.errors.length + ' 项失败');
   const summary = parts.join(' · ') || '没有找到可导入的 PDF';
-  if(!data.imported && !data.duplicates){
-    importView.message = summary;
+  if(!data.imported && !data.attached && !data.duplicates){
+    importView.message = summary + (data.errors[0]?.reason ? '：' + data.errors[0].reason : '');
     renderImportModal();
     return;
   }
 
   closeImportBrowser();
   toast(summary);
-  if(data.imported) await refreshPapers();
+  if(data.imported || data.attached) await refreshPapers();
+}
+
+const shareView = {mode:null, anchor:null, busy:false};
+
+function openShare(mode, anchor){
+  if(!apiOnline){ toast('连不上本地服务'); return; }
+  if(mode === 'select' && !PAPERS.length){ toast('书库没有可导出的文献'); return; }
+  Object.assign(shareView, {mode, anchor, message:'', preview:null, path:null});
+  if(mode === 'select'){
+    const organizing = state.workspace === 'organize';
+    const all = PAPERS.slice();
+    Object.assign(shareView, {
+      papers:all, scope:organizing ? state.queue : 'tagged', sort:state.sort, selected:new Set(),
+      groups:false, notes:false, facets:structuredClone(activeFacets()), range:{},
+      filter:{q:organizing ? state.organizeQ : state.q,
+        tagQuery:organizing ? {op:'and',include:[],exclude:[]} : structuredClone(state.tagQuery)},
+      choices:metadataGroups(all,initialFacets()),
+    });
+  }
+  state.modalOpen = true;
+  state.modalMode = 'share';
+  renderShareModal();
+}
+
+function closeShare(){
+  if(shareView.busy) return;
+  state.modalOpen = false;
+  renderModal();
+  shareView.anchor?.focus();
+}
+
+function shareSelect(id, value, label, options){
+  return '<select id="' + id + '" aria-label="' + label + '">' + options.map(([key, text]) =>
+    '<option value="' + key + '"' + (key === value ? ' selected' : '') + '>' + text + '</option>').join('') + '</select>';
+}
+
+function shareCheck(text, kind, value, checked, label = ''){
+  return '<label class="share-check"><input type="checkbox" data-share-option="' + esc(kind) + '" value="' + esc(value) + '"' +
+    (label ? ' aria-label="' + esc(label) + '"' : '') +
+    (checked ? ' checked' : '') + '> ' + esc(text) + '</label>';
+}
+
+function renderShareFilters(){
+  const {facets, choices, filter, papers, range} = shareView;
+  const year = getGroupFilter(Retrieval.YEAR_GROUP,'any',facets);
+  const years = [...new Set(papers.map(p => p.year).filter(Number.isInteger))].sort((a,b) => b-a);
+  const section = (id, label, body, controls = '', searchable = false) =>
+    '<details class="share-filter"><summary>' + label + '<span class="share-filter-count" data-share-count="' + id + '"></span>' + importIcon('chevron') + '</summary>' +
+    '<div class="share-filter-panel">' + controls + (searchable ? '<input type="search" data-share-find aria-label="查找' + label + '" placeholder="查找' + label + '">' : '') +
+    '<div class="share-terms">' + (body || '<p class="share-filter-empty">暂无选项</p>') + '</div>' +
+    (searchable ? '<p class="share-filter-empty" data-share-find-empty hidden>没有匹配的选项</p>' : '') + '</div></details>';
+  const yearRange = '<div class="share-year-range"><label>起始年份<input type="number" id="shareYearFrom" value="' + esc(range.from ?? '') + '"></label>' +
+    '<label>结束年份<input type="number" id="shareYearTo" value="' + esc(range.to ?? '') + '"></label></div>';
+  const ranges = year.terms.filter(term => typeof term === 'object').map(term =>
+    shareCheck(term.range.join(' 至 '),'year-range',term.range.join(','),true)).join('');
+  const yearOptions = ranges + shareCheck('包含未知年份','unknown','',year.includeUnknown) +
+    years.map(value => shareCheck(value,'@year',value,year.terms.includes(value))).join('');
+  const metadata = choices.filter(choice => choice.kind === Retrieval.META).map(choice => {
+    const terms = getGroupFilter(choice.group_id,'any',facets).terms.map(x => Retrieval.termKey(Retrieval.META,x));
+    return section(choice.group_id, labelOf(choice.group_id.slice(1)), choice.options.map(value =>
+      '<div data-share-term="' + esc(value) + '">' + shareCheck(value,choice.group_id,value,terms.includes(Retrieval.termKey(Retrieval.META,value))) + '</div>').join(''), '', Boolean(choice.options.length));
+  }).join('');
+  const groups = [...state.groups, {name:'未分组',tags:state.unfiled}];
+  const tagOptions = groups.filter(group => group.tags?.length).map(group =>
+    '<div data-share-tag-group><div class="share-tag-group">' + esc(group.name) + '</div>' + group.tags.map(tag =>
+    '<div class="share-tag-entry" data-share-term="' + esc(group.name + ' ' + tag.name) + '"><span>' + esc(tag.name) + '</span><div class="share-tag-actions">' +
+    shareCheck('包含','include',tag.id,filter.tagQuery.include.includes(tag.id),'包含标签 ' + tag.name) + ' ' +
+    shareCheck('排除','exclude',tag.id,filter.tagQuery.exclude.includes(tag.id),'排除标签 ' + tag.name) + '</div></div>').join('') + '</div>').join('');
+  const tagJoin = shareSelect('shareTagJoin',filter.tagQuery.op,'标签组合',[['and','包含全部标签'],['or','包含任一标签']]);
+  const star = getGroupFilter(Retrieval.STAR_GROUP,'any',facets).terms.length > 0;
+  return section(Retrieval.YEAR_GROUP,'年份',yearOptions,yearRange) + metadata +
+    section('tags','内容标签',tagOptions,tagJoin,Boolean(tagOptions)) + shareCheck('仅星标','star','',star);
+}
+
+function renderShareModal(){
+  const {mode, selected, scope, sort, filter, preview, path, busy, message} = shareView;
+  const modal = $('#modal');
+  const title = {choose:'导入文献',select:'选择要导出的文献',confirm:'确认导出分享包',preview:'预览导入'}[mode];
+  const close = '<button class="btn icon" data-act="share-close" aria-label="关闭"' + (busy ? ' disabled' : '') + '>×</button>';
+  let body;
+  if(mode === 'choose'){
+    body = '<div class="share-choice">' +
+      '<button data-act="share-browse" data-kind="pdf"><span class="share-choice-icon">' + importIcon('folder') + '</span><strong>PDF 或文件夹</strong><small>本地 PDF</small></button>' +
+      '<button data-act="share-browse" data-kind="share"><span class="share-choice-icon">' + importIcon('package') + '</span><strong>文献分享包</strong><small>.colophon.json</small></button></div>';
+  }else if(mode === 'select'){
+    body = '<div class="share-toolbar"><label class="share-search">' + importIcon('search') + '<input type="search" id="shareSearch" aria-label="搜索文献" placeholder="搜索文献" value="' + esc(filter.q) + '"></label>' +
+      shareSelect('shareScope',scope,'检索范围',[['all','全库'],...Object.entries(LABEL_STATE_LABELS)]) +
+      shareSelect('shareSort',sort,'排序',[['year','年份最新'],['cites','引用最多'],['added','入库顺序']]) + '</div>' +
+      '<div class="share-workspace"><aside class="share-filters" aria-label="筛选文献"><div class="share-filter-heading"><strong>筛选</strong>' +
+      '<button class="linkbtn" data-act="share-reset">清除筛选</button></div><div class="share-filter-list">' + renderShareFilters() + '</div></aside>' +
+      '<section class="share-list" aria-label="检索结果"><div class="share-list-head"><span id="shareResultCount"></span>' +
+      '<button class="linkbtn" data-act="share-all">全选当前结果</button></div><div class="share-results" id="shareResults"></div></section></div>' +
+      '<div class="importfoot"><span class="importsum" id="shareCount" role="status"></span>' +
+      '<button class="btn primary" data-act="share-confirm">下一步</button></div>';
+  }else if(mode === 'confirm'){
+    body = '<div class="share-body share-options"><p>导出 ' + selected.size + ' 篇文献，包含文献信息和标签。</p>' +
+      '<div>分享包不包含 PDF、正文或星标。</div>' +
+      '<label><input type="checkbox" id="shareGroups"' + (shareView.groups ? ' checked' : '') + (busy ? ' disabled' : '') + '> 包含标签分组</label>' +
+      '<label><input type="checkbox" id="shareNotes"' + (shareView.notes ? ' checked' : '') + (busy ? ' disabled' : '') + '> 包含我的笔记</label></div>' +
+      '<div class="importfoot"><button class="btn" data-act="share-back"' + (busy ? ' disabled' : '') + '>返回选择</button>' +
+      '<button class="btn primary" data-act="share-download"' + (busy ? ' disabled' : '') + '>' + (busy ? '正在导出…' : '导出分享包') + '</button></div>';
+  }else{
+    const {added, merged, conflicts, hasNotes} = preview;
+    body = '<div class="share-body"><p>' + esc(path.split(/[\\/]/).at(-1)) + '</p><p>新增 ' + added + ' 篇 · 合并 ' + merged +
+      ' 篇 · 跳过冲突 ' + conflicts.length + ' 篇</p>' + (hasNotes ? '<p>此分享包含有个人笔记，仅填充本地空笔记。</p>' : '') +
+      (conflicts.length ? '<ul class="share-conflicts">' + conflicts.map(rec => '<li>' + esc(rec.title + '：' + rec.reason) + '</li>').join('') + '</ul>' : '') + '</div>' +
+      '<div class="importfoot"><button class="btn" data-act="share-browse" data-kind="share"' + (busy ? ' disabled' : '') + '>重新选文件</button>' +
+      (message ? '<button class="btn" data-act="share-repreview"' + (busy ? ' disabled' : '') + '>重新预览</button>' : '') +
+      '<button class="btn primary" data-act="share-commit"' + (busy || message || !added && !merged ? ' disabled' : '') + '>' + (busy ? '正在处理…' : '确认导入') + '</button></div>';
+  }
+  modal.classList.add('open');
+  const variant = {choose:' share-choice-card',select:' share-export-card'}[mode] || '';
+  modal.innerHTML = '<div class="modal-card import-card' + variant + '" role="dialog" aria-modal="true" aria-labelledby="shareTitle" tabindex="-1">' +
+    '<div class="mhead"><h3 id="shareTitle">' + title + '</h3>' + close + '</div>' + body +
+    (message ? '<p class="impmessage" role="status">' + esc(message) + '</p>' : '') + '</div>';
+  if(mode === 'select') paintShareResults();
+  ($('#shareSearch') || $('.import-card',modal)).focus({preventScroll:true});
+}
+
+function shareResults(){
+  const {papers, scope, facets, filter, sort, range} = shareView;
+  const pool = scope === 'all' ? papers : papers.filter(p => labelState(p) === scope);
+  const year = getGroupFilter(Retrieval.YEAR_GROUP,'any',facets);
+  const groups = [
+    {kind:Retrieval.YEAR, group_id:Retrieval.YEAR_GROUP, terms:year.terms.slice(), includeUnknown:year.includeUnknown},
+    ...shareView.choices.filter(g => g.kind === Retrieval.META).map(g =>
+      ({kind:g.kind, group_id:g.group_id, op:'any', terms:getGroupFilter(g.group_id,'any',facets).terms})),
+    {kind:Retrieval.ATTR, group_id:Retrieval.STAR_GROUP, terms:getGroupFilter(Retrieval.STAR_GROUP,'any',facets).terms},
+  ];
+  if(range.from != null && range.to != null) groups[0].terms.push({range:[range.from,range.to]});
+  return Retrieval.evaluate(pool,{...filter,groups}).matched.slice().sort((a,b) => sorter(a,b,sort));
+}
+
+function paintShareResults(){
+  const results = $('#shareResults');
+  const papers = shareResults();
+  results.innerHTML = papers.map(p => '<label class="share-row"><input type="checkbox" data-share-option="item" value="' + esc(p.id) + '"' +
+    (shareView.selected.has(p.id) ? ' checked' : '') + '><span>' + esc(p.title) + '<small>' +
+    esc([p.year,p.authors.join('、'),p.venue,LABEL_STATE_LABELS[labelState(p)]].filter(Boolean).join(' · ')) + '</small>' +
+    (p.hasFile ? '' : '<span class="no-pdf-label" title="无 PDF 附件">' + importIcon('metadata') + '仅元数据</span>') + '</span></label>').join('') ||
+    '<div class="impempty">没有符合条件的文献</div>';
+  results.scrollTop = 0;
+  for(const badge of $$('[data-share-count]')){
+    const key = badge.dataset.shareCount;
+    const {facets,filter,range} = shareView;
+    const count = key === 'tags' ? filter.tagQuery.include.length + filter.tagQuery.exclude.length :
+      getGroupFilter(key,'any',facets).terms.length + (key === Retrieval.YEAR_GROUP && range.from != null && range.to != null ? 1 : 0);
+    badge.textContent = count || '';
+    if(key === Retrieval.YEAR_GROUP && !getGroupFilter(key,'any',facets).includeUnknown) badge.textContent = count + 1;
+  }
+  paintShareCount();
+}
+
+function paintShareCount(){
+  const checks = $$('#shareResults input');
+  const visible = checks.filter(input => input.checked).length;
+  const count = shareView.selected.size;
+  const hidden = count - visible;
+  $('#shareResultCount').textContent = checks.length + ' 篇结果';
+  $('#shareCount').textContent = '已选 ' + count + ' 篇' + (hidden ? '（' + hidden + ' 篇不在当前结果）' : '');
+  const all = $('[data-act="share-all"]');
+  all.disabled = !checks.length;
+  all.textContent = visible === checks.length && visible ? '取消全选当前结果' : '全选当前结果';
+  $('[data-act="share-confirm"]').disabled = !count;
+}
+
+function toggleShareSelection(){
+  const checks = $$('#shareResults input');
+  const checked = !checks.every(input => input.checked);
+  for(const input of checks){
+    input.checked = checked;
+    if(checked) shareView.selected.add(input.value);
+    else shareView.selected.delete(input.value);
+  }
+  paintShareCount();
+}
+
+function resetShareFilters(){
+  shareView.facets = initialFacets();
+  shareView.range = {};
+  shareView.filter = {q:'',tagQuery:{op:'and',include:[],exclude:[]}};
+  renderShareModal();
+}
+
+function findShareTerms(input){
+  const panel = input.closest('.share-filter-panel');
+  const query = input.value.trim().toLocaleLowerCase();
+  let matches = 0;
+  for(const term of $$('[data-share-term]',panel)){
+    term.hidden = !term.dataset.shareTerm.toLocaleLowerCase().includes(query);
+    if(!term.hidden) matches++;
+  }
+  for(const group of $$('[data-share-tag-group]',panel)) group.hidden = !$('[data-share-term]:not([hidden])',group);
+  $('[data-share-find-empty]',panel).hidden = Boolean(matches);
+}
+
+function changeShareOption(input){
+  const {facets, filter, selected, range} = shareView;
+  const {value, checked, id} = input;
+  const opt = input.dataset.shareOption;
+  if(opt === 'item'){
+    if(checked) selected.add(value);
+    else selected.delete(value);
+    paintShareCount();
+    return;
+  }
+  if(id === 'shareGroups' || id === 'shareNotes'){
+    shareView[id === 'shareGroups' ? 'groups' : 'notes'] = checked;
+    return;
+  }
+  if(id === 'shareScope') shareView.scope = value;
+  else if(id === 'shareSort') shareView.sort = value;
+  else if(id === 'shareTagJoin') filter.tagQuery.op = value;
+  else if(id === 'shareYearFrom' || id === 'shareYearTo') range[id === 'shareYearFrom' ? 'from' : 'to'] = value ? Number(value) : null;
+  else if(opt === 'include' || opt === 'exclude'){
+    filter.tagQuery[opt] = filter.tagQuery[opt].filter(tag => tag !== value);
+    if(checked){
+      filter.tagQuery[opt].push(value);
+      const other = opt === 'include' ? 'exclude' : 'include';
+      filter.tagQuery[other] = filter.tagQuery[other].filter(tag => tag !== value);
+      $$('.share-filters input').find(el => el.dataset.shareOption === other && el.value === value).checked = false;
+    }
+  }else if(opt === 'unknown') getGroupFilter(Retrieval.YEAR_GROUP,'any',facets).includeUnknown = checked;
+  else if(opt === 'star') getGroupFilter(Retrieval.STAR_GROUP,'any',facets).terms = checked ? [{star:true}] : [];
+  else if(opt === 'year-range'){
+    const year = getGroupFilter(Retrieval.YEAR_GROUP,'any',facets);
+    const term = {range:value.split(',').map(Number)};
+    year.terms = year.terms.filter(t => t.range?.join(',') !== value);
+    if(checked) year.terms.push(term);
+  }else if(opt){
+    const group = getGroupFilter(opt,'any',facets);
+    const kind = groupKind(opt);
+    const term = kind === Retrieval.YEAR ? Number(value) : value;
+    const key = Retrieval.termKey(kind,term);
+    group.terms = group.terms.filter(t => Retrieval.termKey(kind,t) !== key);
+    if(checked) group.terms.push(term);
+  }
+  paintShareResults();
+}
+
+async function downloadShare(){
+  if(shareView.busy || !shareView.selected.size) return;
+  shareView.busy = true;
+  shareView.message = '';
+  renderShareModal();
+  try{
+    if(shareView.notes) await Promise.all([...shareView.selected].map(savePendingPatch));
+    const response = await fetch('/api/share/export', {
+      method:'POST', headers:{'Content-Type':'application/json','X-Colophon-Import':'1'},
+      body:JSON.stringify({item_ids:[...shareView.selected],groups:shareView.groups,notes:shareView.notes})
+    });
+    if(!response.ok){
+      const data = await response.json().catch(() => null);
+      throw new Error(typeof data?.detail === 'string' ? data.detail : '请求失败（HTTP ' + response.status + '）');
+    }
+    const url = URL.createObjectURL(await response.blob());
+    const link = document.createElement('a');
+    link.href = url;
+    const timestamp = new Date().toISOString().replaceAll(':','-');
+    link.download = 'Colophon-文献分享包-' + timestamp + '.colophon.json';
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    shareView.busy = false;
+    closeShare();
+  }catch(err){
+    shareView.busy = false;
+    shareView.message = '导出失败：' + err.message;
+    renderShareModal();
+  }
+}
+
+async function runShareImport(path, token){
+  if(!path || importView.importing || shareView.busy) return;
+  const browsing = state.modalMode === 'import';
+  if(browsing){
+    importView.importing = true;
+    importView.message = '';
+    renderImportModal();
+  }else{
+    shareView.busy = true;
+    shareView.message = '';
+    renderShareModal();
+  }
+  let data;
+  try{
+    data = await importResponse('/api/share/import', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({path,token})
+    });
+  }catch(err){
+    (browsing ? importView : shareView).message = err.message;
+  }finally{
+    importView.importing = false;
+    shareView.busy = false;
+  }
+  if(!data){
+    renderModal();
+  }else if(!token){
+    Object.assign(shareView,{mode:'preview',path,preview:data,message:''});
+    state.modalMode = 'share';
+    renderShareModal();
+  }else{
+    closeShare();
+    toast('分享包已导入：新增 ' + data.added + ' 篇，合并 ' + data.merged + ' 篇，跳过冲突 ' + data.conflicts.length + ' 篇');
+    await refreshPapers();
+  }
 }
 
 async function boot(){
