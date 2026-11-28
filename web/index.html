@@ -840,7 +840,6 @@ const $  = (s, el=document) => el.querySelector(s);
 const $$ = (s, el=document) => Array.from(el.querySelectorAll(s));
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const labelOf = k => k === 'topic' ? '标签' : (METADATA_FACETS.find(f => f.key === k) || {}).label || k;
-const colorOf = k => 'var(--c-' + k + ')';
 const LABEL_STATE_LABELS = {review:'待补全', untagged:'未打标', tagged:'已打标'};
 const fieldLabel = k => ({title:'标题', authors:'作者', year:'年份', venue:'期刊 / 会议', orgs:'单位', abstract:'摘要'}[k] || k);
 const ORGANIZE_HASH = '#organize';
@@ -2528,8 +2527,6 @@ function renderModal(){
 
 function renderTagSettings(){
   const tagCount = (state.groups || []).reduce((n, g) => n + g.tags.length, (state.unfiled || []).length);
-  const summary = '标签 ' + tagCount + ' · 作者 ' +
-    new Set(PAPERS.flatMap(p => p.tags.author)).size + ' · 单位 ' + new Set(PAPERS.flatMap(p => p.tags.org)).size;
 
   const tagPill = function(t, color){
     const def = (t.definition || '').trim();
@@ -2575,33 +2572,17 @@ function renderTagSettings(){
     '</div>' +
   '</section>';
 
-  const metaHTML = METADATA_FACETS.map(function(f){
-    const counts = new Map();
-    PAPERS.forEach(p => new Set(metadataValues(p,f.key)).forEach(v => counts.set(v,(counts.get(v) || 0) + 1)));
-    const vals = Array.from(counts.keys()).sort((a,b) => f.key === 'year' ? Number(b)-Number(a) : a.localeCompare(b,'zh'));
-    return '<section class="libgroup" style="--c:' + colorOf(f.key) + '">' +
-      '<div class="libhead"><span>' + f.label + '</span><span>' + vals.length + '</span></div>' +
-      '<div class="libvals">' + vals.map(function(v){
-        return '<span class="tag"><span class="taglabel">' + esc(v) + '</span><b>' + counts.get(v) + '</b></span>';
-      }).join('') + '</div>' +
-    '</section>';
-  }).join('');
-
   const groupCount = (state.groups || []).length;
 
-  $('#settings-tags').innerHTML = '<h4>标签库</h4><p class="settings-sub">' + summary + ' · ' + groupCount + ' 个组</p>' +
+  $('#settings-tags').innerHTML = '<h4>标签库</h4><p class="settings-sub">标签 ' + tagCount + ' · ' + groupCount + ' 个组</p>' +
     '<section>' +
       '<div class="slabel">分组 <button class="linkbtn" data-act="new-group" style="margin-left:auto">＋ 新建组</button></div>' +
       groupsHTML + unfiledHTML +
     '</section>' +
     '<section>' +
-      '<div class="slabel">数据清洗 <span class="hint">作者 / 单位的脏写法</span>' +
-        '<button class="linkbtn" data-act="open-clean" style="margin-left:auto">检查</button></div>' +
-      '<p class="hintline" style="margin:0">PDF 抽字会把上标、重音、邮箱和正文片段粘进作者名；单位常有 HTML 实体和截断。检查后逐条确认，不会自动写库。</p>' +
-    '</section>' +
-    '<section>' +
-      '<div class="slabel">元数据词表 <span class="hint">来自 Crossref / OpenAlex，不需要分组</span></div>' +
-      metaHTML +
+       '<div class="slabel">数据清洗 <span class="hint">作者 / 单位的脏写法</span>' +
+         '<button class="linkbtn" data-act="open-clean" style="margin-left:auto">检查</button></div>' +
+       '<p class="hintline" style="margin:0">PDF 抽字会把上标、重音、邮箱和正文片段粘进作者名；单位常有 HTML 实体和截断。检查后逐条确认，不会自动写库。</p>' +
     '</section>';
 }
 
