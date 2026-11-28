@@ -216,6 +216,7 @@
 .paper-actions { align-content:start; justify-items:end; gap:6px; }
 .paper-tools { display:flex; align-items:center; justify-content:flex-end; gap:5px; }
 .paper-tools .btn { height:29px; font-size:11.5px; }
+.app.show-paper-detail .paper-actions { display:none; }
 .paper-menu { position:relative; }
 .paper-menu summary {
   display:grid;
@@ -283,6 +284,7 @@
 .detail-state { margin:7px 0 0; color:var(--muted); font-size:12px; }
 .detail-byline { margin:7px 0 0; color:var(--muted); font-size:12px; line-height:1.55; overflow-wrap:anywhere; }
 .detail-actions { display:flex; gap:7px; flex-wrap:wrap; margin-top:14px; }
+.detail-actions .delete-paper-action { color:var(--warn); border-color:color-mix(in srgb, var(--warn) 45%, var(--line)); }
 .detail-abstract, .dmeta, .dnote { margin-top:18px; padding-top:14px; border-top:1px solid var(--line); }
 .dhead .slabel { margin:0 0 7px; color:var(--ink); font-size:13px; letter-spacing:0; }
 .dabs { font-size:14px; line-height:1.75; }

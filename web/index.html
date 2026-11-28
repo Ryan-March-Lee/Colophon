@@ -1432,7 +1432,7 @@ function renderList(ps){
           '<div class="paper-tools"><button class="btn pdf-btn" data-act="' + readerAction + '" data-id="' + id + '">' + readerLabel + '</button>' +
          '<details class="paper-menu"><summary title="更多操作" aria-label="更多操作">···</summary><div class="paper-menu-content">' +
            '<button data-act="copy-cite" data-id="' + id + '">复制引用</button>' +
-           '<button class="delete-paper-action" data-act="delete-paper" data-id="' + id + '" aria-haspopup="dialog">删除该文件</button>' +
+           '<button class="delete-paper-action delete-paper-trigger" data-act="delete-paper" data-id="' + id + '" aria-haspopup="dialog">删除文献</button>' +
          '</div></details></div>' +
           reviewActions +
       '</div></article>';
@@ -1448,6 +1448,7 @@ function renderDetail(){
   const el = $('#detail');
   el.hidden = !state.detailOpen;
   $('#app').classList.toggle('show-detail',state.detailOpen);
+  $('#app').classList.toggle('show-paper-detail',state.detailOpen && state.tab === 'info');
   syncWorkspaceFocus();
   el.setAttribute('aria-label',state.tab === 'ai' ? 'AI 阅读' : '文献详情');
   if(el.hidden){
@@ -1484,6 +1485,9 @@ function renderDetail(){
     return;
   }
 
+  const organizing = state.workspace === 'organize';
+  const review = organizing && state.queue === 'review';
+  const readerAction = organizing && !review ? 'tag-paper' : 'open-pdf';
   const abstract = p.abstract.trim();
   const missing = (p.missing || []).map(fieldLabel);
   const identifiers = [p.doi ? 'DOI: ' + p.doi : '', p.arxivId ? 'arXiv: ' + p.arxivId : ''].filter(Boolean);
@@ -1500,8 +1504,9 @@ function renderDetail(){
       '<h2 class="detail-title">' + esc(p.title || '未命名') + '</h2>' +
       '<p class="detail-state">整理状态：<span class="paper-status ' + labelState(p) + '">' + LABEL_STATE_LABELS[labelState(p)] + '</span></p>' +
       (byline ? '<p class="detail-byline">' + byline + '</p>' : '') +
-      '<div class="detail-actions"><button class="btn primary" data-act="open-pdf" data-id="' + esc(p.id) + '">' + (p.hasFile ? '打开 PDF' : '补 PDF') + '</button>' +
-      '<button class="btn" data-act="copy-cite" data-id="' + esc(p.id) + '">复制引用</button></div>' +
+      '<div class="detail-actions"><button class="btn primary" data-act="' + readerAction + '" data-id="' + esc(p.id) + '">' + (p.hasFile ? '打开 PDF' : '补 PDF') + '</button>' +
+        '<button class="btn" data-act="copy-cite" data-id="' + esc(p.id) + '">复制引用</button>' +
+        '<button class="btn delete-paper-action delete-paper-trigger" data-act="delete-paper" data-id="' + esc(p.id) + '" aria-haspopup="dialog">删除文献</button></div>' +
       '<section class="detail-abstract"><h3 class="slabel">摘要</h3>' +
       (abstract ? '<p class="dabs">' + esc(abstract) + '</p>' :
         '<p class="dabs-miss">暂无摘要</p>') + '</section>' +
@@ -3420,12 +3425,12 @@ function renderDeletePaperDialog(){
     : '将删除这条文献。此操作无法撤销。';
   modal.classList.add('open');
   modal.innerHTML = '<div class="modal-card delete-paper-card" role="alertdialog" tabindex="-1" aria-modal="true" aria-labelledby="deletePaperTitle" aria-describedby="deletePaperImpact">' +
-    '<div class="mhead"><div><h3 id="deletePaperTitle">删除「' + esc(dialog.title || '未命名') + '」？</h3>' +
+    '<div class="mhead"><div><h3 id="deletePaperTitle">删除文献「' + esc(dialog.title || '未命名') + '」？</h3>' +
     '<p id="deletePaperImpact">' + impact + '</p></div></div>' +
     (dialog.message ? '<p class="delete-paper-error" role="alert">' + esc(dialog.message) + '</p>' : '') +
     '<div class="metafoot"><button class="btn" id="deletePaperCancel" data-act="dialog-cancel"' + disabled + '>取消</button>' +
       '<button class="btn primary delete-paper-confirm" id="deletePaperConfirm" data-act="dialog-confirm"' + disabled + '>' +
-        (dialog.busy ? '删除中…' : '确认删除') + '</button></div></div>';
+        (dialog.busy ? '删除中…' : '删除文献') + '</button></div></div>';
   const previous = focusedId && document.getElementById(focusedId);
   const focusTarget = dialog.busy ? $('.delete-paper-card', modal) :
     (previous && !previous.disabled ? previous : $('#deletePaperCancel'));
@@ -3483,8 +3488,11 @@ function closeDialog(){
     state.modalOpen = false;
     renderModal();
     $('#app').inert = false;
-    const summary = $('.paper[data-id="' + CSS.escape(dialog.itemId) + '"] .paper-menu summary');
-    if(summary) summary.focus({preventScroll:true});
+    const selector = '.delete-paper-trigger[data-id="' + CSS.escape(dialog.itemId) + '"]';
+    const trigger = [$('#detail ' + selector), $('#papers ' + selector)]
+      .find(button => button && !button.disabled && button.getClientRects().length &&
+        getComputedStyle(button).visibility !== 'hidden');
+    if(trigger) trigger.focus({preventScroll:true});
     else focusWorkspaceTitle();
     return;
   }
@@ -3846,7 +3854,8 @@ document.addEventListener('click', function(e){
   else if(act === 'delete-paper'){
     const p = PAPERS.find(x => x.id === el.dataset.id);
     if(!p) return;
-    el.closest('.paper-menu').open = false;
+    const menu = el.closest('.paper-menu');
+    if(menu) menu.open = false;
     openDeletePaperDialog(p);
   }
   else if(act === 'copy-cite'){
