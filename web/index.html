@@ -784,6 +784,8 @@
   .rmissing{max-width:430px;margin:11vh auto 0;text-align:center;color:var(--muted)}
   .rmissing .em{font-size:30px;color:var(--line-2);margin-bottom:12px}
   .rmissing p{margin:0 0 16px;line-height:1.75;font-size:13px}
+  .rmissing-actions{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:8px}
+  .rmissing-actions a.btn{text-decoration:none}
   .rloading{position:absolute;inset:0;display:none;place-items:center;font-size:13px;color:var(--muted);background:var(--bg);z-index:2}
   .rloading.show{display:grid}
   @media (max-width:700px){
@@ -4405,16 +4407,62 @@ function rememberPosition(){
   try{ localStorage.setItem('colophon:pos:' + pdfView.itemId, String(pdfView.current)); }catch(err){ /* 隐私模式 */ }
 }
 
+function documentPageUrl(item){
+  const resolver = /^https?:\/\/(?:dx\.)?doi\.org\//i;
+  const doiValue = (item.doi || '').trim().replace(/^doi\s*:\s*/i, '');
+  try{
+    const doi = resolver.test(doiValue) ? decodeURIComponent(new URL(doiValue).pathname.slice(1)) : doiValue;
+    if(/^10\.\d{4,9}\/[^\s\x00-\x1f\x7f]+$/i.test(doi) && !/(?:^|\/)\.{1,2}(?:\/|$)/.test(doi)){
+      return 'https://doi.org/' + doi.split('/').map(encodeURIComponent).join('/');
+    }
+  }catch(err){ /* 无法解析的 DOI 不阻断其他入口 */ }
+
+  const savedUrl = (item.url || '').trim();
+  if(/^https?:\/\//i.test(savedUrl)){
+    try{
+      const url = new URL(savedUrl);
+      if(!url.username && !url.password) return url.href;
+    }catch(err){ /* 没有可用的文献页地址 */ }
+  }
+
+  const arxiv = (item.arxivId || '').trim()
+    .replace(/^(?:arxiv\s*:\s*|https?:\/\/arxiv\.org\/(?:abs|pdf)\/)/i, '')
+    .replace(/\.pdf$/i, '');
+  if(/^(?:\d{4}\.\d{4,5}|[a-z-]+(?:\.[a-z]{2})?\/\d{7})(?:v\d+)?$/i.test(arxiv)){
+    return 'https://arxiv.org/abs/' + arxiv;
+  }
+  return '';
+}
+
+function documentSearchUrl(item){
+  const title = (item.title || '').trim().replace(/\s+/g, ' ');
+  if(!title) return '';
+  const firstAuthor = (item.authors?.[0] || '').trim();
+  const qualifier = title.length < 24 ? firstAuthor || item.year : '';
+  const query = qualifier ? title + ' ' + qualifier : title;
+  return 'https://www.bing.com/search?' + new URLSearchParams({q:query});
+}
+
 function readerMissing(item){
   destroyPdf();
   pdfView.itemId = item.id;
+  const page = documentPageUrl(item);
+  const search = documentSearchUrl(item);
+  const link = (url, label, cssClass) =>
+    '<a class="' + cssClass + '" href="' + esc(url) + '" target="_blank" rel="noopener noreferrer">' +
+      label + ' <span aria-hidden="true">↗</span></a>';
   const body = $('#readerBody');
   body.classList.add('blank');
   body.innerHTML =
     '<div class="rmissing">' +
       '<div class="em">▤</div>' +
-      '<p>这条还没有托管 PDF。<br>补上之后就能在这里读，原文件不会被移动。</p>' +
-      '<button class="btn primary" data-act="reader-attach">选择 PDF 文件</button>' +
+      '<p>这条文献缺少 PDF。<br>下载后，选择本地 PDF 文件补到这条文献。</p>' +
+      '<div class="rmissing-actions">' +
+        (page ? link(page, '打开文献页', 'btn primary') : '') +
+        (search && !page ? link(search, '搜索文献', 'btn primary') : '') +
+        '<button class="btn' + (page || search ? '' : ' primary') + '" data-act="reader-attach">选择 PDF 文件</button>' +
+        (page && search ? link(search, '按标题搜索', 'linkbtn') : '') +
+      '</div>' +
     '</div>';
   updateReaderChrome();
   setReaderLoading(false);
@@ -4488,6 +4536,11 @@ async function loadPdf(p){
     setReaderLoading(false);
     updateReaderChrome();
   }catch(err){
+    if(!state.readerOpen || pdfView.itemId !== p.id) return;
+    if(err?.name === 'MissingPDFException'){
+      readerMissing(p);
+      return;
+    }
     setReaderLoading(false);
     body.classList.add('blank');
     body.innerHTML =
