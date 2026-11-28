@@ -532,23 +532,21 @@
   .pickgroup:hover{background:var(--hover)}
   .pickgroup .gdot{width:7px;height:7px;border-radius:99px;background:var(--c);flex:none}
   .pickgroup .cnt{margin-left:auto;font-size:10.5px;color:var(--muted-2)}
-  .clean-card{width:min(860px,100%)}
-  .clean-policy{font-size:10.5px;line-height:1.65;color:var(--muted);background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:6px}
-  .clean-policy b{color:var(--ink);font-weight:600}
+  .clean-card{width:min(860px,100%);display:flex;flex-direction:column;overflow:hidden}
+  .clean-list{min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
+  .clean-card .metafoot{flex-wrap:wrap}
+  .clean-card .metafoot .btn{margin-left:auto;white-space:nowrap}
+  .clean-confirm{width:min(420px,calc(100% - 48px));color:var(--ink);overflow-wrap:anywhere}
+  .clean-confirm::backdrop{background:rgba(16,20,17,.38)}
+  .clean-confirm .metafoot{justify-content:flex-end}
   .csec{margin-top:12px}
-  .crow{display:flex;align-items:flex-start;gap:8px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;margin-bottom:4px;background:var(--panel)}
-  .crow.skipped{opacity:.55}
-  .cbadge{flex:none;font-size:9.5px;padding:1px 5px;border-radius:4px;background:color-mix(in srgb,var(--tone) 14%,transparent);color:var(--tone);border:1px solid color-mix(in srgb,var(--tone) 30%,transparent);margin-top:2px}
-  .cbadge.warn{background:color-mix(in srgb,var(--warn) 12%,transparent);color:var(--warn);border-color:color-mix(in srgb,var(--warn) 30%,transparent)}
+  .crow{display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid var(--line)}
   .cname{flex:1;min-width:0}
-  .cold{font-size:12px;word-break:break-word}
-  .carrow{color:var(--muted-2);margin:0 5px;font-size:11px}
-  .cnew{font-size:12px;font-weight:600;color:var(--ok)}
-  .cwhy{font-size:10px;color:var(--muted-2);margin-top:2px}
-  .cact{display:flex;gap:3px;flex:none;flex-wrap:wrap;justify-content:flex-end;max-width:46%}
-  .tbtn{font-size:10.5px;padding:2px 6px;border:1px solid var(--line);border-radius:5px;background:var(--panel-2);color:var(--muted)}
-  .tbtn:hover{border-color:var(--line-2);color:var(--ink)}
-  .tbtn.on{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 40%,transparent);color:var(--accent-2);font-weight:600}
+  .cvalue{display:grid;grid-template-columns:4em minmax(0,1fr);gap:6px;font-size:12px;overflow-wrap:anywhere}
+  .clabel,.cdelete,.cempty{color:var(--muted)}
+  .cnew{font-weight:600;color:var(--ok)}
+  .cwhy{font-size:11px;color:var(--muted);margin-top:3px;overflow-wrap:anywhere}
+  .cact{display:flex;gap:6px;flex:none;white-space:nowrap}
 
   /* ---------- 导入浏览 ---------- */
   .import-card{width:min(840px,100%);max-height:84vh;display:flex;flex-direction:column}
@@ -886,7 +884,7 @@ const state = {
   pendingScroll:null,
   groups:[],          // 后端按组返回的标签树
   unfiled:[],         // 未分组的标签（后端算出来的，不是数据库行）
-  clean:null,         // 数据清洗的扫描结果与逐条选择
+  clean:null,         // 数据清洗的扫描结果与待处理记录
   groupSel:null,      // 阅读器打标面板当前的组 id
   readerTags:true,    // 阅读器右侧的打标栏是否展开
   readerGroupNew:false,  // 阅读器侧栏正在内联新建组（全应用唯一的组状态）
@@ -2586,14 +2584,30 @@ function renderTagSettings(){
     '</section>';
 }
 
+function cleanOperation(item){
+  if(item.action === 'drop') return {id:item.id, action:'drop'};
+  if(item.suggest?.trim() && item.suggest !== item.name){
+    return {id:item.id, action:'rename', value:item.suggest};
+  }
+  return null;
+}
+
+function cleanBatch(data){
+  // 「待确认」的建议只能逐条应用，不纳入批量操作。
+  const ops = list => list.filter(it => it.action !== 'review').map(cleanOperation).filter(Boolean);
+  return {authors:ops(data.authors), orgs:ops(data.orgs)};
+}
+
 function renderCleanModal(){
   const modal = $('#modal');
   const s = state.clean || { loading: true };
+  const scrollTop = $('.clean-list', modal)?.scrollTop || 0;
   modal.classList.add('open');
 
   if(s.loading){
     modal.innerHTML = '<div class="modal-card clean-card"><div class="mhead"><div>' +
-      '<h3>检查作者 / 单位</h3><p>正在扫一遍词表…</p></div></div></div>';
+      '<h3>检查作者 / 单位</h3><p>正在扫一遍词表…</p></div>' +
+      '<button class="btn icon" data-act="close-clean" aria-label="关闭">✕</button></div></div>';
     return;
   }
   if(s.error){
@@ -2604,123 +2618,136 @@ function renderCleanModal(){
     return;
   }
 
-  const picks = s.picks;
-  const renameN = s.data.authors.filter(a => picks[a.id] === 'rename').length
-    + s.data.orgs.filter(o => picks[o.id] === 'rename').length;
-  const dropN = s.data.authors.filter(a => picks[a.id] === 'drop').length
-    + s.data.orgs.filter(o => picks[o.id] === 'drop').length;
-
+  const batch = cleanBatch(s.data);
+  const batchCount = batch.authors.length + batch.orgs.length;
+  const disabled = s.busy ? ' disabled' : '';
   const row = function(kind, it){
-    const pick = picks[it.id] || 'skip';
-    const isAuto = it.action === 'auto';
-    let target = '';
-    if(pick === 'rename'){
-      target = '<span class="carrow">→</span><span class="cnew">' +
-        (it.id === 'custom' ? '' : esc(it.suggest || '')) + '</span>';
+    const op = cleanOperation(it);
+    const original = esc(it.name || '（空）');
+    let suggestion = '<span class="cempty">无明确建议</span>';
+    if(op?.action === 'drop'){
+      suggestion = '<span class="cdelete"><s>' + original + '</s>（删除）</span>';
+    }else if(op){
+      suggestion = '<span class="cnew">' + esc(op.value) + '</span>';
     }
-    return '<div class="crow' + (pick === 'skip' ? ' skipped' : '') + '" style="--tone:' +
-        (it.action === 'drop' ? 'var(--warn)' : (isAuto ? 'var(--ok)' : 'var(--muted)')) + '">' +
-      '<span class="cbadge' + (it.action === 'drop' ? ' warn' : '') + '">' +
-        (it.action === 'drop' ? '非人名' : (isAuto ? '自动' : '待确认')) + '</span>' +
-      '<div class="cname"><span class="cold">' + esc(it.name) + '</span>' + target +
-        '<div class="cwhy">' + esc(it.reason || '') + ' · ' + it.count + ' 篇</div>' +
+    return '<div class="crow" data-kind="' + kind + '" data-id="' + esc(it.id) + '">' +
+      '<div class="cname">' +
+        '<div class="cvalue"><span class="clabel">修改前</span><span>' + original + '</span></div>' +
+        '<div class="cvalue"><span class="clabel">建议修改</span>' + suggestion + '</div>' +
+        '<div class="cwhy">' + (it.action === 'review' ? '待确认 · ' : '') +
+          esc(it.reason || '') + ' · ' + it.count + ' 篇</div>' +
       '</div>' +
       '<div class="cact">' +
-        (it.action === 'drop'
-          ? '<button class="tbtn' + (pick === 'drop' ? ' on' : '') + '"' +
-              ' data-act="clean-pick" data-id="' + it.id + '" data-pick="drop">删掉</button>'
-          : '<button class="tbtn' + (pick === 'rename' ? ' on' : '') + '"' +
-              ' data-act="clean-pick" data-id="' + it.id + '" data-pick="rename">改为' + esc(it.suggest) + '</button>' +
-            '<button class="tbtn' + (pick === 'drop' ? ' on' : '') + '"' +
-              ' data-act="clean-pick" data-id="' + it.id + '" data-pick="drop">删掉</button>') +
-        '<button class="tbtn' + (pick === 'skip' ? ' on' : '') + '"' +
-          ' data-act="clean-pick" data-id="' + it.id + '" data-pick="skip">保留</button>' +
+        '<button class="btn tiny" data-act="clean-apply-one" aria-label="应用：' + original + '"' +
+          (op ? disabled : ' disabled') + '>应用</button>' +
+        '<button class="btn tiny" data-act="clean-ignore" aria-label="忽略：' + original + '"' + disabled + '>忽略</button>' +
       '</div>' +
     '</div>';
   };
 
-  const sect = function(title, list, kind, hint){
+  const sect = function(title, kind){
+    const list = s.data[kind];
     return '<section class="csec">' +
-      '<div class="slabel">' + title + ' <span class="hint">' + hint + '</span></div>' +
+      '<div class="slabel">' + title + ' <span class="hint">' + list.length + ' 条待处理</span></div>' +
       (list.length
         ? list.map(it => row(kind, it)).join('')
-        : '<p class="hintline">没有发现可疑写法。</p>') +
+        : '<p class="hintline">没有待处理记录。</p>') +
     '</section>';
   };
 
-  modal.innerHTML = '<div class="modal-card clean-card">' +
+  modal.innerHTML = '<div class="modal-card clean-card" role="dialog" aria-modal="true" aria-labelledby="cleanTitle">' +
     '<div class="mhead">' +
-      '<div><h3>检查作者 / 单位</h3>' +
-        '<p>共 ' + s.data.totals.authors + ' 位作者、' + s.data.totals.orgs + ' 个单位；' +
-          '发现 ' + (s.data.authors.length + s.data.orgs.length) + ' 条可疑，' +
-          '将改 ' + renameN + ' 条、删 ' + dropN + ' 条。写库前请逐条看。</p></div>' +
-      '<button class="btn icon" data-act="close-clean" title="关闭">✕</button>' +
+      '<div><h3 id="cleanTitle">检查作者 / 单位</h3><p>本次扫描：' +
+        s.data.totals.authors + ' 位作者、' + s.data.totals.orgs + ' 个单位</p></div>' +
+      '<button class="btn icon" data-act="close-clean" aria-label="关闭"' + disabled + '>✕</button>' +
     '</div>' +
-    '<div class="clean-policy">' +
-      '<b>规则</b>「自动」= 去上标 / 修重音 / 解实体，可直接采纳；' +
-      '「待确认」= 尾部单字母去掉后对不上任何已有作者，默认不动；' +
-      '「非人名」= 邮箱、机构、地名与正文片段。' +
-    '</div>' +
-    sect('作者', s.data.authors, 'author', '按可疑程度排列，可逐条改判') +
-    sect('单位', s.data.orgs, 'org', '多为 HTML 实体与截断') +
+    '<div class="clean-list">' + sect('作者', 'authors') + sect('单位', 'orgs') + '</div>' +
     '<div class="metafoot">' +
-      '<span class="mnote-inline">只改你确认过的条目，其余一律不碰</span>' +
-      '<button class="btn primary" data-act="clean-apply" style="margin-left:auto">应用 ' +
-        (renameN + dropN) + ' 条</button>' +
+      '<span class="mnote-inline">待确认项不参与批量应用</span>' +
+      '<button class="btn primary" data-act="clean-apply-all"' + (batchCount ? disabled : ' disabled') + '>' +
+        (s.busy ? '应用中…' : '全部应用' + (batchCount ? '（' + batchCount + '）' : '')) + '</button>' +
     '</div>' +
   '</div>';
+  $('.clean-list', modal).scrollTop = scrollTop;
 }
 
 async function openClean(){
   state.modalMode = 'clean';
   state.modalOpen = true;
-  state.clean = { loading: true };
+  const scan = state.clean = {loading:true};
   renderModal();
   try{
     const res = await fetch('/api/clean/scan', {cache:'no-store'});
     if(!res.ok) throw new Error('http ' + res.status);
-    const data = await res.json();
-    const picks = {};
-    // 默认只预选「自动」与「非人名」；「待确认」一律默认保留。
-    // 注意：action 是 auto/drop/review，pick 是 rename/drop/skip，两者不是同一个词。
-    data.authors.concat(data.orgs).forEach(function(it){
-      if(it.action === 'drop') picks[it.id] = 'drop';
-      else if(it.action === 'auto' && it.suggest) picks[it.id] = 'rename';
-      else picks[it.id] = 'skip';
-    });
-    state.clean = { loading:false, data:data, picks:picks };
+    scan.data = await res.json();
   }catch(err){
-    state.clean = { loading:false, error:'读取失败，请重试' };
+    scan.error = '读取失败，请重试';
   }
-  renderModal();
+  scan.loading = false;
+  if(state.clean === scan && state.modalMode === 'clean'){
+    renderModal();
+    $('[data-act="close-clean"]')?.focus({preventScroll:true});
+  }
 }
 
-async function applyClean(){
+function closeClean(){
+  if(state.clean?.busy) return;
+  state.modalMode = 'tags';
+  state.clean = null;
+  renderModal();
+  $('[data-act="open-clean"]')?.focus({preventScroll:true});
+}
+
+function confirmCleanBatch(){
   const s = state.clean;
-  if(!s || !s.data) return;
-  const authors = s.data.authors
-    .filter(it => s.picks[it.id] === 'rename' || s.picks[it.id] === 'drop')
-    .map(it => ({ id: it.id, action: s.picks[it.id], value: it.suggest || '' }));
-  const orgs = s.data.orgs
-    .filter(it => s.picks[it.id] === 'rename' || s.picks[it.id] === 'drop')
-    .map(it => ({ id: it.id, action: s.picks[it.id], value: it.suggest || '' }));
-  if(!authors.length && !orgs.length){ toast('没有勾选任何改动'); return; }
+  if(!s?.data || s.busy || $('.clean-confirm[open]')) return;
+  const batch = cleanBatch(s.data);
+  const ops = batch.authors.concat(batch.orgs);
+  if(!ops.length) return;
+  const dropCount = ops.filter(op => op.action === 'drop').length;
+
+  const dialog = document.createElement('dialog');
+  dialog.className = 'modal-card clean-confirm';
+  dialog.setAttribute('aria-labelledby', 'cleanConfirmTitle');
+  dialog.setAttribute('aria-describedby', 'cleanConfirmImpact');
+  dialog.innerHTML = '<div class="mhead"><div><h3 id="cleanConfirmTitle">全部应用清洗建议？</h3>' +
+    '<p id="cleanConfirmImpact">将修改 ' + (ops.length - dropCount) + ' 条、删除 ' + dropCount +
+    ' 条。此操作无法撤销。</p></div></div>' +
+    '<form method="dialog" class="metafoot"><button class="btn" value="cancel" autofocus>取消</button>' +
+    '<button class="btn primary" value="apply">确认应用</button></form>';
+  $('#modal').append(dialog);
+  dialog.addEventListener('close', function(){
+    dialog.remove();
+    if(dialog.returnValue === 'apply' && state.clean === s) applyClean(batch);
+  }, {once:true});
+  dialog.showModal();
+}
+
+async function applyClean(ops){
+  const s = state.clean;
+  if(!s?.data || s.busy) return;
+  s.busy = true;
+  renderModal();
   try{
     const res = await fetch('/api/clean/apply', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({authors: authors, orgs: orgs})
+      body: JSON.stringify(ops)
     });
     if(!res.ok) throw new Error('apply');
     const r = await res.json();
+    for(const kind of ['authors', 'orgs']){
+      const appliedIds = new Set(ops[kind].map(op => op.id));
+      s.data[kind] = s.data[kind].filter(it => !appliedIds.has(it.id));
+    }
     await refreshPapers();
-    state.modalMode = 'tags';
-    state.clean = null;
-    renderModal();
     toast('已改 ' + (r.authorsRenamed + r.orgsRenamed) + ' 条、删 ' +
       (r.authorsDropped + r.orgsDropped) + ' 条，涉及 ' + r.itemsTouched + ' 篇');
   }catch(err){
     toast('应用失败，请重试');
+  }finally{
+    s.busy = false;
+    if(state.clean === s) renderModal();
   }
 }
 
@@ -3384,6 +3411,7 @@ document.addEventListener('click', function(e){
   }
   if(e.target.id === 'modal'){
     if(state.modalMode === 'import') closeImportBrowser();
+    else if(state.modalMode === 'clean') closeClean();
     else if(state.modalMode === 'delete-paper' || state.dialog?.kind === 'delete-tag' || isTagMoveDialog()) closeDialog();
     else if(isSettingsMode()) closeSettings();
     else { state.modalOpen = false; renderModal(); }
@@ -3547,18 +3575,26 @@ document.addEventListener('click', function(e){
     return;
   }
   else if(act === 'close-clean'){
-    state.modalMode = 'tags';
-    state.clean = null;
-    renderModal();
+    closeClean();
   }
-  else if(act === 'clean-pick'){
-    const id = el.dataset.id;
-    if(!state.clean || !state.clean.picks) return;
-    state.clean.picks[id] = el.dataset.pick;
-    renderModal();
+  else if(act === 'clean-apply-one' || act === 'clean-ignore'){
+    const s = state.clean;
+    if(!s?.data || s.busy) return;
+    const {kind, id} = el.closest('.crow').dataset;
+    const list = s.data[kind];
+    const item = list.find(it => it.id === id);
+    if(!item) return;
+    if(act === 'clean-ignore'){
+      s.data[kind] = list.filter(it => it.id !== id);
+      renderModal();
+    }else{
+      const op = cleanOperation(item);
+      if(op) applyClean({authors:[], orgs:[], [kind]:[op]});
+    }
+    return;
   }
-  else if(act === 'clean-apply'){
-    applyClean();
+  else if(act === 'clean-apply-all'){
+    confirmCleanBatch();
     return;
   }
   else if(act === 'create-group'){
@@ -3901,6 +3937,10 @@ document.addEventListener('keydown', function(e){
   if(e.key === 'Escape' && state.modalOpen){
     if(e.isComposing || e.keyCode === 229) return;
     if(state.modalMode === 'import'){ closeImportBrowser(); return; }
+    if(state.modalMode === 'clean'){
+      if(!$('.clean-confirm[open]')) closeClean();
+      return;
+    }
     if(state.modalMode === 'delete-paper' || state.dialog?.kind === 'delete-tag' || isTagMoveDialog()){ closeDialog(); return; }
     state.modalOpen = false;
     renderModal();
