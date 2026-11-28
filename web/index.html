@@ -536,9 +536,19 @@
   .clean-list{min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
   .clean-card .metafoot{flex-wrap:wrap}
   .clean-card .metafoot .btn{margin-left:auto;white-space:nowrap}
-  .clean-confirm{width:min(420px,calc(100% - 48px));color:var(--ink);overflow-wrap:anywhere}
-  .clean-confirm::backdrop{background:rgba(16,20,17,.38)}
-  .clean-confirm .metafoot{justify-content:flex-end}
+  .clean-dialog{width:min(420px,calc(100% - 48px));color:var(--ink);overflow-wrap:anywhere}
+  .clean-dialog::backdrop{background:rgba(16,20,17,.38)}
+  .clean-dialog .metafoot{justify-content:flex-end}
+  .clean-pdf-picker{width:min(560px,calc(100% - 48px))}
+  .clean-pdf-preview{width:min(920px,calc(100% - 32px));height:min(900px,calc(100% - 32px));max-height:none;padding:0;overflow:hidden}
+  .clean-pdf-preview[open]{display:flex;flex-direction:column}
+  .clean-pdf-preview .mhead{flex:none;align-items:center;margin:0;padding:10px 14px;border-bottom:1px solid var(--line)}
+  .clean-pdf-preview .mhead h3{min-width:0;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .clean-pdf-preview .mhead form{flex:none}
+  .clean-pdf-pages{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding:12px;background:var(--bg)}
+  .clean-pdf-status{margin:18px 0;text-align:center;color:var(--muted);font-size:12px}
+  .clean-pdf-page{display:grid;place-items:center;width:100%;margin:0 auto 12px;background:#fff;color:#202421;box-shadow:0 1px 5px rgba(0,0,0,.16)}
+  .clean-pdf-page canvas{display:block;width:100%;height:auto}
   .csec{margin-top:12px}
   .crow{display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid var(--line)}
   .cname{flex:1;min-width:0}
@@ -547,6 +557,10 @@
   .cnew{font-weight:600;color:var(--ok)}
   .cwhy{font-size:11px;color:var(--muted);margin-top:3px;overflow-wrap:anywhere}
   .cact{display:flex;gap:6px;flex:none;white-space:nowrap}
+  @media (max-width:560px){
+    .crow{flex-direction:column;align-items:stretch}
+    .cact{justify-content:flex-end}
+  }
 
   /* ---------- 导入浏览 ---------- */
   .import-card{width:min(840px,100%);max-height:84vh;display:flex;flex-direction:column}
@@ -2598,6 +2612,21 @@ function cleanBatch(data){
   return {authors:ops(data.authors), orgs:ops(data.orgs)};
 }
 
+function cleanPdfSources(){
+  const sources = {authors:new Map(), orgs:new Map()};
+  for(const paper of PAPERS){
+    if(!paper.hasFile) continue;
+    for(const [kind, field] of [['authors', 'author'], ['orgs', 'org']]){
+      for(const name of new Set(metadataValues(paper, field))){
+        const byName = sources[kind];
+        if(!byName.has(name)) byName.set(name, []);
+        byName.get(name).push(paper);
+      }
+    }
+  }
+  return sources;
+}
+
 function renderCleanModal(){
   const modal = $('#modal');
   const s = state.clean || { loading: true };
@@ -2620,9 +2649,11 @@ function renderCleanModal(){
 
   const batch = cleanBatch(s.data);
   const batchCount = batch.authors.length + batch.orgs.length;
+  s.pdfSources = cleanPdfSources();
   const disabled = s.busy ? ' disabled' : '';
   const row = function(kind, it){
     const op = cleanOperation(it);
+    const hasPdf = s.pdfSources[kind].has(it.name);
     const original = esc(it.name || '（空）');
     let suggestion = '<span class="cempty">无明确建议</span>';
     if(op?.action === 'drop'){
@@ -2641,6 +2672,8 @@ function renderCleanModal(){
         '<button class="btn tiny" data-act="clean-apply-one" aria-label="应用：' + original + '"' +
           (op ? disabled : ' disabled') + '>应用</button>' +
         '<button class="btn tiny" data-act="clean-ignore" aria-label="忽略：' + original + '"' + disabled + '>忽略</button>' +
+        '<button class="btn tiny" data-act="clean-open-pdf" aria-label="打开 PDF：' + original + '"' +
+          (hasPdf ? disabled : ' disabled title="没有关联的 PDF"') + '>打开 PDF</button>' +
       '</div>' +
     '</div>';
   };
@@ -2698,6 +2731,128 @@ function closeClean(){
   $('[data-act="open-clean"]')?.focus({preventScroll:true});
 }
 
+function openCleanPdf(opener){
+  const s = state.clean;
+  if(!s?.data || s.busy) return;
+  const {kind, id} = opener.closest('.crow').dataset;
+  const item = s.data[kind].find(it => it.id === id);
+  const papers = s.pdfSources[kind].get(item?.name) || [];
+  if(!papers.length) return;
+
+  const preview = function(paper){
+    if(state.clean === s) showCleanPdfPreview(paper, opener);
+  };
+  if(papers.length === 1){ preview(papers[0]); return; }
+
+  const dialog = document.createElement('dialog');
+  dialog.className = 'modal-card clean-dialog clean-pdf-picker';
+  dialog.setAttribute('aria-labelledby', 'cleanPdfTitle');
+  dialog.innerHTML = '<form method="dialog">' +
+    '<div class="mhead"><h3 id="cleanPdfTitle">选择 PDF 核对</h3></div>' +
+    '<div class="pickgrouplist">' + papers.map(paper =>
+      '<button class="pickgroup" value="' + esc(paper.id) + '">' + esc(paper.title || paper.fileName || '未命名') + '</button>'
+    ).join('') + '</div>' +
+    '<div class="metafoot"><button class="btn" value="" autofocus>取消</button></div></form>';
+  $('#modal').append(dialog);
+  dialog.addEventListener('close', function(){
+    dialog.remove();
+    const paper = papers.find(p => p.id === dialog.returnValue);
+    if(paper) preview(paper);
+  }, {once:true});
+  dialog.showModal();
+}
+
+function showCleanPdfPreview(paper, opener){
+  if($('#cleanPdfPreview')) return;
+  const dialog = document.createElement('dialog');
+  dialog.id = 'cleanPdfPreview';
+  dialog.className = 'modal-card clean-dialog clean-pdf-preview';
+  dialog.setAttribute('aria-labelledby', 'cleanPdfPreviewTitle');
+  dialog.innerHTML = '<div class="mhead"><h3 id="cleanPdfPreviewTitle">' +
+    esc(paper.title || paper.fileName || 'PDF 预览') + '</h3>' +
+    '<form method="dialog"><button class="btn" autofocus>关闭</button></form></div>' +
+    '<div class="clean-pdf-pages" tabindex="0" role="region" aria-label="PDF 页面">' +
+      '<p class="clean-pdf-status" role="status">正在载入 PDF…</p></div>';
+  document.body.append(dialog);
+  const pages = $('.clean-pdf-pages', dialog);
+  const status = $('.clean-pdf-status', pages);
+  const visible = new Map();
+  let observer, loading;
+
+  function releasePage(slot){
+    const job = visible.get(slot);
+    if(!job) return;
+    visible.delete(slot);
+    job.task?.cancel();
+    slot.replaceChildren();
+  }
+
+  dialog.addEventListener('close', function(){
+    observer?.disconnect();
+    for(const slot of visible.keys()) releasePage(slot);
+    if(loading) loading.destroy().catch(() => {});
+    dialog.remove();
+    const target = opener.isConnected ? opener : $('[data-act="close-clean"]');
+    target?.focus({preventScroll:true});
+  }, {once:true});
+
+  async function renderPreviewPage(doc, slot){
+    const job = {};
+    visible.set(slot, job);
+    try{
+      const page = await doc.getPage(Number(slot.dataset.page));
+      if(!dialog.open || visible.get(slot) !== job) return;
+      const base = page.getViewport({scale:1});
+      const scale = Math.min(slot.clientWidth / base.width * Math.min(devicePixelRatio || 1, 2),
+        4096 / Math.max(base.width, base.height));
+      const viewport = page.getViewport({scale});
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.ceil(viewport.width);
+      canvas.height = Math.ceil(viewport.height);
+      canvas.setAttribute('aria-label', '第 ' + slot.dataset.page + ' 页');
+      slot.style.aspectRatio = base.width + ' / ' + base.height;
+      job.task = page.render({canvasContext:canvas.getContext('2d'), viewport});
+      await job.task.promise;
+      if(dialog.open && visible.get(slot) === job) slot.replaceChildren(canvas);
+    }catch(err){
+      if(dialog.open && visible.get(slot) === job) slot.textContent = '无法显示第 ' + slot.dataset.page + ' 页';
+    }
+  }
+
+  async function loadPreview(){
+    try{
+      loading = window.pdfjsLib.getDocument({url:'/api/items/' + encodeURIComponent(paper.id) + '/file'});
+      const doc = await loading.promise;
+      const first = (await doc.getPage(1)).getViewport({scale:1});
+      if(!dialog.open) return;
+      const fragment = document.createDocumentFragment();
+      for(let n = 1; n <= doc.numPages; n++){
+        const slot = document.createElement('div');
+        slot.className = 'clean-pdf-page';
+        slot.dataset.page = n;
+        slot.style.aspectRatio = first.width + ' / ' + first.height;
+        fragment.append(slot);
+      }
+      pages.replaceChildren(fragment);
+      observer = new IntersectionObserver(entries => {
+        if(!dialog.open) return;
+        for(const {target, isIntersecting} of entries){
+          if(isIntersecting && !visible.has(target)) renderPreviewPage(doc, target);
+          else if(!isIntersecting) releasePage(target);
+        }
+      }, {root:pages, rootMargin:'400px 0px'});
+      for(const slot of pages.children) observer.observe(slot);
+    }catch(err){
+      if(dialog.open){
+        status.textContent = '无法打开 PDF。文件可能已损坏或被移走。';
+        pages.replaceChildren(status);
+      }
+    }
+  }
+  dialog.showModal();
+  loadPreview();
+}
+
 function confirmCleanBatch(){
   const s = state.clean;
   if(!s?.data || s.busy || $('.clean-confirm[open]')) return;
@@ -2707,7 +2862,7 @@ function confirmCleanBatch(){
   const dropCount = ops.filter(op => op.action === 'drop').length;
 
   const dialog = document.createElement('dialog');
-  dialog.className = 'modal-card clean-confirm';
+  dialog.className = 'modal-card clean-dialog clean-confirm';
   dialog.setAttribute('aria-labelledby', 'cleanConfirmTitle');
   dialog.setAttribute('aria-describedby', 'cleanConfirmImpact');
   dialog.innerHTML = '<div class="mhead"><div><h3 id="cleanConfirmTitle">全部应用清洗建议？</h3>' +
@@ -3577,6 +3732,10 @@ document.addEventListener('click', function(e){
   else if(act === 'close-clean'){
     closeClean();
   }
+  else if(act === 'clean-open-pdf'){
+    openCleanPdf(el);
+    return;
+  }
   else if(act === 'clean-apply-one' || act === 'clean-ignore'){
     const s = state.clean;
     if(!s?.data || s.busy) return;
@@ -3882,6 +4041,7 @@ $('#readerBody').addEventListener('scroll', function(){
 });
 
 document.addEventListener('keydown', function(e){
+  if($('#cleanPdfPreview[open]')) return;
   if(state.modalOpen && isSettingsMode()){
     if(e.key === 'Escape' && !e.isComposing && e.keyCode !== 229){
       e.preventDefault();
@@ -3938,7 +4098,7 @@ document.addEventListener('keydown', function(e){
     if(e.isComposing || e.keyCode === 229) return;
     if(state.modalMode === 'import'){ closeImportBrowser(); return; }
     if(state.modalMode === 'clean'){
-      if(!$('.clean-confirm[open]')) closeClean();
+      if(!$('.clean-dialog[open]')) closeClean();
       return;
     }
     if(state.modalMode === 'delete-paper' || state.dialog?.kind === 'delete-tag' || isTagMoveDialog()){ closeDialog(); return; }
