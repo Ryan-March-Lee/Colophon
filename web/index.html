@@ -743,7 +743,7 @@
   </div>
 
   <div class="topacts">
-    <button class="btn organize-btn" data-act="open-organize">文献整理</button>
+    <button class="btn organize-btn" data-act="toggle-workspace">文献整理</button>
     <button class="btn import-btn" data-act="import" aria-haspopup="dialog"><span aria-hidden="true">＋</span>导入</button>
     <button class="btn" data-act="open-settings" title="通用设置" aria-haspopup="dialog">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -767,7 +767,6 @@
     <div class="listcol">
       <div class="listbar" id="searchHeader"></div>
       <div class="listbar organize-header" id="organizeHeader" hidden>
-        <button class="linkbtn back-search" data-act="back-to-search"><span aria-hidden="true">←</span> 返回检索</button>
         <div class="results-title"><h1 id="organizeTitle" tabindex="-1">文献整理</h1></div>
         <div class="queue-bar">
           <div class="queue-tabs" role="tablist" aria-label="整理队列">
@@ -1243,14 +1242,13 @@ function renderList(ps){
       const otherQueue = state.queue === 'review' ? 'untagged' : 'review';
       const next = queuePapers(otherQueue).length
         ? '<button class="btn" data-act="switch-queue" data-queue="' + otherQueue + '">查看' + LABEL_STATE_LABELS[otherQueue] + '</button>'
-        : '<button class="btn" data-act="back-to-search">返回检索</button>';
+        : '';
       el.innerHTML = '<div class="empty"><p>没有' + LABEL_STATE_LABELS[state.queue] + '的文献</p>' + next + '</div>';
     }
     else if(!currentEvaluation().total){
-      const actions = PAPERS.length
-        ? '<button class="btn primary" data-act="open-organize">前往文献整理</button>'
-        : '<button class="btn primary" data-act="import">导入 PDF 或文件夹</button><button class="btn" data-act="open-organize">文献整理</button>';
-      el.innerHTML = '<div class="empty"><p>' + (PAPERS.length ? '还没有已打标的文献' : '书库还是空的') + '</p><div class="empty-actions">' + actions + '</div></div>';
+      el.innerHTML = PAPERS.length
+        ? '<div class="empty"><p>还没有已打标的文献</p></div>'
+        : '<div class="empty"><p>书库还是空的</p><button class="btn primary" data-act="import">导入 PDF 或文件夹</button></div>';
     }
     else {
       const papers = searchPapers();
@@ -3366,13 +3364,11 @@ function applyWorkspaceFromLocation(focus = true){
   $('#sidebar').hidden = organizing;
   $('#searchHeader').hidden = organizing;
   $('#organizeHeader').hidden = !organizing;
-  const organizeButton = $('.organize-btn');
+  $('.organize-btn').textContent = organizing ? '返回检索' : '文献整理';
   if(organizing){
-    organizeButton.setAttribute('aria-current','page');
     list.setAttribute('role','tabpanel');
     list.setAttribute('tabindex','0');
   }else{
-    organizeButton.removeAttribute('aria-current');
     list.removeAttribute('role');
     list.removeAttribute('tabindex');
     list.setAttribute('aria-labelledby','resultsTitle');
@@ -3421,14 +3417,11 @@ document.addEventListener('click', function(e){
   }
   const act = el.dataset.act;
 
-  if(act === 'open-organize'){
+  if(act === 'toggle-workspace'){
     if(state.workspace === 'search'){
       history.pushState({organizeFromSearch:true, organizeQueue:defaultQueue()},'',ORGANIZE_HASH);
       applyWorkspaceFromLocation();
-    }else focusWorkspaceTitle();
-  }
-  else if(act === 'back-to-search'){
-    if(history.state?.organizeFromSearch) history.back();
+    }else if(history.state?.organizeFromSearch) history.back();
     else{
       const url = new URL(location.href);
       url.hash = '';

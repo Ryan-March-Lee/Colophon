@@ -46,7 +46,6 @@
 .topacts .btn { height:34px; white-space:nowrap; }
 .topacts .organize-btn { border-color:transparent; background:transparent; }
 .topacts .organize-btn:hover { background:var(--hover); }
-.topacts .organize-btn[aria-current="page"] { color:var(--accent-2); background:var(--accent-soft); }
 .topacts .import-btn {
   color:var(--accent-2);
   background:var(--accent-soft);
@@ -168,8 +167,6 @@
 .ask-btn { color:var(--accent-2); }
 .organizing .listcol { --paper-gutter:max(clamp(18px, 3vw, 44px), calc((100% - 1040px) / 2)); }
 .organizing .organize-header { padding-block:16px 0; }
-.back-search { padding:4px 0; margin-bottom:13px; font-size:12px; }
-.back-search span { margin-right:3px; }
 .queue-bar { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:4px 12px; margin-top:13px; }
 .queue-tabs { display:flex; align-items:stretch; gap:18px; }
 .queue-tabs button {
@@ -185,7 +182,6 @@
 .queue-tabs button[aria-selected="true"] { color:var(--accent-2); border-bottom-color:var(--accent); }
 .queue-tabs button span { margin-left:4px; font-size:11.5px; font-variant-numeric:tabular-nums; }
 #queueActions .btn { height:29px; }
-.empty-actions { display:flex; justify-content:center; gap:8px; flex-wrap:wrap; }
 .papers { padding:0 var(--paper-gutter) 24px; overscroll-behavior:contain; scrollbar-gutter:stable; }
 .paper {
   align-items:start;
