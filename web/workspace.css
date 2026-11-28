@@ -15,9 +15,12 @@
 
 .topbar {
   height:var(--bar-height);
+  display:grid;
+  grid-template-columns:minmax(260px, 1fr) minmax(0, 560px) minmax(260px, 1fr);
   gap:24px;
   padding-inline:20px;
 }
+.brand { justify-self:start; }
 .brand-name {
   font-family:var(--serif);
   font-size:22px;
@@ -25,7 +28,7 @@
   letter-spacing:-.035em;
 }
 .mark { width:32px; height:32px; border-radius:8px; }
-.search { max-width:560px; margin-left:4px; }
+.search { margin:0; }
 .search input { height:38px; padding-right:44px; }
 .search svg { top:12px; }
 .search kbd {
@@ -42,7 +45,7 @@
   border-radius:5px;
   pointer-events:none;
 }
-.topacts { gap:8px; }
+.topacts { justify-self:end; margin-left:0; gap:8px; }
 .topacts .btn { height:34px; white-space:nowrap; }
 .topacts .organize-btn { min-inline-size:calc(4em + 24px); justify-content:center; border-color:transparent; background:transparent; }
 .topacts .organize-btn:hover { background:var(--hover); }
@@ -372,13 +375,20 @@
   .rside { padding-inline:16px; }
 }
 
+@media (max-width:840px) {
+  .topbar { grid-template-columns:minmax(160px, 1fr) minmax(0, 560px) minmax(160px, 1fr); }
+}
+
 @media (max-width:620px) {
   :root { --bar-height:58px; --paper-gutter:14px; }
-  .topbar { gap:8px; padding-inline:10px; }
+  .topbar {
+    grid-template-columns:minmax(130px, 1fr) minmax(0, 560px) minmax(130px, 1fr);
+    gap:8px;
+    padding-inline:10px;
+  }
   .brand-name { font-size:17px; }
   .mark { width:25px; height:25px; }
   .mark svg { width:13px; height:13px; }
-  .search { margin:0; }
   .search input { height:32px; padding-right:5px; padding-left:27px; font-size:12px; }
   .search svg { top:9px; left:8px; }
   .search kbd, .import-btn span { display:none; }
@@ -404,7 +414,6 @@
 @media (max-width:480px) {
   :root { --bar-height:88px; }
   .topbar {
-    display:grid;
     grid-template-columns:minmax(0, 1fr) auto;
     grid-template-rows:44px 1fr;
     gap:0 8px;
