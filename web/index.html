@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Colophon · 文献工作台</title>
+<script>
+  try {
+    if(localStorage.getItem('colophon:theme') === 'dark') document.documentElement.dataset.theme = 'dark';
+  } catch(err) { /* 隐私模式 */ }
+</script>
 <style>
   :root{
     --bg:#f5f4ef;
@@ -418,7 +423,6 @@
   .scope-link{background:none;border:0;color:var(--accent);font:inherit;font-size:11px;cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:2px}
   .cite .cp{margin-left:5px;color:var(--muted-2);font-size:10px}
   .msg .aierr{color:var(--warn)}
-  .settings-card{width:min(540px,92vw)}
   .setnote{font-size:11px;color:var(--muted-2);line-height:1.65;margin:12px 0 0}
   .keyrow{display:flex;gap:6px}
   .keyrow .textinput{flex:1}
@@ -739,22 +743,15 @@
   </div>
 
   <div class="topacts">
-    <button class="btn" data-act="open-lib" title="标签库">
-      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <path d="M2 5.2V3.4c0-.5.4-.9.9-.9h3.2l1.2 1.4h5c.5 0 .9.4.9.9v7.4c0 .5-.4.9-.9.9H2.9c-.5 0-.9-.4-.9-.9V5.2Z" stroke="currentColor" stroke-width="1.3"/>
-      </svg>
-      标签库
-    </button>
     <button class="btn organize-btn" data-act="open-organize">文献整理</button>
     <button class="btn import-btn" data-act="import" aria-haspopup="dialog"><span aria-hidden="true">＋</span>导入</button>
-    <button class="btn" data-act="open-settings" title="模型与接口设置">
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <circle cx="8" cy="8" r="2.2" stroke="currentColor" stroke-width="1.3"/>
-        <path d="M8 1.7v1.6M8 12.7v1.6M1.7 8h1.6M12.7 8h1.6M3.5 3.5l1.1 1.1M11.4 11.4l1.1 1.1M12.5 3.5l-1.1 1.1M4.6 11.4l-1.1 1.1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+    <button class="btn" data-act="open-settings" title="通用设置" aria-haspopup="dialog">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M9.67 4.14a2.34 2.34 0 0 1 4.66 0 2.34 2.34 0 0 0 3.32 1.92 2.34 2.34 0 0 1 2.33 4.03 2.34 2.34 0 0 0 0 3.82 2.34 2.34 0 0 1-2.33 4.03 2.34 2.34 0 0 0-3.32 1.92 2.34 2.34 0 0 1-4.66 0 2.34 2.34 0 0 0-3.32-1.92 2.34 2.34 0 0 1-2.33-4.03 2.34 2.34 0 0 0 0-3.82 2.34 2.34 0 0 1 2.33-4.03 2.34 2.34 0 0 0 3.32-1.92"/>
+        <circle cx="12" cy="12" r="3"/>
       </svg>
-      设置
+      通用设置
     </button>
-    <button class="btn icon" data-act="theme" id="themeBtn" title="切换深浅色" aria-label="切换深浅色"></button>
   </div>
 </header>
 
@@ -1514,7 +1511,7 @@ function chooseTagDestination(tagId){
   if(!hit) return;
   const sourceId = hit.group?.id ?? Retrieval.UNFILED;
   state.dialog = {kind:'pick-tag-group', tagId, name:hit.tag.name, sourceId,
-    libraryScroll:$('.modal-card', $('#modal')).scrollTop};
+    libraryScroll:$('#settings-tags').parentElement.scrollTop};
   state.modalMode = 'group-dialog';
   renderModal();
 }
@@ -1527,7 +1524,7 @@ function confirmTagMove(tagId, sourceId, targetId){
     toast('标签或分组已变化，请重新选择');
     return;
   }
-  const libraryScroll = state.dialog?.libraryScroll ?? $('.modal-card', $('#modal')).scrollTop;
+  const libraryScroll = state.dialog?.libraryScroll ?? $('#settings-tags').parentElement.scrollTop;
   state.dialog = {kind:'move-tag', tagId, name:hit.tag.name, sourceId, targetId,
     sourceName:hit.group?.name ?? '未分组', targetName:target.name, libraryScroll};
   state.modalMode = 'group-dialog';
@@ -1906,7 +1903,7 @@ function renderAI(n){
       '</form>'
     : '<div class="nokey">' +
         '<div><b>还没有配置模型</b><span>自带 OpenAI 兼容 Key，配置后才能提问。</span></div>' +
-        '<button class="btn tiny primary" data-act="open-settings">配置模型</button>' +
+        '<button class="btn tiny primary" data-act="open-settings" data-section="model" aria-haspopup="dialog">配置模型</button>' +
       '</div>';
 
   return '<div class="dbody chat">' +
@@ -1984,7 +1981,7 @@ function readerSuggestionHTML(p){
   const box = state.sugg[p.id];
   if(!state.ai.hasKey){
     return '<div class="rs-sugempty">接上模型后才能生成候选。' +
-      '<button class="linkbtn" data-act="open-settings">配置模型</button></div>';
+      '<button class="linkbtn" data-act="open-settings" data-section="model" aria-haspopup="dialog">配置模型</button></div>';
   }
   if(!box){
     return '<div class="rs-sugempty">还没有生成。' +
@@ -2151,37 +2148,85 @@ function citeJump(itemId, page){
 }
 
 /* ============================================================
-   模型设置
+   通用设置
    ============================================================ */
-function openSettings(){
-  state.modalMode = 'settings';
+const SETTINGS_SECTIONS = [
+  {id:'appearance', label:'外观设置', icon:'<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/>'},
+  {id:'tags', label:'标签设置', icon:'<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.43 2.43 0 0 0 3.42 0l6.58-6.58a2.43 2.43 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>'},
+  {id:'model', label:'模型配置', icon:'<rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6" rx="1"/><path d="M9 2v2m6-2v2M9 20v2m6-2v2M2 9h2m-2 6h2m16-6h2m-2 6h2"/>'},
+];
+const settingsIcon = inner => '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + inner + '</svg>';
+let settingsOpener = null;
+
+function isSettingsMode(){
+  return SETTINGS_SECTIONS.some(section => section.id === state.modalMode);
+}
+
+function openSettings(section = 'appearance', opener = null){
+  settingsOpener = opener;
   state.modalOpen = true;
+  selectSettingsSection(section);
+  $('.settings-nav [aria-current="true"]').focus();
+}
+
+function closeSettings(){
+  state.modalOpen = false;
   renderModal();
+  const opener = settingsOpener?.isConnected ? settingsOpener : $('.topacts [data-act="open-settings"]');
+  opener?.focus({preventScroll:true});
+  settingsOpener = null;
+}
+
+function selectSettingsSection(section){
+  state.modalMode = section;
+  renderModal();
+  $('.settings-content').scrollTop = 0;
 }
 
 function renderSettingsModal(){
   const modal = $('#modal');
-  const ai = state.ai || {};
   modal.classList.add('open');
+  if(!$('.settings-card', modal)){
+    const themeOption = (value, label, icon) => '<label class="theme-option"><input type="radio" name="theme" value="' + value + '"' +
+      (document.documentElement.dataset.theme === value ? ' checked' : '') + '><span>' + settingsIcon(icon) + label + '</span></label>';
+    modal.innerHTML = '<div class="modal-card settings-card" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">' +
+      '<header class="mhead"><h3 id="settingsTitle">通用设置</h3>' +
+        '<button class="btn icon" data-act="close-settings" title="关闭" aria-label="关闭通用设置">' +
+          settingsIcon('<path d="m18 6-12 12M6 6l12 12"/>') + '</button>' +
+      '</header>' +
+      '<div class="settings-layout"><nav class="settings-nav" aria-label="设置分类">' +
+        SETTINGS_SECTIONS.map(({id, label, icon}) => '<button data-act="settings-section" data-section="' + id +
+          '" aria-controls="settings-' + id + '">' + settingsIcon(icon) + label + '</button>').join('') +
+      '</nav><div class="settings-content">' +
+        '<section id="settings-appearance" hidden><h4>外观设置</h4><fieldset class="settings-field"><legend>主题</legend><div class="theme-options">' +
+          themeOption('light', '日间', '<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42m0-14.14-1.42 1.42m-11.3 11.3-1.42 1.42"/>') +
+          themeOption('dark', '夜间', '<path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6.5 6.5 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/>') +
+        '</div></fieldset></section><section id="settings-tags" hidden></section><section id="settings-model" hidden></section>' +
+      '</div></div></div>';
+  }
+  $$('.settings-nav button', modal).forEach(function(button){
+    const active = button.dataset.section === state.modalMode;
+    button.setAttribute('aria-current', active ? 'true' : 'false');
+    document.getElementById(button.getAttribute('aria-controls')).hidden = !active;
+  });
+  if(state.modalMode === 'tags') renderTagSettings();
+  if(state.modalMode === 'model' && !$('#settings-model').hasChildNodes()) renderModelSettings();
+}
+
+function renderModelSettings(){
+  const ai = state.ai;
 
   const field = (id, value, placeholder, type) =>
     '<input class="textinput" id="' + id + '"' + (type ? ' type="' + type + '"' : '') +
       ' value="' + esc(value || '') + '" placeholder="' + esc(placeholder || '') + '">';
-  const row = (label, inner) => '<div class="mfrow"><label>' + label + '</label>' + inner + '</div>';
+  const row = (label, id, value, placeholder, type) => '<div class="mfrow"><label for="' + id + '">' + label + '</label>' +
+    field(id, value, placeholder, type) + '</div>';
 
-  modal.innerHTML = '<div class="modal-card settings-card">' +
-    '<div class="mhead">' +
-      '<div><h3>模型设置</h3><p>OpenAI 兼容接口；Key 只保存在本地书库</p></div>' +
-      '<button class="btn icon" data-act="close-settings" title="关闭">' +
-        '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">' +
-          '<path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>' +
-        '</svg>' +
-      '</button>' +
-    '</div>' +
+  $('#settings-model').innerHTML = '<h4>模型配置</h4><p class="settings-sub">OpenAI 兼容接口；Key 只保存在本地书库</p>' +
     '<div class="metaform">' +
-      row('接口地址', field('setBaseUrl', ai.baseUrl || 'https://api.openai.com/v1', 'https://api.openai.com/v1')) +
-      row('模型', field('setModel', ai.model || 'gpt-4o-mini', 'gpt-4o-mini')) +
-      row('API Key', field('setKey', '', ai.hasKey ? ('已保存' + (ai.keyHint ? ' ' + ai.keyHint : '') + '，留空不改') : 'sk-...', 'password')) +
+      row('接口地址', 'setBaseUrl', ai.baseUrl || 'https://api.openai.com/v1', 'https://api.openai.com/v1') +
+      row('模型', 'setModel', ai.model || 'gpt-4o-mini', 'gpt-4o-mini') +
+      row('API Key', 'setKey', '', ai.hasKey ? ('已保存' + (ai.keyHint ? ' ' + ai.keyHint : '') + '，留空不改') : 'sk-...', 'password') +
     '</div>' +
     '<p class="setnote">' +
       'Key 只写在本机的 <code>library/library.db</code>，不会出现在页面或日志里。' +
@@ -2191,11 +2236,10 @@ function renderSettingsModal(){
     '<div class="metafoot">' +
       (ai.hasKey ? '<button class="btn tiny" data-act="clear-key">清除 Key</button>' : '<span></span>') +
       '<button class="btn primary" data-act="save-settings">保存</button>' +
-    '</div>' +
-  '</div>';
+    '</div>';
 }
 
-async function saveAISettings(){
+async function saveAISettings(button){
   const val = id => {
     const el = document.getElementById(id);
     return el ? el.value.trim() : '';
@@ -2203,6 +2247,7 @@ async function saveAISettings(){
   const payload = { baseUrl: val('setBaseUrl'), model: val('setModel') };
   const key = val('setKey');
   if(key) payload.apiKey = key;
+  button.disabled = true;
   try{
     const res = await fetch('/api/settings/ai', {
       method: 'PUT',
@@ -2211,21 +2256,26 @@ async function saveAISettings(){
     });
     if(!res.ok) throw new Error('http ' + res.status);
     state.ai = await res.json();
-    state.modalOpen = false;
-    renderModal();
     if(state.ai.hasKey){
       Object.keys(state.sugg).forEach(function(key){
         if(state.sugg[key] && state.sugg[key].status === 'error') delete state.sugg[key];
       });
     }
-    toast(state.ai.hasKey ? '模型设置已保存' : '已保存，但还没有填 Key');
     renderAll();
+    if(button.isConnected){
+      if(state.modalMode === 'model') closeSettings();
+      else renderModelSettings();
+    }
+    toast(state.ai.hasKey ? '模型配置已保存' : '已保存，但还没有填 Key');
   }catch(err){
     toast('保存失败，请重试');
+  }finally{
+    button.disabled = false;
   }
 }
 
-async function clearAIKey(){
+async function clearAIKey(button){
+  button.disabled = true;
   try{
     const res = await fetch('/api/settings/ai', {
       method: 'PUT',
@@ -2234,11 +2284,16 @@ async function clearAIKey(){
     });
     if(!res.ok) throw new Error('http ' + res.status);
     state.ai = await res.json();
-    renderSettingsModal();
+    if(button.isConnected){
+      renderModelSettings();
+      if(state.modalMode === 'model') $('#setKey').focus();
+    }
     renderDetail();
     toast('已清除模型 Key');
   }catch(err){
     toast('操作失败，请重试');
+  }finally{
+    button.disabled = false;
   }
 }
 
@@ -2463,7 +2518,7 @@ function renderModal(){
   if(state.modalMode === 'delete-paper'){ renderDeletePaperDialog(); return; }
   if(state.modalMode === 'import'){ renderImportModal(); return; }
   if(state.modalMode === 'meta'){ renderMetaModal(); return; }
-  if(state.modalMode === 'settings'){ renderSettingsModal(); return; }
+  if(isSettingsMode()){ renderSettingsModal(); return; }
   if(state.modalMode === 'group-dialog'){
     renderGroupDialog();
     if(isTagMoveDialog()) ($('[data-act="dialog-cancel"]:not(:disabled)') || $('[role="alertdialog"]', modal)).focus();
@@ -2471,8 +2526,9 @@ function renderModal(){
   }
   if(state.modalMode === 'tag-def'){ renderTagDefDialog(); return; }
   if(state.modalMode === 'clean'){ renderCleanModal(); return; }
-  modal.classList.add('open');
+}
 
+function renderTagSettings(){
   const tagCount = (state.groups || []).reduce((n, g) => n + g.tags.length, (state.unfiled || []).length);
   const summary = '标签 ' + tagCount + ' · 作者 ' +
     new Set(PAPERS.flatMap(p => p.tags.author)).size + ' · 单位 ' + new Set(PAPERS.flatMap(p => p.tags.org)).size;
@@ -2535,15 +2591,7 @@ function renderModal(){
 
   const groupCount = (state.groups || []).length;
 
-  modal.innerHTML = '<div class="modal-card">' +
-    '<div class="mhead">' +
-      '<div><h3>标签库</h3><p>' + summary + ' · ' + groupCount + ' 个组</p></div>' +
-      '<button class="btn icon" data-act="close-lib" title="关闭">' +
-        '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">' +
-          '<path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>' +
-        '</svg>' +
-      '</button>' +
-    '</div>' +
+  $('#settings-tags').innerHTML = '<h4>标签库</h4><p class="settings-sub">' + summary + ' · ' + groupCount + ' 个组</p>' +
     '<section>' +
       '<div class="slabel">分组 <button class="linkbtn" data-act="new-group" style="margin-left:auto">＋ 新建组</button></div>' +
       groupsHTML + unfiledHTML +
@@ -2556,8 +2604,7 @@ function renderModal(){
     '<section>' +
       '<div class="slabel">元数据词表 <span class="hint">来自 Crossref / OpenAlex，不需要分组</span></div>' +
       metaHTML +
-    '</section>' +
-  '</div>';
+    '</section>';
 }
 
 function renderCleanModal(){
@@ -3138,12 +3185,12 @@ function closeDialog(){
   }
   renderModal();
   if(dialog?.libraryScroll !== undefined){
-    const card = $('.modal-card', $('#modal'));
-    if(card) card.scrollTop = dialog.libraryScroll;
+    const content = $('.settings-content');
+    if(content) content.scrollTop = dialog.libraryScroll;
   }
   if(focusAction){
     const button = $('[data-act="' + focusAction + '"][data-id="' + CSS.escape(dialog.tagId) + '"]');
-    (button || $('[data-act="close-lib"]'))?.focus({preventScroll:dialog?.libraryScroll !== undefined});
+    (button || $('.settings-nav [aria-current="true"]'))?.focus({preventScroll:dialog?.libraryScroll !== undefined});
   }
 }
 
@@ -3361,6 +3408,7 @@ document.addEventListener('click', function(e){
   if(e.target.id === 'modal'){
     if(state.modalMode === 'import') closeImportBrowser();
     else if(state.modalMode === 'delete-paper' || state.dialog?.kind === 'delete-tag' || isTagMoveDialog()) closeDialog();
+    else if(isSettingsMode()) closeSettings();
     else { state.modalOpen = false; renderModal(); }
     return;
   }
@@ -3599,9 +3647,7 @@ document.addEventListener('click', function(e){
   }
   else if(act === 'rt-open-lib'){
     closeReader();
-    state.modalMode = 'tags';
-    state.modalOpen = true;
-    renderModal();
+    openSettings('tags');
     return;
   }
   else if(act === 'quick'){ send(el.dataset.q); }
@@ -3629,10 +3675,11 @@ document.addEventListener('click', function(e){
     renderAll();
     toast('已缩回当前筛选');
   }
-  else if(act === 'open-settings'){ openSettings(); }
-  else if(act === 'close-settings'){ state.modalOpen = false; renderModal(); }
-  else if(act === 'save-settings'){ saveAISettings(); }
-  else if(act === 'clear-key'){ clearAIKey(); }
+  else if(act === 'open-settings'){ openSettings(el.dataset.section, el); }
+  else if(act === 'settings-section'){ selectSettingsSection(el.dataset.section); }
+  else if(act === 'close-settings'){ closeSettings(); }
+  else if(act === 'save-settings'){ saveAISettings(el); }
+  else if(act === 'clear-key'){ clearAIKey(el); }
   else if(act === 'clear-chat'){
     state.chat = [];
     state.conversationId = null;
@@ -3640,8 +3687,6 @@ document.addEventListener('click', function(e){
     state.pendingScroll = 'top';
     renderDetail();
   }
-  else if(act === 'open-lib'){ state.modalMode = 'tags'; state.modalOpen = true; renderModal(); }
-  else if(act === 'close-lib'){ state.modalOpen = false; renderModal(); }
   else if(act === 'edit-meta'){ state.metaItemId = el.dataset.id || state.paperId; state.modalMode = 'meta'; state.modalOpen = true; renderModal(); }
   else if(act === 'fetch-meta'){ fetchMeta(el.dataset.id); }
   else if(act === 'close-meta'){ state.modalOpen = false; renderModal(); }
@@ -3712,11 +3757,6 @@ document.addEventListener('click', function(e){
   else if(act === 'import-selected'){ runLocalImport({paths:[...importView.selected]}); }
   else if(act === 'import-folder'){ runLocalImport({folder:importView.location?.path}); }
   else if(act === 'reconnect'){ boot(); }
-  else if(act === 'theme'){
-    const root = document.documentElement;
-    root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
-    paintThemeBtn();
-  }
 });
 
 document.addEventListener('submit', function(e){
@@ -3729,6 +3769,12 @@ document.addEventListener('submit', function(e){
 });
 
 document.addEventListener('change', function(e){
+  if(e.target.matches('#settings-appearance input[name="theme"]')){
+    const theme = e.target.value;
+    document.documentElement.dataset.theme = theme;
+    try { localStorage.setItem('colophon:theme', theme); } catch(err) { /* 隐私模式 */ }
+    return;
+  }
   if(e.target.id === 'yearIncludeUnknown'){
     getGroupFilter(Retrieval.YEAR_GROUP).includeUnknown = e.target.checked;
     renderFilterChange('yearIncludeUnknown');
@@ -3826,6 +3872,23 @@ $('#readerBody').addEventListener('scroll', function(){
 });
 
 document.addEventListener('keydown', function(e){
+  if(state.modalOpen && isSettingsMode()){
+    if(e.key === 'Escape' && !e.isComposing && e.keyCode !== 229){
+      e.preventDefault();
+      closeSettings();
+    }
+    if(e.key === 'Tab'){
+      const card = $('.settings-card');
+      const controls = $$('button:not(:disabled), input:not(:disabled)', card)
+        .filter(el => !el.closest('[hidden]') && (el.type !== 'radio' || el.checked));
+      const first = controls[0], last = controls[controls.length - 1];
+      if(!card.contains(document.activeElement) || document.activeElement === (e.shiftKey ? first : last)){
+        e.preventDefault();
+        (e.shiftKey ? last : first)?.focus();
+      }
+    }
+    return;
+  }
   if(e.target.matches('.queue-tabs [role="tab"]') && !state.modalOpen && !state.readerOpen){
     if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){
       e.preventDefault();
@@ -4553,26 +4616,11 @@ async function boot(){
     await loadAISettings();
     await restoreConversation();
   }
-  paintThemeBtn();
   if(location.hash === ORGANIZE_HASH && state.workspace === 'search') applyWorkspaceFromLocation(false);
   else renderAll();
   if(!apiOnline){
     toast('连不上本地服务，请确认 run.py 还在运行，然后刷新页面');
   }
-}
-
-/* ============================================================
-   收尾
-   ============================================================ */
-function paintThemeBtn(){
-  const dark = document.documentElement.dataset.theme === 'dark';
-  const btn = $('#themeBtn');
-  if(!btn) return;
-  btn.innerHTML = dark
-    ? '<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="3.2" stroke="currentColor" stroke-width="1.3"/><path d="M8 1.6v1.4M8 13v1.4M1.6 8h1.4M13 8h1.4M3.5 3.5l1 1M11.5 11.5l1 1M12.5 3.5l-1 1M4.5 11.5l-1 1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>'
-    : '<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M13.4 9.6A5.6 5.6 0 0 1 6.4 2.6a5.6 5.6 0 1 0 7 7Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>';
-  btn.title = dark ? '切换浅色' : '切换深色';
-  btn.setAttribute('aria-label',btn.title);
 }
 
 /* 启动：只认本地服务，连不上就显示重连提示 */
