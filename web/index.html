@@ -962,7 +962,7 @@ function initialFacets(){
 const state = {
   q:'',
   organizeQ:'',
-  sort:'year',
+  sort:'year-desc',
   workspace:'search',
   queue:'review',
   searchListScroll:0,
@@ -1093,8 +1093,9 @@ function currentEvaluation(){
 }
 
 function sorter(a,b, sort = state.sort){
-  if(sort === 'added') return 0;
-  return (b.year ?? -1) - (a.year ?? -1);
+  if(a.year == null) return b.year == null ? 0 : 1;
+  if(b.year == null) return -1;
+  return sort === 'year-asc' ? a.year - b.year : b.year - a.year;
 }
 
 function getFiltered(){
@@ -1336,8 +1337,8 @@ function renderRescueButton(fix){
 
 function renderSearchHeader(ps){
   $('#searchHeader').innerHTML = '<div class="countrow"><div class="results-title"><h1 id="resultsTitle" tabindex="-1">文献检索</h1><span class="count" aria-live="polite">' + ps.length + ' / ' + currentEvaluation().total + ' 篇</span></div>' +
-    '<div class="countacts"><button class="btn filter-toggle" id="filterToggle" data-act="open-filters" aria-controls="sidebar" aria-expanded="' + state.filtersOpen + '">筛选</button><select class="sel" id="sort" aria-label="排序"><option value="year"' + (state.sort === 'year' ? ' selected' : '') + '>年份 新→旧</option>' +
-    '<option value="added"' + (state.sort === 'added' ? ' selected' : '') + '>入库顺序</option></select>' +
+    '<div class="countacts"><button class="btn filter-toggle" id="filterToggle" data-act="open-filters" aria-controls="sidebar" aria-expanded="' + state.filtersOpen + '">筛选</button><select class="sel" id="sort" aria-label="排序"><option value="year-desc"' + (state.sort === 'year-desc' ? ' selected' : '') + '>年份 新→旧</option>' +
+    '<option value="year-asc"' + (state.sort === 'year-asc' ? ' selected' : '') + '>年份 旧→新</option></select>' +
     '<button class="btn ask-btn" data-act="to-ai" aria-controls="detail" aria-expanded="' + (state.detailOpen && state.tab === 'ai') + '"' + (ps.length ? '' : ' disabled') + '>问 AI</button></div></div>';
 }
 
@@ -5157,7 +5158,7 @@ function renderShareModal(){
   }else if(mode === 'select'){
     body = '<div class="share-toolbar"><label class="share-search">' + importIcon('search') + '<input type="search" id="shareSearch" aria-label="搜索文献" placeholder="搜索文献" value="' + esc(filter.q) + '"></label>' +
       shareSelect('shareScope',scope,'检索范围',[['all','全库'],...Object.entries(LABEL_STATE_LABELS)]) +
-      shareSelect('shareSort',sort,'排序',[['year','年份最新'],['added','入库顺序']]) + '</div>' +
+      shareSelect('shareSort',sort,'排序',[['year-desc','年份 新→旧'],['year-asc','年份 旧→新']]) + '</div>' +
       '<div class="share-workspace"><aside class="share-filters" aria-label="筛选文献"><div class="share-filter-heading"><strong>筛选</strong>' +
       '<button class="linkbtn" data-act="share-reset">清除筛选</button></div><div class="share-filter-list">' + renderShareFilters() + '</div></aside>' +
       '<section class="share-list" aria-label="检索结果"><div class="share-list-head"><span id="shareResultCount"></span>' +
