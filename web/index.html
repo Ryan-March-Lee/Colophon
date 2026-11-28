@@ -1427,15 +1427,15 @@ function renderList(ps){
          '<h2 class="ptitle"><button data-act="select" data-id="' + id + '" aria-controls="detail" aria-expanded="' + current + '">' + esc(p.title) + '</button></h2>' +
          renderPaperMetadata(p) +
         (tags ? '<div class="ptags" aria-label="内容标签">' + tags + '</div>' : '') +
-      '</div>' +
-      '<div class="paper-actions">' +
-          '<div class="paper-tools"><button class="btn pdf-btn" data-act="' + readerAction + '" data-id="' + id + '">' + readerLabel + '</button>' +
-         '<details class="paper-menu"><summary title="更多操作" aria-label="更多操作">···</summary><div class="paper-menu-content">' +
-           '<button data-act="copy-cite" data-id="' + id + '">复制引用</button>' +
-           '<button class="delete-paper-action delete-paper-trigger" data-act="delete-paper" data-id="' + id + '" aria-haspopup="dialog">删除文献</button>' +
-         '</div></details></div>' +
-          reviewActions +
-      '</div></article>';
+       '</div>' +
+       '<div class="paper-actions">' +
+          '<div class="paper-tools paper-primary-tools">' +
+             '<button class="btn primary pdf-btn" data-act="' + readerAction + '" data-id="' + id + '">' + readerLabel + '</button>' +
+            '<button class="btn" data-act="copy-cite" data-id="' + id + '">复制引用</button>' +
+            '<button class="btn delete-paper-action delete-paper-trigger" data-act="delete-paper" data-id="' + id + '" aria-haspopup="dialog">删除文献</button>' +
+          '</div>' +
+           reviewActions +
+       '</div></article>';
   }).join('');
   $$('.paper-meta-more',el).forEach(x => { x.open = expanded.has(x.closest('.paper').dataset.id); });
   el.scrollTop = scroll;
@@ -1448,7 +1448,6 @@ function renderDetail(){
   const el = $('#detail');
   el.hidden = !state.detailOpen;
   $('#app').classList.toggle('show-detail',state.detailOpen);
-  $('#app').classList.toggle('show-paper-detail',state.detailOpen && state.tab === 'info');
   syncWorkspaceFocus();
   el.setAttribute('aria-label',state.tab === 'ai' ? 'AI 阅读' : '文献详情');
   if(el.hidden){
@@ -2240,7 +2239,6 @@ async function send(text){
     rememberConversation();
     let answer = String(data.answer || '');
     let citations = Array.isArray(data.citations) ? data.citations : [];
-    // 只保留回答里实际引用的来源，并按首次出现重新编号
     const used = [];
     answer = answer.replace(/\[(\d+)\]/g, function(match, digit){
       const index = parseInt(digit, 10) - 1;
@@ -3724,9 +3722,6 @@ window.addEventListener('popstate', () => applyWorkspaceFromLocation());
 
 /* 事件委托 */
 document.addEventListener('click', function(e){
-  for(const menu of $$('.paper-menu[open]')){
-    if(!menu.contains(e.target)) menu.open = false;
-  }
   if(e.target.id === 'modal'){
     if(state.modalMode === 'import') closeImportBrowser();
     else if(state.modalMode === 'share') closeShare();
@@ -3854,15 +3849,11 @@ document.addEventListener('click', function(e){
   else if(act === 'delete-paper'){
     const p = PAPERS.find(x => x.id === el.dataset.id);
     if(!p) return;
-    const menu = el.closest('.paper-menu');
-    if(menu) menu.open = false;
     openDeletePaperDialog(p);
   }
   else if(act === 'copy-cite'){
     const p = PAPERS.find(x => x.id === el.dataset.id);
     if(!p) return;
-    const menu = el.closest('.paper-menu');
-    if(menu){ menu.open = false; menu.querySelector('summary').focus({preventScroll:true}); }
     const year = (p.tags.year && p.tags.year[0]) || 'n.d.';
     const authors = (p.authors && p.authors.length) ? p.authors.join(', ') : '佚名';
     const venue = p.venue ? p.venue + ', ' : '';
@@ -4335,8 +4326,6 @@ document.addEventListener('keydown', function(e){
     return;
   }
   if(!state.modalOpen && !state.readerOpen && e.key === 'Escape' && !e.isComposing){
-    const openMenu = $('.paper-menu[open]');
-    if(openMenu){ openMenu.open = false; openMenu.querySelector('summary').focus({preventScroll:true}); return; }
     if(state.filtersOpen){ setFiltersOpen(false); return; }
     if(state.detailOpen){ closeDetail(); return; }
   }
